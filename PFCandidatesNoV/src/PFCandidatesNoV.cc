@@ -1,7 +1,7 @@
 /* PFCandidatesNoV.cc
  * Package:	EWKV/PFCandidatesNoV
  * Author:	Tom Cornelis
- * Update:	2013/03/18
+ * Update:	2013/03/19
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/PFCandidatesNoV/src/PFCandidatesNoV.cc?view=markup
  *
  * Class to select and extract the lepton(s) from Z or W from the PFCandidates collection
@@ -70,9 +70,9 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   bool vetoLepton = false;
 
   //Get primary vertex
-  edm::Handle<reco::VertexCollection> vtx;
-  iEvent.getByLabel(primaryVertexInputTag, vtx);
-  if(!vtx.isValid()) return false; 
+  edm::Handle<reco::VertexCollection> vtxs;
+  iEvent.getByLabel(primaryVertexInputTag, vtxs);
+  if(!vtxs.isValid()) return false; 
 
   // Get PF candidates
   edm::Handle<reco::PFCandidateCollection> pfCandidates;
@@ -90,7 +90,7 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   for(std::vector<reco::PFCandidate>::const_iterator pfCandidate = pfCandidates->begin(); pfCandidate != pfCandidates->end(); ++pfCandidate){
     if(reco::PFCandidate::ParticleType(pfCandidate->particleId()) != reco::PFCandidate::mu) continue;
     reco::MuonRef muref = pfCandidate->muonRef();
-    if(!(muref.isNonnull() && muonSelection(muref, vtx))){
+    if(!(muref.isNonnull() && muonSelection(muref, vtxs))){
       if(muonSelectionVeto(muref)) vetoLepton = true;
       continue;
     }
@@ -112,8 +112,8 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
     for(std::vector<reco::PFCandidate>::const_iterator pfCandidate = pfCandidates->begin(); pfCandidate != pfCandidates->end(); ++pfCandidate){
       if(reco::PFCandidate::ParticleType(pfCandidate->particleId()) != reco::PFCandidate::e) continue;
       reco::GsfElectronRef eref = pfCandidate->gsfElectronRef();
-      if(!(eref.isNonnull() && electronSelection(eref, pfCandidates, vtx, conversions, beamspot, rhoIso))){
-        if(electronSelectionVeto(eref, pfCandidates, vtx, conversions, beamspot, rhoIso)) vetoLepton = true;
+      if(!(eref.isNonnull() && electronSelection(eref, pfCandidates, vtxs, conversions, beamspot, rhoIso))){
+        if(electronSelectionVeto(eref, pfCandidates, vtxs, conversions, beamspot, rhoIso)) vetoLepton = true;
         continue;
       }
       if(TryZ(&(*pfCandidate), selectedElectrons)) break;						//Vectors are pt-ordered: select first pair which combine to Z, stop looking
@@ -222,7 +222,6 @@ void PFCandidatesNoV::fillDescriptions(edm::ConfigurationDescriptions& descripti
   desc.add<edm::InputTag>("beamSpotInputTag");
   desc.add<edm::InputTag>("rhoIsoInputTag");
   desc.add<edm::InputTag>("primaryVertexInputTag");
-  desc.add<std::vector<edm::InputTag> >("isoValInputTags");
   descriptions.add("PFCandidatesNoV", desc);
 }
 

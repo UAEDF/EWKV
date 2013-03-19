@@ -9,10 +9,6 @@ PFCandidatesNoVConfig = cms.EDFilter("PFCandidatesNoV",
     conversionsInputTag     = cms.InputTag("allConversions"),
     beamSpotInputTag        = cms.InputTag("offlineBeamSpot"),
     primaryVertexInputTag   = cms.InputTag("offlinePrimaryVertices"),
-    isoValInputTags         = cms.VInputTag(cms.InputTag('elPFIsoValueCharged03PFIdPFIso'),
-                                            cms.InputTag('elPFIsoValueGamma03PFIdPFIso'),
-                                            cms.InputTag('elPFIsoValueNeutral03PFIdPFIso')),
-
 )
 
 PFCandidatesNoV = cms.Sequence(kt6PFJetsForIsolation + PFCandidatesNoVConfig)

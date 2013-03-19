@@ -1,9 +1,9 @@
-import FWCore.ParameterSet.Config as cms
-
 MC = True
 
+import FWCore.ParameterSet.Config as cms
 process = cms.Process("EWKV")
 
+# CMSSW services, configurations, ...
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
@@ -12,17 +12,18 @@ process.load('Configuration/StandardSequences/GeometryExtended_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 process.load('Configuration/StandardSequences/Reconstruction_cff')
 process.load('Configuration/StandardSequences/FrontierConditions_GlobalTag_cff')
+if MC: process.GlobalTag.globaltag = 'START53_V19::All'  	# for MC
+else : process.GlobalTag.globaltag = 'GR_R_53_V21::All'  	# for DATA
 process.load('Configuration/StandardSequences/Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
 
+# Signal and number of events for test runs
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(200))
-
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(
-      '/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root'
-    )
+    fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root')
 )
 
+# GEN Particles 
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.printTree = cms.EDAnalyzer("ParticleListDrawer",
   maxEventsToPrint = cms.untracked.int32(-1),
@@ -30,26 +31,17 @@ process.printTree = cms.EDAnalyzer("ParticleListDrawer",
   src = cms.InputTag("genParticles")
 )
 
-process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
-
-process.load('RecoJets.Configuration.RecoPFJets_cff')
-process.kt6PFJets.doRhoFastjet = True
-process.ak5PFJets.doAreaFastjet = True
-
-
-if MC: process.GlobalTag.globaltag = 'START53_V19::All'  	# for MC
-else : process.GlobalTag.globaltag = 'GR_R_53_V21::All'  	# for DATA
-
 # PFCandidatesNoV filter/producer 
 process.load('EWKV.PFCandidatesNoV.PFCandidatesNoV_cff')  
 
-# jet producer
+# jet producer and corrections
+process.load('RecoJets.Configuration.RecoPFJets_cff')
+process.kt6PFJets.doRhoFastjet = True
+process.ak5PFJets.doAreaFastjet = True
 process.ak5PFJetsNoV = process.ak5PFJets.clone(
-    src = cms.InputTag("PFCandidatesNoLL","pfCandidatesNoV")
+    src = cms.InputTag("PFCandidatesNoV","pfCandidatesNoV")
 )
 
-
-# jet corrections
 if MC: jetcorrection = 'ak5PFL1FastL2L3'			# for MC
 else : jetcorrection = 'ak5PFL1FastL2L3Residual'	 	# for DATA
 process.ak5PFJetsL1FastL2L3NoV   = cms.EDProducer('PFJetCorrectionProducer',
@@ -57,19 +49,12 @@ process.ak5PFJetsL1FastL2L3NoV   = cms.EDProducer('PFJetCorrectionProducer',
     correctors  = cms.vstring(jetcorrection),
 )
 
-# gluon tag producer
+# QuarkGluonTagger
 process.load('QuarkGluonTagger.EightTeV.QGTagger_RecoJets_cff')  
 process.QGTagger.srcJets = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
 
-
-# extra tracks producer (out of 2-lepton + 2-jets system)
-process.extraTracks = cms.EDProducer('ExtraTracks')
-
-#
-process.ak5SoftTrackJets = process.ak5TrackJets.clone() 
-#process.ak5SoftTrackJets.src  = cms.InputTag("outTracks")
-process.ak5SoftTrackJets.src  = ('extraTracks')
-process.ak5SoftTrackJets.jetPtMin = cms.double(1.0)
+# extra tracks producer (out of V + 2-jets system)
+process.load('EWKV.ExtraTracks.SoftTrackJets_cff')  
 
 # our analyzer
 process.lljets = cms.EDAnalyzer('LLJets',
@@ -81,5 +66,6 @@ process.lljets = cms.EDAnalyzer('LLJets',
 )
 
 #process.p = cms.Path(process.kt6PFJets * process.PFCandidatesNoLL * process.ak5PFJetsNoLL * process.ak5PFJetsL1FastL2L3NoLL * process.QuarkGluonTagger * process.extraTracks *process.ak5SoftTrackJets * process.lljets)
-process.p = cms.Path(process.kt6PFJets * process.PFCandidatesNoV)
+process.p = cms.Path(process.PFCandidatesNoV * process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * process.QuarkGluonTagger * 
+                     process.softTrackJets)
 

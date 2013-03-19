@@ -30,10 +30,10 @@
 
 #include "../interface/PFCandidatesNoV.h"
 
-bool PFCandidatesNoV::muonSelection(const reco::MuonRef mu, edm::Handle<reco::VertexCollection> vtx){
+bool PFCandidatesNoV::muonSelection(const reco::MuonRef mu, edm::Handle<reco::VertexCollection> vtxs){
   if(mu->pt() < muon_pt_min)	  			return false;
   if(fabs(mu->eta()) > muon_eta_max) 			return false;
-  if(!muon::isTightMuon(*(mu.get()), *(vtx->begin())))	return false;
+  if(!muon::isTightMuon(*(mu.get()), *(vtxs->begin())))	return false;
 
   // Isolation cut (used in 7TeV analysis)
   double isoTrack = mu->isolationR03().sumPt/mu->pt();
@@ -50,19 +50,19 @@ bool PFCandidatesNoV::muonSelection(const reco::MuonRef mu, edm::Handle<reco::Ve
 }
 
 
-bool PFCandidatesNoV::electronSelection(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtx, 
+bool PFCandidatesNoV::electronSelection(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtxs, 
                                         edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso){
   if(e->pt() < electron_pt_min) 			return false;
   if(fabs(e->eta()) > electron_eta_max) 		return false;
   if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false; //NEW: Exclude this, like in other analyses
 
-  isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtx, 0), vtx);
+  isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtxs, 0), vtxs);
   double iso_ch = isolator.getIsolationCharged();
   double iso_em = isolator.getIsolationPhoton();
   double iso_nh = isolator.getIsolationNeutral();
 
-  return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, e, conversions, *(beamspot.product()), vtx, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
-//return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::MEDIUM, e, conversions, *(beamspot.product()), vtx, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
+  return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
+//return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::MEDIUM, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
 }
 
 
@@ -88,16 +88,16 @@ bool PFCandidatesNoV::muonSelectionVeto(const reco::MuonRef mu){
 }
 
 
-bool PFCandidatesNoV::electronSelectionVeto(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtx, 
+bool PFCandidatesNoV::electronSelectionVeto(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtxs, 
                                             edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso){
   if(e->pt() < veto_electron_pt_min) 			return false;
   if(fabs(e->eta()) > electron_eta_max) 		return false;
   if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false; //NEW: Exclude this, like in other analyses
 
-  isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtx, 0), vtx);
+  isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtxs, 0), vtxs);
   double iso_ch = isolator.getIsolationCharged();
   double iso_em = isolator.getIsolationPhoton();
   double iso_nh = isolator.getIsolationNeutral();
 
-  return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, e, conversions, *(beamspot.product()), vtx, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
+  return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
 }
