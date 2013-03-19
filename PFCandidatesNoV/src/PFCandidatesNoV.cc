@@ -102,7 +102,7 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   }
 
 
-  if(type == UNDEFINED){										//If no V found using muons, try electrons
+  if(type != ZMUMU){											//If no Z found using muons, try electrons
     //Stuff needed for the electron ID
     edm::Handle<reco::ConversionCollection> conversions; 	iEvent.getByLabel(conversionsInputTag, conversions);
     edm::Handle<reco::BeamSpot> beamspot;			iEvent.getByLabel(beamSpotInputTag, beamspot);
