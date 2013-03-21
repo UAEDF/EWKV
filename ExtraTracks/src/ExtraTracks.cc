@@ -40,8 +40,6 @@ ExtraTracks::ExtraTracks(const edm::ParameterSet& iConfig):
 }
 
 
-ExtraTracks::~ExtraTracks(){}
-
 void ExtraTracks::produce(edm::Event& iEvent, const edm::EventSetup& iSetup){
   //TrackCollection extraTracks;
   std::auto_ptr<reco::RecoChargedRefCandidateCollection> extraTracks(new reco::RecoChargedRefCandidateCollection);
@@ -74,8 +72,7 @@ void ExtraTracks::produce(edm::Event& iEvent, const edm::EventSetup& iSetup){
   // Loop over tracks
   edm::Handle<reco::TrackCollection> tracks;
   iEvent.getByLabel(tracksInputTag, tracks);
-  unsigned int iTrack = 0;
-  for(reco::TrackCollection::const_iterator track = tracks->begin(); track != tracks->end(); ++track, ++iTrack){
+  for(reco::TrackCollection::const_iterator track = tracks->begin(); track != tracks->end(); ++track){
     if(!(track->quality(reco::TrackBase::highPurity) && track->pt() > 0.3)) continue;	//Select high purity and pT > 300 MeV
 
     // minimum z-distance of track to the first PV : 2mm && 3sigma
@@ -99,7 +96,7 @@ void ExtraTracks::produce(edm::Event& iEvent, const edm::EventSetup& iSetup){
     if(exclude) continue;      
 
     // assign the pi+ mass to the candidate
-    reco::RecoChargedRefCandidate refCand = reco::RecoChargedRefCandidate(reco::TrackRef(tracks, iTrack), 0.139);
+    reco::RecoChargedRefCandidate refCand = reco::RecoChargedRefCandidate(reco::TrackRef(tracks, track - tracks->begin()), 0.139);
     extraTracks->push_back(refCand);
   }
 

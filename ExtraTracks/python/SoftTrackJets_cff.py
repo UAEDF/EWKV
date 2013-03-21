@@ -15,4 +15,4 @@ ak5SoftTrackJets = ak5TrackJets.clone(
    jetPtMin = cms.double(1.0)
 )
 
-softTrackJets = cms.Sequence(extraTracks + ak5SoftTrackJets)
+seqSoftTrackJets = cms.Sequence(extraTracks + ak5SoftTrackJets)

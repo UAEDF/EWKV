@@ -1,7 +1,7 @@
 /* PFCandidatesNoV.cc
  * Package:	EWKV/PFCandidatesNoV
  * Author:	Tom Cornelis
- * Update:	2013/03/19
+ * Update:	2013/03/21
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/PFCandidatesNoV/src/PFCandidatesNoV.cc?view=markup
  *
  * Class to select and extract the lepton(s) from Z or W from the PFCandidates collection
@@ -59,13 +59,10 @@ PFCandidatesNoV::PFCandidatesNoV(const edm::ParameterSet& iConfig):
 }
 
 
-PFCandidatesNoV::~PFCandidatesNoV(){}
-
-
 bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   fillPU(iEvent);
  
-  VType type = UNDEFINED; 
+  type = UNDEFINED; 
   lepton1 = NULL, lepton2 = NULL;
   bool vetoLepton = false;
 
@@ -130,17 +127,17 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   if(((type == WMUNU) || (type == WENU)) && vetoLepton) return false;
   
   // Split the V leptons from the other candidates
-  std::auto_ptr<reco::PFCandidateCollection> pfCandidatesNoLL(new reco::PFCandidateCollection());
+  std::auto_ptr<reco::PFCandidateCollection> pfCandidatesNoV(new reco::PFCandidateCollection());
   std::auto_ptr<reco::PFCandidateCollection> pfLeptons(new reco::PFCandidateCollection());
   for(std::vector<reco::PFCandidate>::const_iterator pfCandidate = pfCandidates->begin(); pfCandidate != pfCandidates->end(); ++pfCandidate){
     if(&(*pfCandidate) == lepton1 || &(*pfCandidate) == lepton2) pfLeptons->push_back(*pfCandidate);
-    else pfCandidatesNoLL->push_back(*pfCandidate);
+    else pfCandidatesNoV->push_back(*pfCandidate);
   }
 
   // Put VType and splitted pfCandidates in the event
   std::auto_ptr<int> theType(new int(type));
   iEvent.put(theType, "VType");
-  iEvent.put(pfCandidatesNoLL, "pfCandidatesNoV");
+  iEvent.put(pfCandidatesNoV, "pfCandidatesNoV");
   iEvent.put(pfLeptons, "pfLeptons");
   return true;
 }
@@ -154,7 +151,7 @@ bool PFCandidatesNoV::TryW(const reco::PFCandidate *lepton, const reco::PFMET *m
   double massT = eT*eT - px*px - py*py;
   if(massT < transverse_Wmass_min) return false;
   lepton1 = lepton;
-  if(reco::PFCandidate::ParticleType(lepton->particleId()) != reco::PFCandidate::mu) type = WMUNU;
+  if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::mu) type = WMUNU;
   else type = WENU;
   return true;
 }
@@ -166,7 +163,7 @@ bool PFCandidatesNoV::TryZ(const reco::PFCandidate *lepton, std::vector<const re
     reco::Candidate::LorentzVector ZCandidate = lepton->p4() + (*secondLepton)->p4();
     if(sqrt(ZCandidate.M2()) < dilepton_mass_min) continue;
     lepton1 = lepton; lepton2 = *secondLepton;
-    if(reco::PFCandidate::ParticleType(lepton->particleId()) != reco::PFCandidate::mu) type = ZMUMU;
+    if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::mu) type = ZMUMU;
     else type = ZEE;
     return true;
   }

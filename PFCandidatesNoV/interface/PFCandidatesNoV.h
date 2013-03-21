@@ -1,7 +1,7 @@
 /* PFCandidatesNoV.h
  * Package:	EWKV/PFCandidatesNoV
  * Author:	Tom Cornelis
- * Update:	2013/03/18
+ * Update:	2013/03/21
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/PFCandidatesNoV/src/PFCandidatesNoV.cc?view=markup
  *
  * Class to select and extract the lepton(s) from Z or W from the PFCandidates collection
@@ -32,9 +32,9 @@
 class PFCandidatesNoV : public edm::EDFilter{
   public:
     explicit PFCandidatesNoV(const edm::ParameterSet&);
-    ~PFCandidatesNoV();
+    ~PFCandidatesNoV(){};
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-    enum VType { UNDEFINED, WMUNU, WENU, ZMUMU, ZEE};
+    enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
   private:
     virtual void beginJob();

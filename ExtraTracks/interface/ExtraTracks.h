@@ -19,7 +19,7 @@
 class ExtraTracks : public edm::EDProducer {
    public:
       explicit ExtraTracks(const edm::ParameterSet&);
-      ~ExtraTracks();
+      ~ExtraTracks(){};
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
    private:
