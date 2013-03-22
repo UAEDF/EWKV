@@ -8,13 +8,13 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.load('Configuration.StandardSequences.Services_cff')
-process.load('Configuration/StandardSequences/GeometryExtended_cff')
+process.load('Configuration.StandardSequences.GeometryExtended_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
-process.load('Configuration/StandardSequences/Reconstruction_cff')
-process.load('Configuration/StandardSequences/FrontierConditions_GlobalTag_cff')
-if MC: process.GlobalTag.globaltag = 'START53_V7G::All'  	# for MC
+process.load('Configuration.StandardSequences.Reconstruction_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+if MC: process.GlobalTag.globaltag = 'START53_V19::All'  	# for MC
 else : process.GlobalTag.globaltag = 'GR_R_53_V21::All'  	# for DATA
-process.load('Configuration/StandardSequences/Generator_cff')
+process.load('Configuration.StandardSequences.Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
 
 # Signal and number of events for test runs
@@ -42,11 +42,12 @@ process.ak5PFJetsNoV = process.ak5PFJets.clone(
     src = cms.InputTag('PFCandidatesNoV','pfCandidatesNoV')
 )
 
+process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
 if MC: jetcorrection = 'ak5PFL1FastL2L3'			# for MC
 else : jetcorrection = 'ak5PFL1FastL2L3Residual'	 	# for DATA
 process.ak5PFJetsL1FastL2L3NoV   = cms.EDProducer('PFJetCorrectionProducer',
     src         = cms.InputTag('ak5PFJetsNoV'), 
-    correctors  = cms.vstring(jetcorrection),
+    correctors  = cms.vstring(jetcorrection)
 )
 
 # QuarkGluonTagger
