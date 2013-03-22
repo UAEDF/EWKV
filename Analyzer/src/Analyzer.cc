@@ -1,13 +1,10 @@
 /* Analyzer.cc
  * Package:	EWKV/Analyzer
  * Author:	Tom Cornelis, Paolo Azzurri, Alex Van Spilbeeck
- * Update:	2013/03/21
+ * Update:	2013/03/22
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/Analyzer/src/Analyzer.cc?view=markup
  * 
  * Analyzer class for the EWKV analysis
- *
- * TO DO:	- Update/clean up code in order to work in the EWKV framework
- *		- Implement jet ID
  */
 
 #include <memory>
@@ -171,6 +168,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   nJets = 0;
   vJets->Clear();
   for(reco::PFJetCollection::const_iterator jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet, ++nJets){
+    if(!jetId(&(*jet))) continue;
     new((*vJets)[nJets]) TLorentzVector(jet->px(), jet->py(), jet->pz(), jet->energy());
 
     jecUnc->setJetEta(jet->eta());
@@ -359,6 +357,22 @@ void Analyzer::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup){
   bool changed=true;
   if (hltConfig_.init(iRun,iSetup,HLT_process,changed)) prescalersOK=true;
 }
+
+
+
+bool Analyzer::jetId(const reco::PFJet *jet){
+  //jetID taken from https://twiki.cern.ch/twiki/bin/view/CMS/JetID#Recommendations_for_7_TeV_data_a (no twiki for 8TeV available)
+  if(jet->neutralHadronEnergyFraction() > .99) return false;
+  if(jet->neutralEmEnergyFraction() > .99) return false;
+  if(jet->getPFConstituents().size() < 2) return false;
+  if(abs(jet->eta()) < 2.4){
+    if(jet->chargedHadronEnergyFraction() == 0) return false;
+    if(jet->chargedEmEnergyFraction() > .99) return false;
+    if(jet->chargedMultiplicity() == 0) return false;
+  }
+  return true;
+}
+
 
 
 void Analyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions){

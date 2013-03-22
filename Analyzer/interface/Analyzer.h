@@ -1,13 +1,10 @@
 /* Analyzer.cc
  * Package:	EWKV/Analyzer
  * Author:	Tom Cornelis, Paolo Azzurri, Alex Van Spilbeeck
- * Update:	2013/03/20
+ * Update:	2013/03/22
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/Analyzer/src/Analyzer.cc?view=markup
  * 
  * Analyzer class for the EWKV analysis
- *
- * TO DO:	- Update/clean up code in order to work in the EWKV framework
- *		- Implement jet ID
  */
 
 #include <memory>
@@ -67,6 +64,7 @@ class Analyzer : public edm::EDAnalyzer{
     virtual void analyze(const edm::Event&, const edm::EventSetup&);
     virtual void endJob() ;
     virtual void beginRun(edm::Run const&, edm::EventSetup const&);
+    bool jetId(const reco::PFJet*);
 
     TFile *f_Analyzer; 
     TTree *t_Analyzer; 

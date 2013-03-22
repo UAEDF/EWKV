@@ -50,6 +50,8 @@ process.ak5PFJetsL1FastL2L3NoV   = cms.EDProducer('PFJetCorrectionProducer',
     correctors  = cms.vstring(jetcorrection)
 )
 
+
+
 # QuarkGluonTagger
 process.load('QuarkGluonTagger.EightTeV.QGTagger_RecoJets_cff')  
 process.QGTagger.srcJets = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
