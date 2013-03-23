@@ -15,4 +15,5 @@
 <use name="CondFormats/JetMETObjects"/>
 <use name="DataFormats/HLTReco"/>
 <use name="HLTrigger/HLTcore"/>
+<use name="EGamma/EGammaAnalysisTools"/>
 <flags EDM_PLUGIN="1"/>

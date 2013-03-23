@@ -22,8 +22,6 @@
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include <DataFormats/MuonReco/interface/Muon.h> 
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
-#include "DataFormats/MuonReco/interface/MuonQuality.h"
-#include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/JetReco/interface/GenJet.h"
@@ -47,6 +45,10 @@
 #include "TLorentzVector.h"
 #include "TClonesArray.h"
 
+//Temp
+#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
+//End temp
+
 
 const int maxGen = 10;
 const int maxJet = 10;
@@ -66,6 +68,14 @@ class Analyzer : public edm::EDAnalyzer{
     virtual void beginRun(edm::Run const&, edm::EventSetup const&);
     bool jetId(const reco::PFJet*);
 
+    // Tempory to check different isolation methods
+    bool muonSelection(const reco::MuonRef mu, edm::Handle<reco::VertexCollection> vtxs);
+    bool electronSelection(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtxs, 
+                                        edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso);
+    PFIsolationEstimator isolator;
+    bool alternativeIsolation[2];
+    // End tempory to check different isolation mehtods
+
     TFile *f_Analyzer; 
     TTree *t_Analyzer; 
     TString fileName;
@@ -82,8 +92,11 @@ class Analyzer : public edm::EDAnalyzer{
     int leptonCharge[2];
     TClonesArray *vLeptons; 
 
+    float met, metPhi, metSig; 
+
     int nJets;
     int ncJets[maxJet];
+    bool jetID[maxJet];
     double jetUncertainty[maxJet];
     float jetSmearedPt[maxJet], genJetPt[maxJet], jetQGMLP[maxJet], jetQGLikelihood[maxJet];
     TClonesArray *vJets; 
@@ -101,6 +114,7 @@ class Analyzer : public edm::EDAnalyzer{
     edm::InputTag genJetsInputTag;
     edm::InputTag pfJetsNoVInputTag;
     edm::InputTag pfLeptonsInputTag;
+    edm::InputTag metInputTag;
     edm::InputTag softTrackJetsInputTag;
     edm::InputTag rhoInputTag;
     edm::InputTag primaryVertexInputTag;
