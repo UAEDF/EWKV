@@ -50,22 +50,22 @@ process.ak5PFJetsL1FastL2L3NoV = cms.EDProducer('PFJetCorrectionProducer',
     correctors  = cms.vstring(jetcorrection)
 )
 
-# MET corrections (type I + type 0 with PFCandidate + x/y shift correction)
+# MET corrections (type I + x/y shift correction)
 process.load("JetMETCorrections.Type1MET.pfMETCorrections_cff")
 process.pfJetMETcorr.src = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
 process.pfJetMETcorr.jetCorrLabel = cms.string(jetcorrection)
 
-process.load("JetMETCorrections.Type1MET.pfMETCorrectionType0_cfi")
-process.pfType1CorrectedMet.applyType0Corrections = cms.bool(False)
+#process.load("JetMETCorrections.Type1MET.pfMETCorrectionType0_cfi") 	#Type 0 does not work
+#process.pfType1CorrectedMet.applyType0Corrections = cms.bool(False)
 
 process.load("JetMETCorrections.Type1MET.pfMETsysShiftCorrections_cfi")
 if MC: process.pfMEtSysShiftCorr.parameter = process.pfMEtSysShiftCorrParameters_2012runAvsNvtx_mc
 else : process.pfMEtSysShiftCorr.parameter = process.pfMEtSysShiftCorrParameters_2012runAvsNvtx_data
 
 process.pfType1CorrectedMet.srcType1Corrections = cms.VInputTag(
-    cms.InputTag('pfMETcorrType0'),
+#    cms.InputTag('pfMETcorrType0'),					#Type 0 does not work
     cms.InputTag('pfJetMETcorr', 'type1') ,
-#    cms.InputTag('pfMEtSysShiftCorr')  
+    cms.InputTag('pfMEtSysShiftCorr')  
 )
 
 
@@ -79,7 +79,7 @@ process.load('EWKV.ExtraTracks.SoftTrackJets_cff')
 # our analyzer
 process.ewkv = cms.EDAnalyzer('Analyzer',
 	fileName 		= cms.untracked.string('ewkv.root'),
-        HLT_paths 		= cms.vstring("HLT_DoubleMu6","HLT_DoubleMu7","HLT_DoubleMu8","HLT_Mu13_Mu8","HLT_Mu17_Mu8","HLT_Mu17_TkMu8",
+        HLT_paths 		= cms.vstring("HLT_DoubleMu8","HLT_Mu13_Mu8","HLT_Mu17_Mu8","HLT_Mu17_TkMu8",
                                       "HLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL",
                                       "HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL",
  				      "HLT_Mu9","HLT_Mu15",
@@ -96,6 +96,8 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 
 process.p = cms.Path(process.seqPFCandidatesNoV * 
 		     process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
-#		     process.type0PFMEtCorrection * process.producePFMETCorrections * #Does not work
+#		     process.type0PFMEtCorrection * 							#Type 0 does not work
+		     process.pfMEtSysShiftCorrSequence *
+		     process.producePFMETCorrections *
 		     process.QuarkGluonTagger * process.seqSoftTrackJets * process.ewkv)
 
