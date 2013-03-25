@@ -45,11 +45,28 @@ process.ak5PFJetsNoV = process.ak5PFJets.clone(
 process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
 if MC: jetcorrection = 'ak5PFL1FastL2L3'			# for MC
 else : jetcorrection = 'ak5PFL1FastL2L3Residual'	 	# for DATA
-process.ak5PFJetsL1FastL2L3NoV   = cms.EDProducer('PFJetCorrectionProducer',
+process.ak5PFJetsL1FastL2L3NoV = cms.EDProducer('PFJetCorrectionProducer',
     src         = cms.InputTag('ak5PFJetsNoV'), 
     correctors  = cms.vstring(jetcorrection)
 )
 
+# MET corrections (type I + type 0 with PFCandidate + x/y shift correction)
+process.load("JetMETCorrections.Type1MET.pfMETCorrections_cff")
+process.pfJetMETcorr.src = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
+process.pfJetMETcorr.jetCorrLabel = cms.string(jetcorrection)
+
+process.load("JetMETCorrections.Type1MET.pfMETCorrectionType0_cfi")
+process.pfType1CorrectedMet.applyType0Corrections = cms.bool(False)
+
+process.load("JetMETCorrections.Type1MET.pfMETsysShiftCorrections_cfi")
+if MC: process.pfMEtSysShiftCorr.parameter = process.pfMEtSysShiftCorrParameters_2012runAvsNvtx_mc
+else : process.pfMEtSysShiftCorr.parameter = process.pfMEtSysShiftCorrParameters_2012runAvsNvtx_data
+
+process.pfType1CorrectedMet.srcType1Corrections = cms.VInputTag(
+    cms.InputTag('pfMETcorrType0'),
+    cms.InputTag('pfJetMETcorr', 'type1') ,
+#    cms.InputTag('pfMEtSysShiftCorr')  
+)
 
 
 # QuarkGluonTagger
@@ -64,7 +81,9 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 	fileName 		= cms.untracked.string('ewkv.root'),
         HLT_paths 		= cms.vstring("HLT_DoubleMu6","HLT_DoubleMu7","HLT_DoubleMu8","HLT_Mu13_Mu8","HLT_Mu17_Mu8","HLT_Mu17_TkMu8",
                                       "HLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL",
-                                      "HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL"),
+                                      "HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL",
+ 				      "HLT_Mu9","HLT_Mu15",
+				      "HLT_Ele17_CaloIdL_CaloIsoVL","HLT_Ele22_CaloIdL_CaloIsoVL"),
         HLT_process 		= cms.string("HLT"),
 	genJetsInputTag		= cms.InputTag('ak5GenJets'),
 	pfJetsNoVJetsInputTag	= cms.InputTag('ak5PFJetsL1FastL2L3NoV'),
@@ -75,6 +94,8 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
         primaryVertexInputTag	= cms.InputTag('offlinePrimaryVertices')
 )
 
-process.p = cms.Path(process.seqPFCandidatesNoV * process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * process.QuarkGluonTagger * 
-                     process.seqSoftTrackJets * process.ewkv)
+process.p = cms.Path(process.seqPFCandidatesNoV * 
+		     process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
+#		     process.type0PFMEtCorrection * process.producePFMETCorrections * #Does not work
+		     process.QuarkGluonTagger * process.seqSoftTrackJets * process.ewkv)
 

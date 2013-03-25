@@ -49,15 +49,6 @@
 
 #include "../interface/Analyzer.h"
 
-//Tempory to check different isolation methods
-#include "EGamma/EGammaAnalysisTools/interface/EGammaCutBasedEleId.h"
-#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
-#include "DataFormats/MuonReco/interface/Muon.h" 
-#include "DataFormats/MuonReco/interface/MuonFwd.h" 
-#include "DataFormats/MuonReco/interface/MuonSelectors.h"
-//End tempory to check different isolation methods
-
-
 
 Analyzer::Analyzer(const edm::ParameterSet& iConfig) :
   fileName(			TString(iConfig.getUntrackedParameter<std::string>("fileName","ewkv.root"))),
@@ -71,10 +62,6 @@ Analyzer::Analyzer(const edm::ParameterSet& iConfig) :
   rhoInputTag(    	     	iConfig.getParameter<edm::InputTag>("rhoInputTag")),
   primaryVertexInputTag(  	iConfig.getParameter<edm::InputTag>("primaryVertexInputTag"))
 {
-  //tempory
-  isolator.initializeElectronIsolation(kTRUE);
-  isolator.setConeSize(0.3); 
-  //end tempory
 }
 
 
@@ -144,13 +131,6 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   iEvent.getByLabel("PFCandidatesNoV","VType", type);
   vType = *type;
 
-  
-  //Tempory to test different isolation methods
-  edm::Handle<reco::ConversionCollection> conversions; 	iEvent.getByLabel("allConversions", conversions);
-  edm::Handle<reco::BeamSpot> beamspot;			iEvent.getByLabel("offlineBeamSpot", beamspot);
-  edm::Handle<double> rhoIso;				iEvent.getByLabel("kt6PFJetsForIsolation", "rho", rhoIso);
-  edm::Handle<reco::PFCandidateCollection> pfCandidates;iEvent.getByLabel("particleFlow", pfCandidates);
-  //End tempory to test different isolation methods
 
  /*********************************
   * Leptons from the vector boson *
@@ -163,15 +143,6 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   for(reco::PFCandidateCollection::const_iterator lepton = pfLeptons->begin(); lepton != pfLeptons->end(); ++lepton, ++nLeptons){
     new((*vLeptons)[nLeptons]) TLorentzVector(lepton->px(), lepton->py(), lepton->pz(), lepton->energy());
     leptonCharge[nLeptons] = lepton->charge();
-    //Tempory to test different isolation methods
-    if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::e){
-      reco::GsfElectronRef eref = lepton->gsfElectronRef();
-      alternativeIsolation[nLeptons] = electronSelection(eref, pfCandidates, vtxs, conversions, beamspot, rhoIso);
-    } else {
-      reco::MuonRef muref = lepton->muonRef();
-      alternativeIsolation[nLeptons] = muonSelection(muref, vtxs);
-    }
-    //End tempory to test different isolation methods
   }
 
 
@@ -181,9 +152,11 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   edm::Handle<reco::PFMETCollection> METCollection;
   iEvent.getByLabel(metInputTag, METCollection);
   const reco::PFMET *pfMet = &(METCollection->front());
+  new((*vMET)[0]) TLorentzVector(pfMet->px(), pfMet->py(), pfMet->pz(), pfMet->energy());
   met = pfMet->et();
   metPhi = pfMet->phi();
   metSig = pfMet->et()/pfMet->sumEt();
+
 
  /*****************************************************************************
   * anti-kt 0.5 PFJets (no V), including corrections, genJets, QG tagging,... *
@@ -332,6 +305,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 void Analyzer::beginJob(){
   vGenPart = new TClonesArray("TLorentzVector", maxGen);
   vLeptons = new TClonesArray("TLorentzVector", 2);
+  vMET = new TClonesArray("TLorentzVector", 1);
   vJets = new TClonesArray("TLorentzVector", maxJet);
   vSoftTrackJets = new TClonesArray("TLorentzVector", maxSTJ);
 
@@ -354,8 +328,8 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("nLeptons",		&nLeptons,	"nLeptons/I");
   t_Analyzer->Branch("vLeptons","TClonesArray", &vLeptons, 	32000, 0);
   t_Analyzer->Branch("leptonCharge", 		leptonCharge, 	"leptonCharge[nLeptons]/I");
-  t_Analyzer->Branch("alternativeIsolation", 	alternativeIsolation, "alternativeIsolation[nLeptons]/O");
 
+  t_Analyzer->Branch("vMET","TClonesArray", 	&vMET, 		32000, 0);
   t_Analyzer->Branch("met",			&met ,		"met/F");
   t_Analyzer->Branch("metPhi",			&metPhi ,	"metPhi/F");
   t_Analyzer->Branch("metSig",			&metSig ,	"metSig/F");
@@ -433,44 +407,6 @@ void Analyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions){
   desc.add<edm::InputTag>("rhoInputTag");
   desc.add<edm::InputTag>("primaryVertexInputTag");
   descriptions.add("Analyzer",desc);
-}
-
-
-/*************************************************
- * Tempory to check different isolations methods *
- *************************************************/
-bool Analyzer::muonSelection(const reco::MuonRef mu, edm::Handle<reco::VertexCollection> vtxs){
-  if(mu->pt() < 20)	  			return false;
-  if(fabs(mu->eta()) > 2.4) 			return false;
-  if(!muon::isTightMuon(*(mu.get()), *(vtxs->begin())))	return false;
-/*
-  // Isolation cut (used in 7TeV analysis)
-  double isoTrack = mu->isolationR03().sumPt/mu->pt();
-  if(isoTrack > 0.1) 			return false;*/ //Used in PFCandidatesNoV
-  //ALTERNATIVE: PFisolation with deltaBeta corrections used in almost all other 2012 Vjets analyses
-  double chargedHadronPt = mu->pfIsolationR04().sumChargedHadronPt;
-  double neutralHadronPt = mu->pfIsolationR04().sumNeutralHadronEt;
-  double photonPt 	 = mu->pfIsolationR04().sumPhotonEt;
-  double PUPt 	 	 = mu->pfIsolationR04().sumPUPt;
-  double iso = (chargedHadronPt + max(0., neutralHadronPt + photonPt - 0.5*PUPt))/mu->pt();
-  if(iso > 0.2)				return false;  //or 0.12 (tight) https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Muon_Isolation_AN1
-  return true;
-}
-
-
-bool Analyzer::electronSelection(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtxs, 
-                                        edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso){
-  if(e->pt() < 20) 					return false;
-  if(fabs(e->eta()) > 2.4) 				return false;
-  if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false; //NEW: Exclude this, like in other analyses
-
-  isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtxs, 0), vtxs);
-  double iso_ch = isolator.getIsolationCharged();
-  double iso_em = isolator.getIsolationPhoton();
-  double iso_nh = isolator.getIsolationNeutral();
-
-// return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product())); //Used in PFCandidatesNoV
-  return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::MEDIUM, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
 }
 
 
