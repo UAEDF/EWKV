@@ -1,7 +1,7 @@
 /* Analyzer.cc
  * Package:	EWKV/Analyzer
  * Author:	Tom Cornelis, Paolo Azzurri, Alex Van Spilbeeck
- * Update:	2013/03/22
+ * Update:	2013/03/27
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/Analyzer/src/Analyzer.cc?view=markup
  * 
  * Analyzer class for the EWKV analysis
@@ -74,7 +74,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
  /*********************************************************************************************
   * Get pile-up, the jet rho for L1 PU corrections and the number of offline primary vertices *
   *********************************************************************************************/
-  edm::Handle< std::vector< PileupSummaryInfo > >  PupInfo;
+  edm::Handle<std::vector<PileupSummaryInfo>>  PupInfo;
   iEvent.getByLabel("addPileupInfo", PupInfo);
 
   nPileUp = -1;
@@ -228,10 +228,12 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   iEvent.getByLabel(softTrackJetsInputTag, trackJets);
 
   nSoftTrackJets = 0;
+  softHT = 0;
   vSoftTrackJets->Clear();
   if(trackJets.isValid()){
     for(reco::TrackJetCollection::const_iterator trackJet = trackJets->begin(); trackJet != trackJets->end() && nSoftTrackJets < maxSTJ; ++trackJet, ++nSoftTrackJets){
-      new((*vSoftTrackJets)[nSoftTrackJets]) TLorentzVector(trackJet->px(), trackJet->py(), trackJet->pz(), trackJet->energy());
+      if(nSoftTrackJets < maxSTJ) new((*vSoftTrackJets)[nSoftTrackJets]) TLorentzVector(trackJet->px(), trackJet->py(), trackJet->pz(), trackJet->energy());
+      softHT += trackJet->pt();
     }
   } 
 
@@ -344,7 +346,8 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("jetSmearedPt",		jetSmearedPt, 	"jetSmearedPt[nJets]/F");
   t_Analyzer->Branch("ncJets", 			ncJets, 	"ncJets[nJets]/I");
 
-  t_Analyzer->Branch("nSoftTrackJets", 		&nSoftTrackJets, "nSoftTrackJets/I");
+  t_Analyzer->Branch("nSoftTrackJets", 		&nSoftTrackJets,"nSoftTrackJets/I");
+  t_Analyzer->Branch("softHT", 			&softHT, 	"softHT/F");
   t_Analyzer->Branch("vSoftTrackJets","TClonesArray", &vSoftTrackJets, 32000, 0);
 
 
@@ -360,6 +363,7 @@ void Analyzer::beginJob(){
 void Analyzer::endJob(){
   delete vGenPart;
   delete vLeptons;
+  delete vMET;
   delete vJets;
   delete vSoftTrackJets;
 
@@ -381,13 +385,13 @@ void Analyzer::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup){
 
 bool Analyzer::jetId(const reco::PFJet *jet){
   //jetID taken from https://twiki.cern.ch/twiki/bin/view/CMS/JetID#Recommendations_for_7_TeV_data_a (no twiki for 8TeV available)
-  if(jet->neutralHadronEnergyFraction() => .99) return false;
-  if(jet->neutralEmEnergyFraction() => .99) return false;
-  if(jet->getPFConstituents().size() <= 1) return false;
+  if(!(jet->neutralHadronEnergyFraction() < .99)) return false;
+  if(!(jet->neutralEmEnergyFraction() < .99)) return false;
+  if(!(jet->getPFConstituents().size() > 1)) return false;
   if(abs(jet->eta()) < 2.4){
-    if(jet->chargedHadronEnergyFraction() == 0) return false;
-    if(jet->chargedEmEnergyFraction() => .99) return false;
-    if(jet->chargedMultiplicity() == 0) return false;
+    if(!(jet->chargedHadronEnergyFraction() > 0)) return false;
+    if(!(jet->chargedEmEnergyFraction() < .99)) return false;
+    if(!(jet->chargedMultiplicity() > 0)) return false;
   }
   return true;
 }

@@ -1,7 +1,7 @@
 /* Analyzer.cc
  * Package:	EWKV/Analyzer
  * Author:	Tom Cornelis, Paolo Azzurri, Alex Van Spilbeeck
- * Update:	2013/03/22
+ * Update:	2013/03/27
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/Analyzer/src/Analyzer.cc?view=markup
  * 
  * Analyzer class for the EWKV analysis
@@ -47,9 +47,9 @@
 
 
 const int maxGen = 10;
-const int maxJet = 10;
-const int maxSTJ = 10;
-const int maxTrg = 10;
+const int maxJet = 15;
+const int maxSTJ = 25;
+const int maxTrg = 15;
 
 class Analyzer : public edm::EDAnalyzer{
   public:
@@ -92,6 +92,7 @@ class Analyzer : public edm::EDAnalyzer{
     TClonesArray *vJets; 
 
     int nSoftTrackJets;
+    float softHT;
     TClonesArray *vSoftTrackJets; 
 
     std::vector<std::string> HLT_paths;

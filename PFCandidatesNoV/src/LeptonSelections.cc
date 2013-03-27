@@ -8,8 +8,6 @@
  * The MuonID recommendations are listed at https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Tight_Muon
  * The ElectronID recommendations are listed at https://twiki.cern.ch/twiki/bin/view/CMS/EgammaCutBasedIdentification
  * The ElectronID includes isolation (effective area used as seen in http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/EGamma/EGammaAnalysisTools/src/EGammaCutBasedEleId.cc?view=markup)
- *
- * TO DO: 	- Discuss muon isolation
  */
 
 #include <memory>
@@ -54,7 +52,7 @@ bool PFCandidatesNoV::electronSelection(const reco::GsfElectronRef e, edm::Handl
                                         edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso){
   if(e->pt() < electron_pt_min) 			return false;
   if(fabs(e->eta()) > electron_eta_max) 		return false;
-  if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false; //NEW: Exclude this, like in other analyses
+  if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false;
 
   isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtxs, 0), vtxs);
   double iso_ch = isolator.getIsolationCharged();
@@ -92,7 +90,7 @@ bool PFCandidatesNoV::electronSelectionVeto(const reco::GsfElectronRef e, edm::H
                                             edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso){
   if(e->pt() < veto_electron_pt_min) 			return false;
   if(fabs(e->eta()) > electron_eta_max) 		return false;
-  if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false; //NEW: Exclude this, like in other analyses
+  if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false;
 
   isolator.fGetIsolation(e.get(), &(*pfCandidates), VertexRef(vtxs, 0), vtxs);
   double iso_ch = isolator.getIsolationCharged();

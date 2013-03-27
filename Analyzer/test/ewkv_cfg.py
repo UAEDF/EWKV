@@ -18,7 +18,7 @@ process.load('Configuration.StandardSequences.Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
 
 # Signal and number of events for test runs
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000))
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root')
 )
@@ -66,10 +66,10 @@ process.load('EWKV.ExtraTracks.SoftTrackJets_cff')
 # our analyzer
 process.ewkv = cms.EDAnalyzer('Analyzer',
 	fileName 		= cms.untracked.string('ewkv.root'),
-        HLT_paths 		= cms.vstring("HLT_DoubleMu8","HLT_Mu13_Mu8","HLT_Mu17_Mu8","HLT_Mu17_TkMu8",
+        HLT_paths 		= cms.vstring("HLT_Mu13_Mu8","HLT_Mu17_Mu8","HLT_Mu17_TkMu8",
                                       "HLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL",
                                       "HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL",
- 				      "HLT_Mu9","HLT_Mu15","HLT_IsoMu24_eta2p1",
+ 				      "HLT_Mu15","HLT_Mu15_eta2p1","HLT_IsoMu24","HLT_IsoMu24_eta2p1",
 				      "HLT_Ele17_CaloIdL_CaloIsoVL","HLT_Ele22_CaloIdL_CaloIsoVL","HLT_Ele27_WP80"),
         HLT_process 		= cms.string("HLT"),
 	genJetsInputTag		= cms.InputTag('ak5GenJets'),

@@ -1,13 +1,10 @@
 /* PFCandidatesNoV.cc
  * Package:	EWKV/PFCandidatesNoV
  * Author:	Tom Cornelis
- * Update:	2013/03/21
+ * Update:	2013/03/27
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/PFCandidatesNoV/src/PFCandidatesNoV.cc?view=markup
  *
  * Class to select and extract the lepton(s) from Z or W from the PFCandidates collection
- *
- * TO DO:      	- Discuss W selection
- *        	- Clean up code
  */
 
 #include <memory>
@@ -173,7 +170,7 @@ bool PFCandidatesNoV::TryZ(const reco::PFCandidate *lepton, std::vector<const re
 
 void PFCandidatesNoV::fillPU(edm::Event& iEvent){
   int nPileUp = -1;
-  edm::Handle< std::vector< PileupSummaryInfo > >  PupInfo;
+  edm::Handle<std::vector<PileupSummaryInfo>>  PupInfo;
   iEvent.getByLabel("addPileupInfo", PupInfo);
   if(PupInfo.isValid()){
     for(std::vector<PileupSummaryInfo>::const_iterator PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI){
@@ -185,7 +182,6 @@ void PFCandidatesNoV::fillPU(edm::Event& iEvent){
   }
   h_pileUp->Fill(nPileUp);
 }
-
 
 
 void PFCandidatesNoV::beginJob(){

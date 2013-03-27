@@ -1,13 +1,10 @@
 /* ExtraTracks.cc
  * Package:	EWKV/ExtraTracks
  * Author:	Paolo Azzurri, Tom Cornelis
- * Update:	2013/03/19
+ * Update:	2013/03/27
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/ExtraTracks/src/ExtraTracks.cc?view=markup
  *
  * Class to produce the extra track collection
- *
- * TO DO: 	- Let it work in the EWKV package
- *	  	- Clean up code
  */
 
 
