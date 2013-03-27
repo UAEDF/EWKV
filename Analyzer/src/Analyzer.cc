@@ -228,12 +228,10 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   iEvent.getByLabel(softTrackJetsInputTag, trackJets);
 
   nSoftTrackJets = 0;
-  softHT = 0;
   vSoftTrackJets->Clear();
   if(trackJets.isValid()){
     for(reco::TrackJetCollection::const_iterator trackJet = trackJets->begin(); trackJet != trackJets->end() && nSoftTrackJets < maxSTJ; ++trackJet, ++nSoftTrackJets){
-      if(nSoftTrackJets < maxSTJ) new((*vSoftTrackJets)[nSoftTrackJets]) TLorentzVector(trackJet->px(), trackJet->py(), trackJet->pz(), trackJet->energy());
-      softHT += trackJet->pt();
+      new((*vSoftTrackJets)[nSoftTrackJets]) TLorentzVector(trackJet->px(), trackJet->py(), trackJet->pz(), trackJet->energy());
     }
   } 
 
@@ -347,7 +345,6 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("ncJets", 			ncJets, 	"ncJets[nJets]/I");
 
   t_Analyzer->Branch("nSoftTrackJets", 		&nSoftTrackJets,"nSoftTrackJets/I");
-  t_Analyzer->Branch("softHT", 			&softHT, 	"softHT/F");
   t_Analyzer->Branch("vSoftTrackJets","TClonesArray", &vSoftTrackJets, 32000, 0);
 
 

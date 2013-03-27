@@ -92,7 +92,6 @@ class Analyzer : public edm::EDAnalyzer{
     TClonesArray *vJets; 
 
     int nSoftTrackJets;
-    float softHT;
     TClonesArray *vSoftTrackJets; 
 
     std::vector<std::string> HLT_paths;
