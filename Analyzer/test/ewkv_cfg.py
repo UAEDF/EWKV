@@ -12,7 +12,7 @@ process.load('Configuration.StandardSequences.GeometryExtended_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-if MC: process.GlobalTag.globaltag = 'START53_V19::All'  	# for MC
+if MC: process.GlobalTag.globaltag = 'START53_V21::All'  	# for MC
 else : process.GlobalTag.globaltag = 'GR_R_53_V21::All'  	# for DATA
 process.load('Configuration.StandardSequences.Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
