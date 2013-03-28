@@ -99,4 +99,4 @@ for line in fileinput.input(sample + '/crab.cfg', inplace=1):
   if '[USER]' in line:
     if sampleInfo[0] == 'data': print 'additional_input_files  = ' + sampleInfo[2]
 
-shutil.copyfile('JSON/' + sampleInfo[2], sample + '/' + sampleInfo[2])
+if sampleInfo[0] == 'data': shutil.copyfile('JSON/' + sampleInfo[2], sample + '/' + sampleInfo[2])
