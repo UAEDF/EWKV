@@ -1,0 +1,75 @@
+#include <iostream>
+#include <fstream>
+#include <TROOT.h>
+#include <TString.h>
+#include <TFile.h>
+#include <TH1.h>
+#include <sys/stat.h>
+
+#include "../samples/sampleList.h" 
+#include "../samples/sample.h" 
+
+void pileUpWeights(TH1D *pileUpData, TH1I *pileUpMC, TString sampleName);
+std::ofstream writeFile;
+
+int main(int argc, char *argv[]){
+  bool force = false;
+  if(argc > 1 && ((TString)argv[1]) == "-f") force = true;
+
+  //Check data configuration
+  sampleList *samples = new sampleList();
+  TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
+  if(!samples->init(samplesDir + "data.config", samplesDir + "mc.config", "pileUp")) return 1;
+  TString mergeString = "";
+  TString listJSON = "";
+  for(sampleList::runIterator run = samples->first(); run != samples->last(); ++run){
+    std::cout << "pileUp.C:\t\t\tAdd " << (*run)->getName() << " with lumi = " << (*run)->getLumi() << "/pb (" << (*run)->getJSON() << ")" << std::endl;
+    mergeString += "_" + (*run)->getName();
+    listJSON += " " + (*run)->getJSON();
+  }
+
+  //Get pile-up distribution for data
+  TString mergedJSON = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/lumiSummary" + mergeString + ".json";
+  TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + ".root";
+  struct stat buffer;   
+  bool exist = (stat (mergedROOT.Data(), &buffer) == 0); 
+  if((!exist) || force){
+    std::cout << "pileUp.C:\t\t\tPile-up calculation of the data: this will take some time..." << std::endl;
+    system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
+    system("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_corr.txt --calcMode observed --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 temp.root"); 
+    system(("mv temp.json " + mergedJSON).Data());
+    system(("mv temp.root " + mergedROOT).Data());
+  } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << ".root file, use -f to recreate this file" << std::endl;}
+  TFile *file_data = new TFile(mergedROOT);
+  TH1D *pileUpData = (TH1D*) file_data->Get("pileup");
+
+  //Calculate the weights
+  writeFile.open((getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + mergeString + ".txt").Data());
+  for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){
+    if((*it)->isData()) continue;
+    mcSample *mc = (mcSample*) (*it);
+    pileUpWeights(pileUpData, mc->getPileUpHisto(), mc->getName());
+  }
+  writeFile.close();
+
+  file_data->Close();
+  return 0;
+}
+
+
+void pileUpWeights(TH1D *pileUpData, TH1I *pileUpMC, TString sampleName){
+  double sumData = pileUpData->Integral();
+  double sumMC = pileUpMC->Integral();
+
+  writeFile << sampleName << std::endl;
+  double weights[51];
+  int nPileUp;
+  for(int i = 0; i < 51; ++i){
+    weights[i] = (double) pileUpData->GetBinContent(i+1)/ (double)pileUpMC->GetBinContent(i+1);
+    weights[i] *= sumMC/sumData;
+    if(pileUpMC->GetBinContent(i+1) == 0) weights[i] = 0;
+    writeFile << weights[i] << "\t";
+  }
+  writeFile << std::endl;
+  return;
+}
