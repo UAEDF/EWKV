@@ -70,7 +70,7 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_){
   mySample = mySample_;
   tree = mySample->getTree();
   histos = new histoCollection(mySample);
-  cutflow = new cutFlow(mySample);
+  cutflow = new cutFlow(mySample->getName());
 
   vGenPart = 		new TClonesArray("TLorentzVector", 10);
   vLeptons = 		new TClonesArray("TLorentzVector", 2);

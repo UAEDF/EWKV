@@ -17,14 +17,13 @@
 #include "../CMSSWBASE.h"
 #include "color.h"
 
-class plotHist{
+class plotHistos{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
   TString xtitle, ytitle, fileName, name;
   bool logX;
   bool JES;
   int removeJESbinLeft, removeJESbinRight;
-  TString type;
 
   std::vector<TString> mcs;
   std::map<TString, int> color;
@@ -32,25 +31,26 @@ class plotHist{
   std::map<TString, TString> legendNames;
 
   public:
-  plotHist();
-  void loop();
-  void next();
+  plotHistos(){};
+  bool configureStack();
+  void loop(TString type);
+  void next(TString type);
 };
 
 int main(){
-  initColor();
-  plotHist *myPlotHist = new plotHist();
-  myPlotHist->loop();
-  delete myPlotHist;
+  plotHistos *myPlotHistos = new plotHistos();
+  if(!myPlotHistos->configureStack()) return 1;
+  myPlotHistos->loop("ZMUMU");
+  delete myPlotHistos;
   return 0;
 }
 
-plotHist::plotHist(){
+bool plotHistos::configureStack(){
   std::ifstream readFile;
   readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/plots/stack.config")); 
   if(!readFile.is_open()){
     std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/stack.config not found!" << std::endl;
-    return;
+    return false;
   }
   while(!readFile.eof()){
     TString useLine;
@@ -59,26 +59,26 @@ plotHist::plotHist(){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
-    TString legendName;
+    TString legendName, stackColor;
     std::string sample;
-    int stackColor;
     readFile >> legendName >> stackColor >> sample;
     std::stringstream sampleList(sample);
     bool first = true;
     while(std::getline(sampleList, sample, ',')){
       mcs.push_back(TString(sample));
-      color[TString(sample)] = stackColor;
+      color[TString(sample)] = getColor(stackColor);
       useLegend[TString(sample)] = first;
       legendNames[TString(sample)] = legendName;
       first = false;
     }
   }
   readFile.close();
+  return true;
 }
 
-void plotHist::loop(){
-  type = "ZMUMU";
 
+void plotHistos::loop(TString type){
+  //Get histogram info from file and loop
   std::ifstream readFile;
   readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config")); 
   if(!readFile.is_open()){
@@ -102,218 +102,169 @@ void plotHist::loop(){
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
     fileName = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/" + type + "/" + fileName;
-    next();
+    next(type);
   }
   readFile.close();
   return;
 }
 
 
-void plotHist::next(){
+void plotHistos::next(TString type){
   setTDRStyle();
 
-  //Set uo histos  
-  TH1D* hData 		= new TH1D("hData" ,"" , bins, min, max);
-  TH1D* hRatio 		= new TH1D("hRatio" ,"" , bins, min, max);
-  TH1D* hRatioPlus 	= new TH1D("hRatio+" ,"" , bins, min, max);
-  TH1D* hRatioMin 	= new TH1D("hRatio-" ,"" , bins, min, max);
-  TH1D* hJECplus 	= new TH1D("hJEC+" ,"" , bins, min, max);
-  TH1D* hJECmin  	= new TH1D("hJEC-" ,"" , bins, min, max);
+  //Set up histos
+  std::map<TString, TH1D*> hists;
+  for(TString h : mcs) 							 hists[h] = new TH1D(h, h, bins, min, max);
+  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-"}) hists[h] = new TH1D(h, h, bins, min, max);
+  hists["signal only"] = new TH1D("signal only" ,"signal only" , bins, min, max);
   if(logX){
-    binLogX(hData);
-    binLogX(hRatio);
-    binLogX(hRatioPlus);
-    binLogX(hRatioMin);
-    binLogX(hJECplus);
-    binLogX(hJECmin);
+    for(auto h = hists.begin(); h != hists.end(); ++h) binLogX(h->second);
   }
 
 
-  std::map<TString, TH1D*> hMC;
-  for(auto mc = mcs.begin(); mc != mcs.end(); ++mc){
-    hMC[*mc] = new TH1D(*mc ,"" , bins, min, max);
-    if(logX) binLogX(hMC[*mc]);
-  }
-  hMC["signal only"] = new TH1D("signal only" ,"" , bins, min, max);
-  if(logX) binLogX(hMC["signal only"]);
+  //Set up Canvas and TPads
+  TCanvas *c = new TCanvas("Canvas", "Canvas", 1);
+  double horizontalSplit = 0.30;
+  TPad *padUP = new TPad("padUP","up",   0.02, horizontalSplit, 1., 1.,   0);
+  TPad *padDN = new TPad("padDN","down", 0.02, 0.02, 1., horizontalSplit, 0);
+  padUP->Draw(); padDN->Draw();
+  padUP->SetLogy();
+  padDN->SetGridy();
+  padUP->SetLeftMargin(.12);   padDN->SetLeftMargin(.12);
+  padUP->SetRightMargin(.005); padDN->SetRightMargin(.005);
+  padUP->SetTopMargin(0.02);   padDN->SetTopMargin(0.);
+  padUP->SetBottomMargin(0.);  padDN->SetBottomMargin(.30);
+  if(logX){ padUP->SetLogx(); padDN->SetLogx();};
 
-  //Make grid for plot
-  TH2F* h = new TH2F("h","",2, xmin, xmax ,10, ymin, ymax);
-  h->SetStats(kFALSE);
-  h->GetXaxis()->SetMoreLogLabels(kTRUE);
-  h->GetXaxis()->SetNoExponent(kTRUE);
 
-  h->GetXaxis()->SetTitle(xtitle);
-  h->GetYaxis()->SetTitle(ytitle);
-  h->GetYaxis()->SetTitleSize(.06);
-  h->GetYaxis()->SetLabelSize(.05);
-  h->GetXaxis()->SetLabelSize(.06);
-  h->GetYaxis()->SetTitleOffset(.9);
+  //Set up frontground frames
+  TH2F* frame = new TH2F("frame","frame",2, xmin, xmax ,10, ymin, ymax);
+  frame->SetStats(kFALSE);
+  frame->GetXaxis()->SetMoreLogLabels(kTRUE);
+  frame->GetXaxis()->SetNoExponent(kTRUE);
 
-  TH2F* h1 = new TH2F("h1","",2, xmin, xmax ,10, rmin , rmax);
-  h1->SetStats(kFALSE);
-  h1->GetXaxis()->SetMoreLogLabels(kTRUE);
-  h1->GetXaxis()->SetNoExponent(kTRUE);
+  frame->GetXaxis()->SetTitle(xtitle);
 
-  h1->GetYaxis()->SetNdivisions(10);
-  h1->GetXaxis()->SetTitle(xtitle);
-  h1->GetXaxis()->SetTitleSize(.12);
-  h1->GetXaxis()->SetTitleOffset(1.2);
+  frame->GetXaxis()->SetLabelSize(.06);
+  frame->GetYaxis()->SetTitle(ytitle);
+  frame->GetYaxis()->SetTitleSize(.06);
+  frame->GetYaxis()->SetLabelSize(.05);
+  frame->GetYaxis()->SetTitleOffset(.9);
+  padUP->cd(); frame->Draw();
 
-  h1->GetYaxis()->SetTitle("Data/MC");
-  h1->GetYaxis()->SetTitleSize(.12);
-  h1->GetYaxis()->SetLabelSize(.09);
-  h1->GetXaxis()->SetLabelSize(.1);
-  h1->GetYaxis()->SetTitleOffset(.5);
+  TH2F* frameRatio = new TH2F("frameRatio","frameRatio",2, xmin, xmax ,10, rmin , rmax);
+  frameRatio->SetStats(kFALSE);
+  frameRatio->GetXaxis()->SetMoreLogLabels(kTRUE);
+  frameRatio->GetXaxis()->SetNoExponent(kTRUE);
 
-  //Legend and canvas
+  frameRatio->GetXaxis()->SetTitle(xtitle);
+  frameRatio->GetXaxis()->SetTitleSize(.12);
+  frameRatio->GetXaxis()->SetTitleOffset(1.2);
+
+  frameRatio->GetYaxis()->SetTitle("Data/MC");
+  frameRatio->GetYaxis()->SetNdivisions(10);
+  frameRatio->GetYaxis()->SetTitleSize(.12);
+  frameRatio->GetYaxis()->SetLabelSize(.09);
+  frameRatio->GetXaxis()->SetLabelSize(.1);
+  frameRatio->GetYaxis()->SetTitleOffset(.5);
+  padDN->cd(); frameRatio->Draw();
+
+
+  //Set up legend
   TLegend *leg = new TLegend(0.78, 0.6, 0.95, 0.9);
   leg->SetBorderSize(0);
   leg->SetFillColor(0);
   leg->SetTextSize(0.045);
-  TCanvas *MyC1 = new TCanvas("MyC1", "", 1);
 
-  //Stack the histograms
+
+  //Get the histograms (and immidiatly stack the MC histograms)
   TFile *file = new TFile(fileName);
-  auto mcbefore = mcs.begin();
-  for(auto mc = mcs.begin(); mc != mcs.end(); ++mc){
-    TH1D* histo = (TH1D*) file->Get(name + "_" + *mc);
-    hMC[*mc]->Add(hMC[*mcbefore], histo);
-    if(*mc == "signal") hMC["signal only"] = histo;
+  auto mcbefore = mcs.rbegin();
+  for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
+    hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
+    if(JES) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "_" + *mc + "JES+"));
+    if(JES) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "_" + *mc + "JES-"));
+    if(*mc == "signal") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
     mcbefore = mc;
   }
+  hists["data"]->Add(hists["data"], (TH1D*) file->Get(name + "_data"));
 
-  if(JES){
-    TH1D *histo = (TH1D*) file->Get(name + "_JECplus");
-    hJECplus->Add(hJECplus, histo);
 
-    histo = (TH1D*) file->Get(name + "_JECmin");
-    hJECmin->Add(hJECmin, histo);
-  }
-
-  TH1D* histo = (TH1D*) file->Get(name + "_data");
-  hData->Add(hData, histo);
-
-  //Set up TPad
-  float Top_margin   = 0.;
-  float Left_margin  = 0.12;
-  float Right_margin = 0.005;
-
-  TPad *padUP = new TPad("padUP","up",0.02,0.30,1.,1.00);
-  padUP->Draw();
+  //Draw the histograms
   padUP->cd();
-  if(logX) padUP->SetLogx();
- 
-  padUP->SetLogy();
-  padUP->SetBorderSize(0);
-  padUP->SetLeftMargin(Left_margin);
-  padUP->SetRightMargin(Right_margin);
-  padUP->SetTopMargin(Top_margin+0.02);
-  padUP->SetBottomMargin(0.00);
-
-  h->Draw();
-
-  for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
-    hMC[*mc]->SetLineWidth(1.);
-    hMC[*mc]->SetLineColor(color[*mc]);
-    hMC[*mc]->SetFillColor(color[*mc]);
-    if(*mc == "DY"){
-     hMC[*mc]->SetLineWidth(2.);
-     hMC[*mc]->SetLineColor(kRed);
-//     hMC[*mc]->SetLineWidth(1.);
-//     hMC[*mc]->SetLineColor(kBlack);
-    }
-    hMC[*mc]->Draw("same hist");
-    if(useLegend[*mc]) leg->AddEntry(hMC[*mc], " "+legendNames[*mc] + " ", "F");
+  for(TString mc : mcs){
+    hists[mc]->SetLineWidth(1.);
+    hists[mc]->SetLineColor(color[mc]);
+    hists[mc]->SetFillColor(color[mc]);
+    hists[mc]->Draw("same hist");
+    if(useLegend[mc]) leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
   }
-
+/*
   //In case of line for the signal only
-  hMC["signal only"]->SetLineWidth(2.);
-  hMC["signal only"]->SetLineColor(kBlack);
-//hMC["signal only"]->Draw("same");
-//leg->AddEntry(hMC["signal only"], " signal only ", "L");
-
-  hData->SetLineWidth(2.);
-  hData->Draw("same e");
-  leg->AddEntry(hData, " Data ", "P");
-
+  hists["signal only"]->SetLineWidth(2.);
+  hists["signal only"]->SetLineColor(kBlack);
+  hists["signal only"]->Draw("same");
+  leg->AddEntry(hists["signal only"], " signal only ", "L");
+*/
+  hists["data"]->SetLineWidth(2.);
+  hists["data"]->Draw("same e");
+  leg->AddEntry(hists["data"], " Data ", "P");
   leg->Draw();
-
   drawText();
 
-  hRatio->Divide(hData, hMC[mcs.back()]);
+
+  //Draw the ratio histograms (and calculate errors)
+  padDN->cd();
+  hists["ratio"]->Divide(hists["data"], hists[mcs.front()]);
+  for(int bin = 1; bin < bins+1; ++bin){ 
+    double hMC     = hists[mcs.front()]->GetBinContent(bin);
+    double hMC_er  = hists[mcs.front()]->GetBinError(bin);
+    double hDat    = hists["data"]->GetBinContent(bin);
+    double hDat_er = hists["data"]->GetBinError(bin);
+    if(hMC > 1.&& hDat > 0.5){
+      double hR = hDat/hMC;
+      double h_e = sqrt((hMC_er/hMC)*(hMC_er/hMC)+(hDat_er/hDat)*(hDat_er/hDat));
+      double error = h_e*hR;
+      hists["ratio"]->SetBinError(bin, error);
+    } 
+  }
+  hists["ratio"]->SetLineWidth(2.);
+  hists["ratio"]->Draw("same e");
 
   //Ratio for JES
   if(JES){
-    hRatioPlus->Divide(hJECplus, hMC[mcs.back()]);
-    hRatioMin->Divide(hJECmin, hMC[mcs.back()]);
+    hists["ratio+"]->Divide(hists["JES+"], hists[mcs.front()]);
+    hists["ratio-"]->Divide(hists["JES-"], hists[mcs.front()]);
 
     //To remove bins from the JES (when fluctuations are too high)
     if(removeJESbinRight != 0 || removeJESbinLeft != 0){
-      Float_t maxJEC = hRatio->GetBinLowEdge(bins + 1 - removeJESbinRight);
-      Float_t minJEC = hRatio->GetBinLowEdge(1 + removeJESbinLeft);
-      TH1D* hRatioPlus_ = new TH1D("hRatio" ,"" , bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
-      TH1D* hRatioMin_ = new TH1D("hRatio" ,"" , bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
-      if(logX){
-        binLogX(hRatioPlus_);
-        binLogX(hRatioMin_);
+      float maxJEC = hists["ratio"]->GetBinLowEdge(bins + 1 - removeJESbinRight);
+      float minJEC = hists["ratio"]->GetBinLowEdge(1 + removeJESbinLeft);
+      for(TString sign : {"+","-"}){
+        hists["ratio"+sign+"temp"] = new TH1D("ratio"+sign,"ratio"+sign, bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
+        if(logX) binLogX(hists["ratio"+sign+"temp"]);
+        for(int i=1+removeJESbinLeft; i < bins + 1 - removeJESbinRight; ++i){
+          hists["ratio"+sign+"temp"]->SetBinContent(i-removeJESbinLeft, hists["ratio"+sign]->GetBinContent(i));
+        }
+        hists["ratio"+sign] = hists["ratio"+sign+"temp"];
       }
-      for(Int_t i=1+removeJESbinLeft; i < bins + 1 - removeJESbinRight; ++i){
-        hRatioPlus_->SetBinContent(i-removeJESbinLeft, hRatioPlus->GetBinContent(i));
-        hRatioMin_->SetBinContent(i-removeJESbinLeft, hRatioMin->GetBinContent(i));
-      }
-      hRatioPlus = hRatioPlus_;
-      hRatioMin = hRatioMin_;
     }
-  }
 
-  //Error calculation in ratio
-  for(int it = 1; it < bins+1; it++){ 
-    double hMC_ = hMC[mcs.back()]->GetBinContent(it);
-    double hMC_er = hMC[mcs.back()]->GetBinError(it);
-    double hDat = hData->GetBinContent(it);
-    double hDat_er = hData->GetBinError(it);
-    if(hMC_ > 1.&& hDat > 0.5){
-      double hR = hDat/hMC_;
-      double h_e = sqrt((hMC_er/hMC_)*(hMC_er/hMC_)+(hDat_er/hDat)*(hDat_er/hDat));
-      double Error = h_e*hR;
-      hRatio->SetBinError(it, Error);
-    } 
-  }
-
-  MyC1->cd(); 
-  TPad *padDN = new TPad("padDN","",0.02,0.02,1.,0.30);
-  padDN->Draw();
-  padDN->cd();
-  if(logX) padDN->SetLogx();
-
-  padDN->SetGridy();
-  padDN->SetBorderSize(0);
-  padDN->SetLeftMargin(Left_margin);
-  padDN->SetRightMargin(Right_margin);
-  padDN->SetTopMargin(Top_margin);
-  padDN->SetBottomMargin(0.30);
-
-  h1->Draw();
-
-  hRatio->SetLineWidth(2.);
-  hRatio->Draw("same e");
-  if(JES){
     TLegend *JESleg = new TLegend(.15, .76, .35, .96);
-    JESleg->AddEntry(hRatioPlus, "JES up", "l");
-    JESleg->AddEntry(hRatioMin, "JES down", "l");
+    JESleg->AddEntry(hists["ratio+"], "JES up", "l");
+    JESleg->AddEntry(hists["ratio-"], "JES down", "l");
     JESleg->Draw();
 
-    hRatioPlus->SetLineWidth(2.);
-    hRatioPlus->SetLineColor(kRed);
-    hRatioPlus->Draw("same hist");
-    hRatioMin->SetLineWidth(2.);
-    hRatioMin->SetLineColor(kBlue);
-    hRatioMin->Draw("same hist");
+    hists["ratio+"]->SetLineWidth(2.);
+    hists["ratio+"]->SetLineColor(kRed);
+    hists["ratio+"]->Draw("same hist");
+    hists["ratio-"]->SetLineWidth(2.);
+    hists["ratio-"]->SetLineColor(kBlue);
+    hists["ratio-"]->Draw("same hist");
   }
 
-  MyC1->SaveAs(getCMSSWBASE() + "/src/EWKV/Macros/outputs/pdf/" + type + "/" + name + ".pdf");  
-  delete MyC1;
+  c->SaveAs(getCMSSWBASE() + "/src/EWKV/Macros/outputs/pdf/" + type + "/" + name + ".pdf");  
+  delete c;
   return;
 }
 

@@ -49,7 +49,7 @@
 int main(){
   gROOT->SetBatch();
   TString type = "ZMUMU";
-  TString outputTag = "20130412";
+  TString outputTag = "test_20130412";
 
   sampleList* samples = new sampleList();
   TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -60,14 +60,18 @@ int main(){
   cutFlowHandler* cutflows = new cutFlowHandler();
   for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
     ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it);						//set up analyzer
-    myAnalyzer->loop(type, 0.01);								//loop over events in tree
+    myAnalyzer->loop(type);									//loop over events in tree
     histoCollection* histos = myAnalyzer->getHistoCollection();					//get the histograms				
     histos->toFile(outFile);									//write all histograms to file
-    cutflows->add(*it, myAnalyzer->getCutFlow());						//get the cutflow
+    cutflows->add(myAnalyzer->getCutFlow());							//get the cutflow
     delete myAnalyzer;
     delete histos;
   }
   outFile->Close();
+  cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + "_notmerged.tex");
+  cutflows->merge("Diboson",{"WW","WZ","ZZ"});
+  cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
+  cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
   cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + ".tex");
 
   return 0;

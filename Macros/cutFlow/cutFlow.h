@@ -13,31 +13,35 @@
 #include <vector>
 #include <fstream>
 #include <TString.h>
-#include <limits>
-#include "../samples/sample.h"
 
 class cutFlow {
   private:
   double fillWeight;
   TString branch;
-  sample* mySample;
+  TString name;
   std::map<TString, std::map<TString, double>> counters;
   std::vector<TString> trackPointOrder;
 
   public:
-  cutFlow(sample* mySample_);
+  cutFlow(TString name_);
   void track(TString trackPoint);
+  void add(TString trackPoint, TString branch_, double countsToAdd);
   void setFillWeight(double weight){fillWeight = weight;};
   void setBranch(TString branch_ = ""){branch = branch_;};
   std::vector<TString> getTrackPoints(){ return trackPointOrder;};
   bool exist(TString trackPoint, TString branch);
   bool exist(TString trackPoint);
   double get(TString trackPoint, TString branch = "");
+  TString getName(){ return name;};
+
+  typedef std::map<TString, std::map<TString, double>>::iterator iterator;
+  iterator begin(){ return counters.begin();};
+  iterator end(){ return counters.end();};
 };
 
 
-cutFlow::cutFlow(sample* mySample_){
-  mySample = mySample_;
+cutFlow::cutFlow(TString name_){
+  name = name_;
   fillWeight = 0;
   branch = "";
 }
@@ -62,6 +66,19 @@ void cutFlow::track(TString trackPoint){
   else counters[trackPoint][branch] += fillWeight;
   return;
 }
+
+
+void cutFlow::add(TString trackPoint, TString branch_, double countsToAdd){
+  if(!exist(trackPoint)){
+    trackPointOrder.push_back(trackPoint);
+    counters[trackPoint][branch_] = countsToAdd;
+    return;
+  }
+  if(!exist(trackPoint, branch_)) counters[trackPoint][branch_] = countsToAdd;
+  else counters[trackPoint][branch_] += countsToAdd;
+  return;
+}
+
 
 double cutFlow::get(TString trackPoint, TString branch){ 
   if(!exist(trackPoint, branch)) return 0;
