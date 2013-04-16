@@ -41,6 +41,7 @@ int main(){
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
   myPlotHistos->loop("ZMUMU");
+  myPlotHistos->loop("ZEE");
   delete myPlotHistos;
   return 0;
 }
@@ -80,7 +81,7 @@ bool plotHistos::configureStack(){
 void plotHistos::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config")); 
+  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D2.config")); 
   if(!readFile.is_open()){
     std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config not found!" << std::endl;
     return;
@@ -98,10 +99,10 @@ void plotHistos::loop(TString type){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
-    readFile >> fileName >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight; 
+    readFile >> fileName >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
-    fileName = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/" + type + "/" + fileName;
+    fileName = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/" + type + "/" + fileName + ".root";
     next(type);
   }
   readFile.close();
@@ -120,7 +121,6 @@ void plotHistos::next(TString type){
   if(logX){
     for(auto h = hists.begin(); h != hists.end(); ++h) binLogX(h->second);
   }
-
 
   //Set up Canvas and TPads
   TCanvas *c = new TCanvas("Canvas", "Canvas", 1);
@@ -150,6 +150,7 @@ void plotHistos::next(TString type){
   frame->GetYaxis()->SetTitleSize(.06);
   frame->GetYaxis()->SetLabelSize(.05);
   frame->GetYaxis()->SetTitleOffset(.9);
+  frame->GetYaxis()->SetTickLength(0.015);
   padUP->cd(); frame->Draw();
 
   TH2F* frameRatio = new TH2F("frameRatio","frameRatio",2, xmin, xmax ,10, rmin , rmax);
@@ -171,7 +172,7 @@ void plotHistos::next(TString type){
 
 
   //Set up legend
-  TLegend *leg = new TLegend(0.78, 0.6, 0.95, 0.9);
+  TLegend *leg = new TLegend(0.78, 0.64, 0.95, 0.94);
   leg->SetBorderSize(0);
   leg->SetFillColor(0);
   leg->SetTextSize(0.045);
@@ -182,8 +183,8 @@ void plotHistos::next(TString type){
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
     hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
-    if(JES) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "_" + *mc + "JES+"));
-    if(JES) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "_" + *mc + "JES-"));
+    if(file->FindKey(name + "JES+_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JES+_" + *mc));
+    if(file->FindKey(name + "JES-_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JES-_" + *mc));
     if(*mc == "signal") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
     mcbefore = mc;
   }
@@ -210,8 +211,8 @@ void plotHistos::next(TString type){
   hists["data"]->Draw("same e");
   leg->AddEntry(hists["data"], " Data ", "P");
   leg->Draw();
-  drawText();
-
+  drawText(type);
+  fixOverlay();
 
   //Draw the ratio histograms (and calculate errors)
   padDN->cd();

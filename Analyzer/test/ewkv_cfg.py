@@ -67,7 +67,6 @@ process.load('EWKV.ExtraTracks.SoftTrackJets_cff')
 process.ewkv = cms.EDAnalyzer('Analyzer',
 	fileName 		= cms.untracked.string('ewkv.root'),
         HLT_paths 		= cms.vstring("HLT_Mu13_Mu8","HLT_Mu17_Mu8","HLT_Mu17_TkMu8",
-                                      "HLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL",
                                       "HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL",
  				      "HLT_Mu15","HLT_Mu15_eta2p1","HLT_IsoMu24","HLT_IsoMu24_eta2p1",
 				      "HLT_Ele17_CaloIdL_CaloIsoVL","HLT_Ele22_CaloIdL_CaloIsoVL","HLT_Ele27_WP80"),

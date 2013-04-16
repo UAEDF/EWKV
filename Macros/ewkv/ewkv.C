@@ -48,31 +48,35 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString type = "ZMUMU";
-  TString outputTag = "test_20130412";
+  TString outputTag = "20130417";
+  for(TString type : {"ZMUMU"}){
 
-  sampleList* samples = new sampleList();
-  TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
-  if(!samples->init(samplesDir + "data.config", samplesDir + "mc.config")) return 1;			//Set up list of samples
+    sampleList* samples = new sampleList();
+    TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
+    if(type == "ZMUMU" && !samples->init(samplesDir + "data.config", samplesDir + "mc.config")) return 1;			//Set up list of samples
+    if(type == "ZEE" && !samples->init(samplesDir + "dataDoubleElectron.config", samplesDir + "mc.config")) return 1;
 
-  TString outputDir = getCMSSWBASE() + "/src/EWKV/Macros/outputs/";
-  TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
-  cutFlowHandler* cutflows = new cutFlowHandler();
-  for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
-    ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it);						//set up analyzer
-    myAnalyzer->loop(type);									//loop over events in tree
-    histoCollection* histos = myAnalyzer->getHistoCollection();					//get the histograms				
-    histos->toFile(outFile);									//write all histograms to file
-    cutflows->add(myAnalyzer->getCutFlow());							//get the cutflow
-    delete myAnalyzer;
-    delete histos;
+    TString outputDir = getCMSSWBASE() + "/src/EWKV/Macros/outputs/";
+    TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
+    cutFlowHandler* cutflows = new cutFlowHandler();
+    for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
+      ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
+//    myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
+      myAnalyzer->loop(type);										//loop over events in tree
+      myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
+      cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
+      delete myAnalyzer;
+    }
+    outFile->Close();
+    cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + "_notmerged.tex");
+    cutflows->merge("Diboson",{"WW","WZ","ZZ"});
+    cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
+    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
+    cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + ".tex");
+    delete cutflows;
+    delete samples;
+    delete outFile;
   }
-  outFile->Close();
-  cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + "_notmerged.tex");
-  cutflows->merge("Diboson",{"WW","WZ","ZZ"});
-  cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
-  cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
-  cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + ".tex");
 
   return 0;
 }
@@ -108,7 +112,7 @@ void ewkvAnalyzer::analyze_Zjets(){
   if(fabs(Z.M() - ZMASS) > 40) return;
   histos->fillHist1D("dilepton_mass", Z.M());
   if(fabs(Z.M() - ZMASS) > 20) return;
-  cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$"); 
+  cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
 
   histos->fillHist1D("dilepton_pt", Z.Pt());
   histos->fillHist1D("dilepton_eta", Z.Eta());
@@ -168,7 +172,8 @@ void ewkvAnalyzer::analyze_Zjets(){
         histos->setBranch("fake");
         cutflow->setBranch("fake");
       } else cutflow->track("GEN level cuts");
-    }
+    } else cutflow->track("GEN level cuts");
+
  
 
     // Find leading jets (at least 3) and sort
@@ -249,19 +254,36 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillProfileHist("HT_vs_dEta_jj", dEta_jj , sumPt3);
 */
 
-
-    // TO DO: TMVA STUFF
-
-
     // Additional cutflow
     if(jj.M() < 200) continue;
-    cutflow->track("$m_{jj} > 200 GeV$");
+    cutflow->track("$m_{jj} > 200$ GeV");
+
+    // TMVA tree variables
+    tmvaVariables["pT_Z"] = Z.Pt();
+    tmvaVariables["pT_j1"] = j1.Pt();
+    tmvaVariables["pT_j2"] = j2.Pt();
+    tmvaVariables["eta_Z"] = Z.Eta();
+    tmvaVariables["dPhi_j1"] = fabs(Z.DeltaPhi(j1));
+    tmvaVariables["dPhi_j2"] = fabs(Z.DeltaPhi(j2));
+    tmvaVariables["dPhi_jj"] = fabs(j1.DeltaPhi(j2)); 
+    tmvaVariables["dEta_jj"] = fabs(j1.Eta() - j2.Eta());
+    tmvaVariables["avEta_jj"] = fabs((j1.Eta() + j2.Eta())/2); 
+    tmvaVariables["qgMLP_j1"] = jetQGMLP[leadingJets.at(0)];
+    tmvaVariables["qgMLP_j2"] = jetQGMLP[leadingJets.at(1)];
+    tmvaVariables["qgLikelihood_j1"] = jetQGLikelihood[leadingJets.at(0)];
+    tmvaVariables["qgLikelihood_j2"] = jetQGLikelihood[leadingJets.at(1)];
+    tmvaVariables["M_jj"] = jj.M();
+    tmvaVariables["weight"] = mySample->getWeight(nPileUp);
+    fillTMVAtree();
+
+    histos->fillHist1D("BDTD", tmvaReader->EvaluateMVA("BDTD"));
+
 
     if(fabs(Zeppenfeld)> 1.2) continue;
-    cutflow->track("$\\mid y* \\mid < 1.2$");
+    cutflow->track("$\\mid y^{*} \\mid < 1.2$");
 
     if(jj.M() < 600) continue;
-    cutflow->track("$m_{jj} > 600 GeV$");
+    cutflow->track("$m_{jj} > 600$ GeV");
 
     if(fabs(j1.Eta() - j2.Eta()) < 3.5) continue;
     cutflow->track("$\\Delta\\eta_{jj} > 3.5$");
@@ -269,30 +291,23 @@ void ewkvAnalyzer::analyze_Zjets(){
   return;
 }
 
+
+void ewkvAnalyzer::initTMVAreader(TString type){
+  tmvaReader = new TMVA::Reader("");
+
+  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgMLP_j1", "qgMLP_j2", "M_jj"};
+  for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
+
+  tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/weights/TMVAClassification_BDT.weights.xml" );
+}
+
+
+
  /**************************************************************************
   * Everything below is from the 7TeV analysis, still to add in this macro *
   **************************************************************************/
 
 /* 
-  //TMVA initialisation [implement before the loop]
-  TMVA::Reader* reader = new TMVA::Reader("");
-
-  Float_t pT_Z, pT_j1, pT_j2, eta_Z, dPhi_j1, dPhi_j2, dPhi_jj, dEta_jj, avEta_jj, M_jj, gluonProb_j1, gluonProb_j2, gluonLike_j1, gluonLike_j2;
-  reader->AddVariable( "pT_Z", &pT_Z );
-  reader->AddVariable( "pT_j1", &pT_j1);
-  reader->AddVariable( "pT_j2", &pT_j2 );
-  reader->AddVariable( "eta_Z", &eta_Z );
-  reader->AddVariable( "dPhi_j1", &dPhi_j1 );
-  reader->AddVariable( "dPhi_j2", &dPhi_j2 );
-  reader->AddVariable( "dPhi_jj", &dPhi_jj );
-  reader->AddVariable( "dEta_jj", &dEta_jj );
-  reader->AddVariable( "avEta_jj", &avEta_jj );
-  reader->AddVariable( "gluonLike_j1", &gluonLike_j1 ); reader->AddVariable( "gluonLike_j2", &gluonLike_j2 );
-  reader->AddVariable( "M_jj", &M_jj );
-
-  reader->BookMVA( "BDTD", TString(TMVADIR) + TString(LEPTON) + TString(TMVATAG) + "/weights/TMVAClassification_BDTD.weights.xml" );
-
-  //Get MCFM reweighting histo [implement before the loop]
   TFile *MCFMreweightingFile = new TFile("~tomc/public/Rat_MCFM_NLO_Madgraph.root");
   TH1F *MCFMreweighting = (TH1F*) MCFMreweightingFile->Get("hMjj_ratnlolo");
 */
@@ -300,34 +315,6 @@ void ewkvAnalyzer::analyze_Zjets(){
 /*
 
 
-      if((TString(TMVATAG) == "-Zepp") || (TString(TMVATAG) == "-MjjZepp")){
-        if(fabs(Zeppenfeld)>1.2) continue;
-        cutFlow->track("$\\mid y* \\mid < 1.2$_");
-      }
-
-      if((TString(TMVATAG) == "-Mjj") || (TString(TMVATAG) == "-MjjZepp")){
-        if(jj.M() < 200) continue;
-        cutFlow->track("$m_{jj$ > 200 GeV$_");
-      }
- 
-      if(FROMSCRATCH && MAKESKIM && sign == -1) skimmedTree->Fill();
-
-      pT_Z = Z.Pt();
-      pT_j1 = j1.Pt();
-      pT_j2 = j2.Pt();
-      eta_Z = Z.Eta();
-      dPhi_j1 = fabs(Z.DeltaPhi(j1));
-      dPhi_j2 = fabs(Z.DeltaPhi(j2));
-      dPhi_jj = fabs(j1.DeltaPhi(j2));
-      dEta_jj = fabs(j1.Eta()-j2.Eta());
-      avEta_jj = fabs((j1.Eta()+j2.Eta())/2);
-      gluonProb_j1 = PF5JetGluonProb[restrictedJets[0]];
-      gluonProb_j2 = PF5JetGluonProb[restrictedJets[1]];
-      gluonLike_j1 = PF5JetGluonLike[restrictedJets[0]];
-      gluonLike_j2 = PF5JetGluonLike[restrictedJets[1]];
-      M_jj = jj.M();
-
-      Float_t mvaValue_BDTD = reader->EvaluateMVA("BDTD");
 
       //MCFM reweighting
       Int_t bin = MCFMreweighting->FindBin(M_jj);

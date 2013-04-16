@@ -152,9 +152,11 @@ bool mcSample::setPileUpWeights(TString pileUpWeightsFile){
         readFile >> weight;
         weights.push_back(weight);
       }
+      readFile.close();
       return true;
     }
   }
+  readFile.close();
   return false;
 }
 

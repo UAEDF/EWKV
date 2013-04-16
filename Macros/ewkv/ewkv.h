@@ -35,6 +35,8 @@ class ewkvAnalyzer{
   private:
     void analyze_Zjets();
     void analyze_Wjets(){std::cout << "ewkvAnalyzer:\t\t\tanalyze_WType() is not implemented yet" << std::endl;}
+    void fillTMVAtree();
+    void initTMVAreader(TString type);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
@@ -56,20 +58,28 @@ class ewkvAnalyzer{
     sample* mySample;
     histoCollection* histos;
     cutFlow* cutflow;
+    bool makeTMVAtree, firstTMVAevent;
+    std::map<TString, float> tmvaVariables;
+    TFile *tmvaFile;
+    TTree *tmvaTree;
+    TString tmvaLocation;
+    TMVA::Reader *tmvaReader;
 
   public:
-    ewkvAnalyzer(sample* mySample_);
+    ewkvAnalyzer(sample* mySample_, TFile *outfile);
     ~ewkvAnalyzer();
     void loop(TString type, double testFraction = 1.);
     histoCollection* getHistoCollection(){ return histos;}; 
     cutFlow* getCutFlow(){ return cutflow;};
+    void setMakeTMVAtree(TString location){ makeTMVAtree = true; tmvaLocation = location;}
 };
 
 
-ewkvAnalyzer::ewkvAnalyzer(sample* mySample_){
+ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
+  makeTMVAtree = false; tmvaLocation = ".";
   mySample = mySample_;
   tree = mySample->getTree();
-  histos = new histoCollection(mySample);
+  histos = new histoCollection(mySample, outfile);
   cutflow = new cutFlow(mySample->getName());
 
   vGenPart = 		new TClonesArray("TLorentzVector", 10);
@@ -122,11 +132,13 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_){
 
 
 ewkvAnalyzer::~ewkvAnalyzer(){
-  delete tree;
+  delete tree, tmvaTree, tmvaFile;
   delete vGenPart, vLeptons, vMET, vJets, vSoftTrackJets;
+  delete histos;
 }
 
 void ewkvAnalyzer::loop(TString type, double testFraction){
+  firstTMVAevent = true;
   VType theType;
   if(type == "ZMUMU") theType = ZMUMU;
   else if(type == "ZEE") theType = ZEE;
@@ -136,6 +148,7 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
     std::cout << "ewkvAnalyzer:\t\tERROR\tType unknown" << std::endl;
     return;
   }
+  initTMVAreader(type);
 
   std::cout << "ewkvAnalyzer:\t\t\tLoop over " << mySample->getName() << " tree (" << type << " mode)" << std::endl;
   int nEntries = tree->GetEntries();
@@ -151,8 +164,27 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
     if(theType == ZMUMU || theType == ZEE) analyze_Zjets();
     else analyze_Wjets();
   }
+  if(makeTMVAtree && !firstTMVAevent){
+    tmvaFile->cd();
+    tmvaFile->WriteTObject(tmvaTree);
+    tmvaFile->Close();
+  }
   std::cout << std::endl;
   return;
+}
+
+void ewkvAnalyzer::fillTMVAtree(){
+  if(!makeTMVAtree) return;
+  if(firstTMVAevent){
+    tmvaFile = new TFile(tmvaLocation + mySample->getName() + ".root","recreate");
+    tmvaFile->cd();
+    tmvaTree = new TTree("ewkv-TMVA-input","tree used for TMVA input");
+    for(auto tmvaVariable = tmvaVariables.begin(); tmvaVariable != tmvaVariables.end(); ++tmvaVariable){
+      tmvaTree->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/D");
+    }
+    firstTMVAevent = false;
+  }
+  tmvaTree->Fill();
 }
 
 #endif

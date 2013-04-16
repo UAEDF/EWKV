@@ -30,14 +30,14 @@ void cutFlowHandler::toLatex(TString fileName){
   texstream << setprecision(0); double roundingUp = .5;
 
   //Header
-  texstream << " \\begin{tabular}{l|";
+  texstream << " \\begin{tabular}{| l |";
   for(auto cutflow : cutflows) texstream << " c ";
-  texstream << "| c}" << endl << "  \\hline" << endl;
+  texstream << "| c |}" << endl << "  \\hline" << endl;
   for(auto cutflow : cutflows) texstream << " & " << cutflow->getName();
   texstream << " & Total MC ($\\pm$ JES) \\\\" << endl << "  \\hline" << endl;
 
   double totalMC, totalMCplus, totalMCmin;
-  auto trackPoints = (*(cutflows.begin()))->getTrackPoints();
+  auto trackPoints = cutflowsMap["signal"]->getTrackPoints();
   for(auto trackPoint = trackPoints.begin(); trackPoint != trackPoints.end(); ++trackPoint){
     bool errors = ((*(cutflows.begin()))->exist(*trackPoint, "JES+"));
     texstream << "  " << *trackPoint;
@@ -50,11 +50,13 @@ void cutFlowHandler::toLatex(TString fileName){
       double countsJESplus = cutflow->get(*trackPoint, "JES+");
       double countsJESmin = cutflow->get(*trackPoint, "JES-");
 
-      if(cutflow->getName() == "data") texstream << " & " << counts;
+      if(cutflow->getName() == "data") texstream << " & " << (counts);
       else{
         if(counts < 10){ texstream << setprecision(1); roundingUp = 0.05;}
         texstream << " & " << counts; 
-        if(errors) texstream << "$^{ +" << (countsJESplus-counts+roundingUp) << "}_{ -" << counts-countsJESmin+roundingUp << "}$"; 
+        if(errors && ((countsJESplus-counts) != 0 || (counts-countsJESmin) != 0)){
+          texstream << "$^{ +" << (countsJESplus-counts+roundingUp) << "}_{ -" << (counts-countsJESmin+roundingUp) << "}$"; 
+        }
         if(counts < 10){ texstream << setprecision(0); roundingUp = 0.5;}
         totalMC += counts;
         if(errors){
@@ -75,9 +77,8 @@ void cutFlowHandler::toLatex(TString fileName){
 
 bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList){
   cutflowsMap[newName] = new cutFlow(newName);
-  auto firstInList = cutflowsMap.find(mergeList[1]);
-  if(firstInList == cutflowsMap.end()) return false;
-  for(auto trackPoint = firstInList->second->begin(); trackPoint != firstInList->second->end(); ++trackPoint){
+  auto trackPoints = cutflowsMap["signal"];
+  for(auto trackPoint = trackPoints->begin(); trackPoint != trackPoints->end(); ++trackPoint){
     for(auto branch = trackPoint->second.begin(); branch != trackPoint->second.end(); ++branch){
       for(TString i : mergeList){
         auto cutflow = cutflowsMap.find(i);
@@ -88,7 +89,7 @@ bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList){
   }
   auto cutflow = cutflows.begin();
   while(cutflow != cutflows.end()){
-    if((*cutflow)->getName() == firstInList->first){ 
+    if((*cutflow)->getName() == mergeList[0]){ 
       cutflows.insert(cutflow, cutflowsMap[newName]); ++cutflow;
       cutflows.erase(cutflow); --cutflow;
     } else {

@@ -34,10 +34,12 @@ class histoCollection{
   std::map<TString, TProfile*> profileList;
   double fillWeight;
   TString branch;
+  TFile* outputFile;
   sample* mySample;
 
+
   public:
-  histoCollection(sample* mySample_);
+  histoCollection(sample* mySample_, TFile* outputFile);
   ~histoCollection();
 
   void bookHistos();
@@ -53,7 +55,7 @@ class histoCollection{
   void fillHist2D(TString hName, double Xvalue, double Yvalue);
   void fillProfileHist(TString hName, double Xvalue, double Yvalue);
 
-  void toFile(TFile *outputFile, std::vector<TString> selectedHists = std::vector<TString>(0)); 
+  void toFile(std::vector<TString> selectedHists = std::vector<TString>(0)); 
 
   void setFillWeight(double weight){fillWeight = weight;};
   void setBranch(TString branch_ = ""){branch = branch_;};
@@ -62,11 +64,12 @@ class histoCollection{
 };
 
 
-histoCollection::histoCollection(sample* mySample_){
+histoCollection::histoCollection(sample* mySample_, TFile* outputFile_){
   gROOT->SetStyle("Plain");
   gStyle->SetErrorX(0);
   TH1::SetDefaultSumw2();
   mySample = mySample_;
+  outputFile = outputFile_;
   fillWeight = 0;
   branch = "";
   bookHistos();
@@ -108,32 +111,38 @@ void histoCollection::bookHistos(){
 
 
 void histoCollection::bookHist1D(TString hName, int Xbins, double Xmin, double Xmax, bool logX){
+  outputFile->cd();
   hist1DList[hName] = new TH1D(hName, hName, Xbins, Xmin, Xmax);
   if(logX) binLogX(hist1DList[hName]);
 }
 
 TH1D* histoCollection::makeBranch1D(TH1D* h){
-  hist1DList[h->GetName()+branch] = new TH1D(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray());
+  outputFile->cd();
+  hist1DList[h->GetName()+branch] = new TH1D(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax());
 }
 
 
 void histoCollection::bookHist2D(TString hName, int Xbins, double Xmin, double Xmax, int Ybins, double Ymin, double Ymax){
+  outputFile->cd();
   hist2DList[hName] = new TH2D(hName, hName, Xbins, Xmin, Xmax, Ybins, Ymin, Ymax);
 }
 
 TH2D* histoCollection::makeBranch2D(TH2D* h){
+  outputFile->cd();
   hist2DList[h->GetName()+branch] = new TH2D(h->GetName() + TString("_") + branch, h->GetTitle(), 
-						 h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray(),
-						 h->GetNbinsY(), h->GetYaxis()->GetXbins()->GetArray());
+						 h->GetNbinsX(), h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax(),
+						 h->GetNbinsY(), h->GetYaxis()->GetXmin(), h->GetYaxis()->GetXmax());
 }
 
 
 void histoCollection::bookProfileHist(TString hName, int Xbins, double Xmin, double Xmax, bool logX){
+  outputFile->cd();
   profileList[hName] = new TProfile(hName, hName, Xbins, Xmin, Xmax);
   if(logX) binLogX(profileList[hName]);
 }
 
 TProfile* histoCollection::makeBranchProfile(TProfile* h){
+  outputFile->cd();
   hist1DList[h->GetName()+branch] = new TProfile(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray());
 }
 
@@ -194,7 +203,7 @@ void histoCollection::binLogX(TH1* h){
 }
 
 
-void histoCollection::toFile(TFile *outputFile, std::vector<TString> selectedHists){
+void histoCollection::toFile(std::vector<TString> selectedHists){
   outputFile->cd();
   for(auto hid = hist1DList.begin(); hid != hist1DList.end(); ++hid){
     if(!selectedHists.empty() && std::find(selectedHists.begin(), selectedHists.end(), hid->first) == selectedHists.end()) continue;
