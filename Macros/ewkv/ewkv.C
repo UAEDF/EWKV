@@ -48,8 +48,8 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130417";
-  for(TString type : {"ZMUMU"}){
+  TString outputTag = "20130417_new";
+  for(TString type : {"ZMUMU","ZEE"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";

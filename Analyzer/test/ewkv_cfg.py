@@ -50,6 +50,25 @@ process.ak5PFJetsL1FastL2L3NoV = cms.EDProducer('PFJetCorrectionProducer',
     correctors  = cms.vstring(jetcorrection)
 )
 
+#PU jet ID
+from CMGTools.External.pujetidsequence_cff import puJetId, puJetMva
+
+process.jetPUId = puJetId.clone(
+   jets = cms.InputTag("ak5PFJetsL1FastL2L3NoV"),
+   applyJec = cms.bool(False),
+   inputIsCorrected = cms.bool(True),                
+)
+
+process.jetPUMVA = puJetMva.clone(
+   jets = cms.InputTag("ak5PFJetsL1FastL2L3NoV"),
+   jetids = cms.InputTag("recoPuJetId"),
+   applyJec = cms.bool(False),
+   inputIsCorrected = cms.bool(True),                
+)
+
+process.jetPUIdSequence = cms.Sequence(process.jetPUId * process.jetPUMVA)
+
+
 # MET corrections (type I + x/y shift correction)
 process.load("JetMETCorrections.Type1MET.pfMETCorrections_cff")
 process.pfJetMETcorr.src = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
@@ -82,6 +101,6 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 
 process.p = cms.Path(process.seqPFCandidatesNoV * 
 		     process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
-		     process.producePFMETCorrections *
+		     process.jetPUIdSequence * process.producePFMETCorrections *
 		     process.QuarkGluonTagger * process.seqSoftTrackJets * process.ewkv)
 

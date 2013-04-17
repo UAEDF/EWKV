@@ -158,9 +158,9 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   metSig = pfMet->et()/pfMet->sumEt();
 
 
- /*****************************************************************************
-  * anti-kt 0.5 PFJets (no V), including corrections, genJets, QG tagging,... *
-  *****************************************************************************/
+ /*************************************************************************************
+  * anti-kt 0.5 PFJets (no V), including corrections, genJets, QG tagging, PU ID, ... *
+  *************************************************************************************/
   edm::ESHandle<JetCorrectorParametersCollection> JetCorrectionsCollection;
   iSetup.get<JetCorrectionsRecord>().get("AK5PF",JetCorrectionsCollection); 
   JetCorrectorParameters const & JetCorrections = (*JetCorrectionsCollection)["Uncertainty"];
@@ -177,6 +177,12 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   iEvent.getByLabel("QGTagger","qgMLP", qgMLP);
   iEvent.getByLabel("QGTagger","qgLikelihood", qgLikelihood);
 
+  edm::Handle<edm::ValueMap<float>> puJetIdMVA;
+  iEvent.getByLabel("fullDiscriminant", puJetIdMVA);
+
+  edm::Handle<edm::ValueMap<int>> puJetIdFlag;
+  iEvent.getByLabel("fullId", puJetIdFlag);
+
   nJets = 0;
   vJets->Clear();
   for(reco::PFJetCollection::const_iterator jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet, ++nJets){
@@ -190,10 +196,14 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     std::vector<reco::PFCandidatePtr> jetParts = jet->getPFConstituents();
     ncJets[nJets] = jetParts.size();
 
-    jetQGMLP[nJets] = -999; jetQGLikelihood[nJets] = -999;
+    jetQGMLP[nJets] = -996; jetQGLikelihood[nJets] = -996;
     edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(pfJets, jet - pfJets->begin()));
     if(qgMLP.isValid())        jetQGMLP[nJets] 		= (*qgMLP)[jetRef];
     if(qgLikelihood.isValid()) jetQGLikelihood[nJets] 	= (*qgLikelihood)[jetRef];
+
+    jetPUIdMVA[nJets] = -996; jetPUIdFlag[nJets] = 3;
+    if(puJetIdMVA.isValid())   jetPUIdMVA[nJets]	= (*puJetIdMVA)[jetRef];
+    if(puJetIdFlag.isValid())  jetPUIdFlag[nJets]	= (*puJetIdFlag)[jetRef];
 
     genJetPt[nJets] = -1;
     if(jet->pt()>5 && genJets.isValid()){
@@ -340,6 +350,8 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("jetID",			jetID, 		"jetID[nJets]/O");
   t_Analyzer->Branch("jetQGMLP",		jetQGMLP, 	"jetQGMLP[nJets]/F");
   t_Analyzer->Branch("jetQGLikelihood",		jetQGLikelihood,"jetQGMLP[nJets]/F");
+  t_Analyzer->Branch("jetPUIdMVA",		jetPUIdMVA,	"jetPUIdMVA[nJets]/F");
+  t_Analyzer->Branch("jetPUIdFlag",		jetPUIdFlag,	"jetPUIdFlag[nJets]/F");
   t_Analyzer->Branch("genJetPt",		genJetPt, 	"jenGenPt[nJets]/F");
   t_Analyzer->Branch("jetSmearedPt",		jetSmearedPt, 	"jetSmearedPt[nJets]/F");
   t_Analyzer->Branch("ncJets", 			ncJets, 	"ncJets[nJets]/I");

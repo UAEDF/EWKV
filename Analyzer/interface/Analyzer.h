@@ -88,7 +88,8 @@ class Analyzer : public edm::EDAnalyzer{
     int ncJets[maxJet];
     bool jetID[maxJet];
     double jetUncertainty[maxJet];
-    float jetSmearedPt[maxJet], genJetPt[maxJet], jetQGMLP[maxJet], jetQGLikelihood[maxJet];
+    float jetSmearedPt[maxJet], genJetPt[maxJet], jetQGMLP[maxJet], jetQGLikelihood[maxJet], jetPUIdMVA[maxJet];
+    int jetPUIdFlag[maxJet];
     TClonesArray *vJets; 
 
     int nSoftTrackJets;
