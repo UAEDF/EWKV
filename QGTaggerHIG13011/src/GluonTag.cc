@@ -56,7 +56,7 @@ QGTaggerHIG13011::QGTaggerHIG13011(const ParameterSet& iConfig) :
   xmldir         ( iConfig.getUntrackedParameter<string>("xmldir","QGTaggerHIG13011/data/")), 
   useProbValue   ( iConfig.getUntrackedParameter<bool>("useProbValue", false)) 
 {
-  produces<ValueMap<float> >("QGTaggerHIG13011HIG13011");
+  for(TString product : {"qg","axis1", "axis2","pull","R","mult"}) produces<edm::ValueMap<float>>((product + "HIG13011").Data());
 
   //Initialize reader  
   reader = new TMVA::Reader("");
@@ -119,8 +119,8 @@ void QGTaggerHIG13011::setCorrections(TString regionAndPt, float corrAxis1, floa
 
 
 void QGTaggerHIG13011::produce(Event& iEvent, const EventSetup& iSetup){
-  auto_ptr<vector<float> > mvaVal(new vector<float>());
-  produces<ValueMap<float> >("QGTaggerHIG13011");
+  std::map<TString, std::vector<Float_t>*> products;
+  for(TString product : {"qg","axis1", "axis2","mult","pull","R"}) products[product + "HIG13011"] = new std::vector<float>;
 
   //Get rhokt6PFJets and primary vertex
   Handle<double> rho;
@@ -134,26 +134,26 @@ void QGTaggerHIG13011::produce(Event& iEvent, const EventSetup& iSetup){
   Handle<PFJetCollection> pfJets;
   iEvent.getByLabel(src, pfJets);
   for(PFJetCollection::const_iterator jet = pfJets->begin(); jet != pfJets->end(); ++jet){
-    float mvaval = -999;
     if(fabs(jet->eta()) < 4.7 && jet->pt() > 20){
       TString region = "central";
       if(fabs(jet->eta())>=2) region = "transition";
       if(fabs(jet->eta())>=3) region = "forward";
-
       calcVariables(region, jet, vC);
-      mvaval = getMVA(region, jet->pt());
+      products["qgHIG13011"]->push_back(getMVA(region, jet->pt()));
+      for(TString product : {"axis1","axis2","mult","pull","R"}) products[product + "HIG13011"]->push_back(mvaVariables[product]);
+    } else {
+      for(TString product : {"qg","axis1", "axis2","mult","pull","R"}) products[product + "HIG13011"]->push_back(-999);
     }
-
-    //Add the MVA value
-    mvaVal->push_back(mvaval);
   }
 
-  auto_ptr<ValueMap<float> > out(new ValueMap<float>());
-  ValueMap<float>::Filler filler(*out);
-  filler.insert(pfJets, mvaVal->begin(), mvaVal->end());
-  filler.fill();
-  // put value map into event
-  iEvent.put(out, "QGTaggerHIG13011");
+  for(std::map<TString, std::vector<float>* >::iterator product = products.begin(); product != products.end(); ++product){
+    std::auto_ptr<edm::ValueMap<Float_t>> out(new edm::ValueMap<float>());
+    edm::ValueMap<float>::Filler filler(*out);
+    filler.insert(pfJets, product->second->begin(), product->second->end());
+    filler.fill();
+    iEvent.put(out, (product->first).Data());
+    delete product->second;
+  }
 }
 
 
@@ -259,13 +259,18 @@ void QGTaggerHIG13011::calcVariables(TString region, PFJetCollection::const_iter
 	ddphiR_ave = ddphiR_sum/sum_weight;
       } 
       mvaVariables["JetPull"]  = sqrt(ddetaR_ave*ddetaR_ave+ddphiR_ave*ddphiR_ave);
+      mvaVariables["pull"]  = sqrt(ddetaR_ave*ddetaR_ave+ddphiR_ave*ddphiR_ave);
 
       if(region == "central"){
 	mvaVariables["Mult"] = nChg_QC;
+	mvaVariables["mult"] = nChg_QC;
 	mvaVariables["JetR"] = pTMaxChg_QC/sum_pt;
+	mvaVariables["R"] = pTMaxChg_QC/sum_pt;
       } else {
 	mvaVariables["Mult"] = (nChg_ptCut + nNeutral_ptCut);
+	mvaVariables["mult"] = (nChg_ptCut + nNeutral_ptCut);
 	mvaVariables["JetR"] = pTMax/sum_pt;
+	mvaVariables["R"] = pTMax/sum_pt;
       }
 }
 

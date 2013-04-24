@@ -79,6 +79,15 @@ process.pfJetMETcorr.jetCorrLabel = cms.string(jetcorrection)
 process.load('QuarkGluonTagger.EightTeV.QGTagger_RecoJets_cff')  
 process.QGTagger.srcJets = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
 
+# HIG13011-like QuarkGluonTagger (FSQ12-019 at 8Tev)
+process.QuarkGluonTagger13011 = cms.EDProducer('QGTagger13011',
+    src             = cms.untracked.InputTag('ak5PFJetsL1FastL2L3NoV'),
+    mva	            = cms.untracked.string('Likelihood'),
+    xmldir          = cms.untracked.string('EWKV/QGTaggerHIG13011/data/'),
+    useProbValue    = cms.untracked.bool(False),
+)
+
+
 # extra tracks producer (out of V + 2-jets system)
 process.load('EWKV.ExtraTracks.SoftTrackJets_cff')  
 
@@ -102,5 +111,6 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 process.p = cms.Path(process.seqPFCandidatesNoV * 
 		     process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
 		     process.jetPUIdSequence * process.producePFMETCorrections *
-		     process.QuarkGluonTagger * process.seqSoftTrackJets * process.ewkv)
+		     process.QuarkGluonTagger * process.QuarkGluonTaggerHIG13011 *
+                     process.seqSoftTrackJets * process.ewkv)
 

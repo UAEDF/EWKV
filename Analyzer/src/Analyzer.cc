@@ -17,6 +17,7 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
@@ -70,6 +71,13 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   nEvent	= (int) iEvent.id().event();
   nLumi 	= (int) iEvent.id().luminosityBlock();
 
+ /*********************
+  * LHE event product *
+  *********************/
+  edm::Handle<LHEEventProduct> lheH; 
+  iEvent.getByType(lheH);
+  if(lheH.isValid()) nParticleEntries = lheH->hepeup().NUP; 
+  else nParticleEntries = -1;
 
  /*********************************************************************************************
   * Get pile-up, the jet rho for L1 PU corrections and the number of offline primary vertices *
@@ -77,7 +85,6 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   edm::Handle<std::vector<PileupSummaryInfo>>  PupInfo;
   iEvent.getByLabel("addPileupInfo", PupInfo);
 
-  nPileUp = -1;
   if(PupInfo.isValid()){
     for(std::vector<PileupSummaryInfo>::const_iterator PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI){
       if(PVI->getBunchCrossing() == 0){ 
@@ -85,7 +92,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 	continue;
       }
     }  
-  }
+  } else nPileUp = -1;
 
   edm::Handle<double> rho;
   iEvent.getByLabel(rhoInputTag, rho);
@@ -172,10 +179,10 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   edm::Handle<reco::GenJetCollection> genJets;
   iEvent.getByLabel(genJetsInputTag, genJets);
 
-  edm::Handle<edm::ValueMap<float> >  qgMLP;
-  edm::Handle<edm::ValueMap<float> >  qgLikelihood;
-  iEvent.getByLabel("QGTagger","qgMLP", qgMLP);
-  iEvent.getByLabel("QGTagger","qgLikelihood", qgLikelihood);
+  std::map<TString, edm::Handle<edm::ValueMap<float>>> QGTaggerHandle;
+  for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		iEvent.getByLabel("QGTagger",(product+"MLP").Data(), QGTaggerHandle[product+"MLP"]);
+  for(TString product : {"qg","axis2","mult","ptD"}) 			iEvent.getByLabel("QGTagger",(product+"Likelihood").Data(), QGTaggerHandle[product+"Likelihood"]);
+  for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	iEvent.getByLabel("QGTagger",(product+"HIG13011").Data(), QGTaggerHandle[product+"HIG13011"]);
 
   edm::Handle<edm::ValueMap<float>> puJetIdMVA;
   iEvent.getByLabel("fullDiscriminant", puJetIdMVA);
@@ -196,10 +203,11 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     std::vector<reco::PFCandidatePtr> jetParts = jet->getPFConstituents();
     ncJets[nJets] = jetParts.size();
 
-    jetQGMLP[nJets] = -996; jetQGLikelihood[nJets] = -996;
     edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(pfJets, jet - pfJets->begin()));
-    if(qgMLP.isValid())        jetQGMLP[nJets] 		= (*qgMLP)[jetRef];
-    if(qgLikelihood.isValid()) jetQGLikelihood[nJets] 	= (*qgLikelihood)[jetRef];
+    for(auto it = QGTaggerHandle.begin(); it != QGTaggerHandle.end(); ++it){
+      if(it->second.isValid()) 	jetQGvariables[it->first].push_back((*(it->second))[jetRef]);
+      else 			jetQGvariables[it->first].push_back(-996);
+    }
 
     jetPUIdMVA[nJets] = -996; jetPUIdFlag[nJets] = 3;
     if(puJetIdMVA.isValid())   jetPUIdMVA[nJets]	= (*puJetIdMVA)[jetRef];
@@ -238,10 +246,12 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   iEvent.getByLabel(softTrackJetsInputTag, trackJets);
 
   nSoftTrackJets = 0;
+  totalSoftHT = 0;
   vSoftTrackJets->Clear();
   if(trackJets.isValid()){
-    for(reco::TrackJetCollection::const_iterator trackJet = trackJets->begin(); trackJet != trackJets->end() && nSoftTrackJets < maxSTJ; ++trackJet, ++nSoftTrackJets){
-      new((*vSoftTrackJets)[nSoftTrackJets]) TLorentzVector(trackJet->px(), trackJet->py(), trackJet->pz(), trackJet->energy());
+    for(reco::TrackJetCollection::const_iterator trackJet = trackJets->begin(); trackJet != trackJets->end(); ++trackJet, ++nSoftTrackJets){
+      totalSoftHT += trackJet->pt();
+      if(nSoftTrackJets < maxSTJ) new((*vSoftTrackJets)[nSoftTrackJets]) TLorentzVector(trackJet->px(), trackJet->py(), trackJet->pz(), trackJet->energy());
     }
   } 
 
@@ -322,43 +332,47 @@ void Analyzer::beginJob(){
   f_Analyzer = new TFile(fileName, "RECREATE");
   t_Analyzer = new TTree("EWKV","EWKV tree");
 
-  t_Analyzer->Branch("run",			&nRun,		"run/I");
-  t_Analyzer->Branch("event",			&nEvent,	"event/I");
-  t_Analyzer->Branch("lumi",			&nLumi,		"lumi/I");
+  t_Analyzer->Branch("run",			&nRun,			"run/I");
+  t_Analyzer->Branch("event",			&nEvent,		"event/I");
+  t_Analyzer->Branch("lumi",			&nLumi,			"lumi/I");
 
-  t_Analyzer->Branch("nPileUp",			&nPileUp,	"nPileUp/I");
-  t_Analyzer->Branch("rhokt6PFJets",		&rhokt6PFJets,	"rhokt6PFJets/F");
-  t_Analyzer->Branch("nPriVtxs",		&nPriVtxs,	"nPriVtxs/I");
+  t_Analyzer->Branch("nParticleEntries",	&nParticleEntries,	"nParticleEntries/I");
 
-  t_Analyzer->Branch("nGenPart",		&nGenPart,	"nGenPart/I");
-  t_Analyzer->Branch("vGenPart","TClonesArray", &vGenPart, 	32000, 0);
-  t_Analyzer->Branch("idGenPart", 		idGenPart, 	"idGenPart[nGenPart]/I");
+  t_Analyzer->Branch("nPileUp",			&nPileUp,		"nPileUp/I");
+  t_Analyzer->Branch("rhokt6PFJets",		&rhokt6PFJets,		"rhokt6PFJets/F");
+  t_Analyzer->Branch("nPriVtxs",		&nPriVtxs,		"nPriVtxs/I");
 
-  t_Analyzer->Branch("VType",			&vType,		"VType/I");
-  t_Analyzer->Branch("nLeptons",		&nLeptons,	"nLeptons/I");
-  t_Analyzer->Branch("vLeptons","TClonesArray", &vLeptons, 	32000, 0);
-  t_Analyzer->Branch("leptonCharge", 		leptonCharge, 	"leptonCharge[nLeptons]/I");
+  t_Analyzer->Branch("nGenPart",		&nGenPart,		"nGenPart/I");
+  t_Analyzer->Branch("vGenPart","TClonesArray", &vGenPart, 		32000, 0);
+  t_Analyzer->Branch("idGenPart", 		idGenPart, 		"idGenPart[nGenPart]/I");
 
-  t_Analyzer->Branch("vMET","TClonesArray", 	&vMET, 		32000, 0);
-  t_Analyzer->Branch("met",			&met ,		"met/F");
-  t_Analyzer->Branch("metPhi",			&metPhi ,	"metPhi/F");
-  t_Analyzer->Branch("metSig",			&metSig ,	"metSig/F");
+  t_Analyzer->Branch("VType",			&vType,			"VType/I");
+  t_Analyzer->Branch("nLeptons",		&nLeptons,		"nLeptons/I");
+  t_Analyzer->Branch("vLeptons","TClonesArray", &vLeptons, 		32000, 0);
+  t_Analyzer->Branch("leptonCharge", 		leptonCharge, 		"leptonCharge[nLeptons]/I");
+
+  t_Analyzer->Branch("vMET","TClonesArray", 	&vMET, 			32000, 0);
+  t_Analyzer->Branch("met",			&met ,			"met/F");
+  t_Analyzer->Branch("metPhi",			&metPhi ,		"metPhi/F");
+  t_Analyzer->Branch("metSig",			&metSig ,		"metSig/F");
  
-  t_Analyzer->Branch("nJets",			&nJets,		"nJets/I");
-  t_Analyzer->Branch("vJets","TClonesArray", 	&vJets, 	32000, 0);
-  t_Analyzer->Branch("jetUncertainty",		jetUncertainty, "jetUncertainty[nJets]/D");
-  t_Analyzer->Branch("jetID",			jetID, 		"jetID[nJets]/O");
-  t_Analyzer->Branch("jetQGMLP",		jetQGMLP, 	"jetQGMLP[nJets]/F");
-  t_Analyzer->Branch("jetQGLikelihood",		jetQGLikelihood,"jetQGMLP[nJets]/F");
-  t_Analyzer->Branch("jetPUIdMVA",		jetPUIdMVA,	"jetPUIdMVA[nJets]/F");
-  t_Analyzer->Branch("jetPUIdFlag",		jetPUIdFlag,	"jetPUIdFlag[nJets]/F");
-  t_Analyzer->Branch("genJetPt",		genJetPt, 	"jenGenPt[nJets]/F");
-  t_Analyzer->Branch("jetSmearedPt",		jetSmearedPt, 	"jetSmearedPt[nJets]/F");
-  t_Analyzer->Branch("ncJets", 			ncJets, 	"ncJets[nJets]/I");
+  t_Analyzer->Branch("nJets",			&nJets,			"nJets/I");
+  t_Analyzer->Branch("vJets","TClonesArray", 	&vJets, 		32000, 0);
+  t_Analyzer->Branch("jetUncertainty",		jetUncertainty, 	"jetUncertainty[nJets]/D");
+  t_Analyzer->Branch("jetID",			jetID, 			"jetID[nJets]/O");
+  t_Analyzer->Branch("jetPUIdMVA",		jetPUIdMVA,		"jetPUIdMVA[nJets]/F");
+  t_Analyzer->Branch("jetPUIdFlag",		jetPUIdFlag,		"jetPUIdFlag[nJets]/F");
+  t_Analyzer->Branch("genJetPt",		genJetPt, 		"jenGenPt[nJets]/F");
+  t_Analyzer->Branch("jetSmearedPt",		jetSmearedPt, 		"jetSmearedPt[nJets]/F");
+  t_Analyzer->Branch("ncJets", 			ncJets, 		"ncJets[nJets]/I");
 
-  t_Analyzer->Branch("nSoftTrackJets", 		&nSoftTrackJets,"nSoftTrackJets/I");
-  t_Analyzer->Branch("vSoftTrackJets","TClonesArray", &vSoftTrackJets, 32000, 0);
+  for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		t_Analyzer->Branch(product + "MLP", &jetQGvariables[product + "MLP"]);
+  for(TString product : {"qg","axis2","mult","ptD"}) 			t_Analyzer->Branch(product + "Likelihood", &jetQGvariables[product + "Likelihood"]);
+  for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	t_Analyzer->Branch(product + "HIG13011", &jetQGvariables[product + "HIG13011"]);
 
+  t_Analyzer->Branch("nSoftTrackJets", 		&nSoftTrackJets,	"nSoftTrackJets/I");
+  t_Analyzer->Branch("vSoftTrackJets","TClonesArray", &vSoftTrackJets, 	32000, 0);
+  t_Analyzer->Branch("totalSoftHT",		&totalSoftHT,		"totalSoftHT/F");
 
   for (uint i=0; i< HLT_paths.size(); ++i){
     t_Analyzer->Branch(HLT_paths[i].c_str(),  &trigRes[i],"trigRes/O");

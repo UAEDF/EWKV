@@ -47,8 +47,8 @@
 
 
 const int maxGen = 10;
-const int maxJet = 15;
-const int maxSTJ = 25;
+const int maxJet = 5;
+const int maxSTJ = 5;
 const int maxTrg = 15;
 
 class Analyzer : public edm::EDAnalyzer{
@@ -73,6 +73,7 @@ class Analyzer : public edm::EDAnalyzer{
     int nPileUp, nPriVtxs;
     float rhokt6PFJets;
 
+    int nParticleEntries;
     int nGenPart;
     int idGenPart[maxGen];
     TClonesArray *vGenPart; 
@@ -88,12 +89,14 @@ class Analyzer : public edm::EDAnalyzer{
     int ncJets[maxJet];
     bool jetID[maxJet];
     double jetUncertainty[maxJet];
-    float jetSmearedPt[maxJet], genJetPt[maxJet], jetQGMLP[maxJet], jetQGLikelihood[maxJet], jetPUIdMVA[maxJet];
+    float jetSmearedPt[maxJet], genJetPt[maxJet], jetPUIdMVA[maxJet];
+    std::map<TString, std::vector<float>> jetQGvariables;
     int jetPUIdFlag[maxJet];
     TClonesArray *vJets; 
 
     int nSoftTrackJets;
     TClonesArray *vSoftTrackJets; 
+    float totalSoftHT;
 
     std::vector<std::string> HLT_paths;
     std::string HLT_process;
