@@ -134,16 +134,13 @@ void QGTaggerHIG13011::produce(Event& iEvent, const EventSetup& iSetup){
   Handle<PFJetCollection> pfJets;
   iEvent.getByLabel(src, pfJets);
   for(PFJetCollection::const_iterator jet = pfJets->begin(); jet != pfJets->end(); ++jet){
-    if(fabs(jet->eta()) < 4.7 && jet->pt() > 20){
-      TString region = "central";
-      if(fabs(jet->eta())>=2) region = "transition";
-      if(fabs(jet->eta())>=3) region = "forward";
-      calcVariables(region, jet, vC);
-      products["qgHIG13011"]->push_back(getMVA(region, jet->pt()));
-      for(TString product : {"axis1","axis2","mult","pull","R"}) products[product + "HIG13011"]->push_back(mvaVariables[product]);
-    } else {
-      for(TString product : {"qg","axis1", "axis2","mult","pull","R"}) products[product + "HIG13011"]->push_back(-999);
-    }
+    TString region = "central";
+    if(fabs(jet->eta())>=2) region = "transition";
+    if(fabs(jet->eta())>=3) region = "forward";
+    calcVariables(region, jet, vC);
+    if(fabs(jet->eta()) < 4.7 && jet->pt() > 20) products["qgHIG13011"]->push_back(getMVA(region, jet->pt()));
+    else 					 products["qgHIG13011"]->push_back(-999);
+    for(TString product : {"axis1","axis2","mult","pull","R"}) products[product + "HIG13011"]->push_back(mvaVariables[product]);
   }
 
   for(std::map<TString, std::vector<float>*>::iterator product = products.begin(); product != products.end(); ++product){

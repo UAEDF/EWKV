@@ -18,9 +18,10 @@ process.load('Configuration.StandardSequences.Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
 
 # Signal and number of events for test runs
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2500))
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root')
+#    fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root')
+    fileNames = cms.untracked.vstring('/store/data/SingleMu/Run2012D-PromptReco-v1/AOD/')
 )
 
 # GEN Particles 
