@@ -182,16 +182,20 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   std::map<TString, edm::Handle<edm::ValueMap<float>>> QGTaggerHandle;
   for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		iEvent.getByLabel("QGTagger",(product+"MLP").Data(), QGTaggerHandle[product+"MLP"]);
   for(TString product : {"qg","axis2","mult","ptD"}) 			iEvent.getByLabel("QGTagger",(product+"Likelihood").Data(), QGTaggerHandle[product+"Likelihood"]);
-  for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	iEvent.getByLabel("QGTagger",(product+"HIG13011").Data(), QGTaggerHandle[product+"HIG13011"]);
+  for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	iEvent.getByLabel("QGTaggerHIG13011",(product+"HIG13011").Data(), QGTaggerHandle[product+"HIG13011"]);
 
   edm::Handle<edm::ValueMap<float>> puJetIdMVA;
-  iEvent.getByLabel("fullDiscriminant", puJetIdMVA);
+  iEvent.getByLabel("jetPUMVA","fullDiscriminant", puJetIdMVA);
 
   edm::Handle<edm::ValueMap<int>> puJetIdFlag;
-  iEvent.getByLabel("fullId", puJetIdFlag);
+  iEvent.getByLabel("jetPUMVA","fullId", puJetIdFlag);
 
   nJets = 0;
   vJets->Clear();
+  for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		jetQGvariables[product + "MLP"].clear();
+  for(TString product : {"qg","axis2","mult","ptD"}) 			jetQGvariables[product + "Likelihood"].clear();
+  for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	jetQGvariables[product + "HIG13011"].clear();
+
   for(reco::PFJetCollection::const_iterator jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet, ++nJets){
     jetID[nJets] = jetId(&(*jet));
     new((*vJets)[nJets]) TLorentzVector(jet->px(), jet->py(), jet->pz(), jet->energy());
@@ -205,13 +209,14 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 
     edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(pfJets, jet - pfJets->begin()));
     for(auto it = QGTaggerHandle.begin(); it != QGTaggerHandle.end(); ++it){
-      if(it->second.isValid()) 	jetQGvariables[it->first].push_back((*(it->second))[jetRef]);
-      else 			jetQGvariables[it->first].push_back(-996);
+      if((it->second).isValid()) 	jetQGvariables[it->first].push_back((*(it->second))[jetRef]);
+      else 				jetQGvariables[it->first].push_back(-996);
     }
 
-    jetPUIdMVA[nJets] = -996; jetPUIdFlag[nJets] = 3;
-    if(puJetIdMVA.isValid())   jetPUIdMVA[nJets]	= (*puJetIdMVA)[jetRef];
-    if(puJetIdFlag.isValid())  jetPUIdFlag[nJets]	= (*puJetIdFlag)[jetRef];
+    if(puJetIdMVA.isValid())  	jetPUIdMVA[nJets]	= (*puJetIdMVA)[jetRef];
+    else 			jetPUIdMVA[nJets]	= -966;
+    if(puJetIdFlag.isValid())   jetPUIdFlag[nJets]	= (*puJetIdFlag)[jetRef];
+    else			jetPUIdFlag[nJets]	= 10;
 
     genJetPt[nJets] = -1;
     if(jet->pt()>5 && genJets.isValid()){
@@ -361,7 +366,7 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("jetUncertainty",		jetUncertainty, 	"jetUncertainty[nJets]/D");
   t_Analyzer->Branch("jetID",			jetID, 			"jetID[nJets]/O");
   t_Analyzer->Branch("jetPUIdMVA",		jetPUIdMVA,		"jetPUIdMVA[nJets]/F");
-  t_Analyzer->Branch("jetPUIdFlag",		jetPUIdFlag,		"jetPUIdFlag[nJets]/F");
+  t_Analyzer->Branch("jetPUIdFlag",		jetPUIdFlag,		"jetPUIdFlag[nJets]/I");
   t_Analyzer->Branch("genJetPt",		genJetPt, 		"jenGenPt[nJets]/F");
   t_Analyzer->Branch("jetSmearedPt",		jetSmearedPt, 		"jetSmearedPt[nJets]/F");
   t_Analyzer->Branch("ncJets", 			ncJets, 		"ncJets[nJets]/I");

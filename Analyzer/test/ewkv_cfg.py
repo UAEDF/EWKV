@@ -18,7 +18,7 @@ process.load('Configuration.StandardSequences.Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
 
 # Signal and number of events for test runs
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100))
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root')
 )
@@ -61,9 +61,9 @@ process.jetPUId = puJetId.clone(
 
 process.jetPUMVA = puJetMva.clone(
    jets = cms.InputTag("ak5PFJetsL1FastL2L3NoV"),
-   jetids = cms.InputTag("recoPuJetId"),
+   jetids = cms.InputTag("jetPUId"),
    applyJec = cms.bool(False),
-   inputIsCorrected = cms.bool(True),                
+   inputIsCorrected = cms.bool(True),               
 )
 
 process.jetPUIdSequence = cms.Sequence(process.jetPUId * process.jetPUMVA)
@@ -80,7 +80,7 @@ process.load('QuarkGluonTagger.EightTeV.QGTagger_RecoJets_cff')
 process.QGTagger.srcJets = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
 
 # HIG13011-like QuarkGluonTagger (FSQ12-019 at 8Tev)
-process.QuarkGluonTagger13011 = cms.EDProducer('QGTagger13011',
+process.QGTaggerHIG13011 = cms.EDProducer('QGTaggerHIG13011',
     src             = cms.untracked.InputTag('ak5PFJetsL1FastL2L3NoV'),
     mva	            = cms.untracked.string('Likelihood'),
     xmldir          = cms.untracked.string('EWKV/QGTaggerHIG13011/data/'),
@@ -111,6 +111,6 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 process.p = cms.Path(process.seqPFCandidatesNoV * 
 		     process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
 		     process.jetPUIdSequence * process.producePFMETCorrections *
-		     process.QuarkGluonTagger * process.QuarkGluonTaggerHIG13011 *
+		     process.QuarkGluonTagger * process.QGTaggerHIG13011 *
                      process.seqSoftTrackJets * process.ewkv)
 

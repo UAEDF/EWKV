@@ -119,7 +119,7 @@ void QGTaggerHIG13011::setCorrections(TString regionAndPt, float corrAxis1, floa
 
 
 void QGTaggerHIG13011::produce(Event& iEvent, const EventSetup& iSetup){
-  std::map<TString, std::vector<Float_t>*> products;
+  std::map<TString, std::vector<float>*> products;
   for(TString product : {"qg","axis1", "axis2","mult","pull","R"}) products[product + "HIG13011"] = new std::vector<float>;
 
   //Get rhokt6PFJets and primary vertex
@@ -146,8 +146,8 @@ void QGTaggerHIG13011::produce(Event& iEvent, const EventSetup& iSetup){
     }
   }
 
-  for(std::map<TString, std::vector<float>* >::iterator product = products.begin(); product != products.end(); ++product){
-    std::auto_ptr<edm::ValueMap<Float_t>> out(new edm::ValueMap<float>());
+  for(std::map<TString, std::vector<float>*>::iterator product = products.begin(); product != products.end(); ++product){
+    std::auto_ptr<edm::ValueMap<float>> out(new edm::ValueMap<float>());
     edm::ValueMap<float>::Filler filler(*out);
     filler.insert(pfJets, product->second->begin(), product->second->end());
     filler.fill();

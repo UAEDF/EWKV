@@ -71,6 +71,7 @@ void ExtraTracks::produce(edm::Event& iEvent, const edm::EventSetup& iSetup){
   iEvent.getByLabel(tracksInputTag, tracks);
   for(reco::TrackCollection::const_iterator track = tracks->begin(); track != tracks->end(); ++track){
     if(!(track->quality(reco::TrackBase::highPurity) && track->pt() > 0.3)) continue;	//Select high purity and pT > 300 MeV
+    if(track->ptError() > 0.2*track->pt()) continue;
 
     // minimum z-distance of track to the first PV : 2mm && 3sigma
     float dzPV0 = track->dz(PVpoints[0]);
