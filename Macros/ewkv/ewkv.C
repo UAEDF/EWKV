@@ -91,6 +91,8 @@ void ewkvAnalyzer::analyze_Zjets(){
   if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
   if((vType == ZEE) && !(Ele17_Ele8 || Ele17T_Ele8T)) return;
 
+  histos->fillHist1D("nPriVtxs", nPriVtxs);
+
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson
   TLorentzVector l1 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 0 : 1));
   TLorentzVector l2 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 1 : 0));
@@ -210,13 +212,15 @@ void ewkvAnalyzer::analyze_Zjets(){
     TLorentzVector jj = TLorentzVector(j1 + j2);
     TLorentzVector all = TLorentzVector(l1 + l2 + j1 + j2);
 
-    histos->fillHist1D("jet_pt", j1.Pt());
-    histos->fillHist1D("jet_eta", j1.Eta());
-    histos->fillHist1D("jet_phi", j1.Phi());
+    histos->fillHist1D("jet1_pt", j1.Pt());
+    histos->fillHist1D("jet1_pt_log", j1.Pt());
+    histos->fillHist1D("jet1_eta", j1.Eta());
+    histos->fillHist1D("jet1_phi", j1.Phi());
 
-    histos->fillHist1D("jet_pt", j2.Pt());
-    histos->fillHist1D("jet_eta", j2.Eta());
-    histos->fillHist1D("jet_phi", j2.Phi());
+    histos->fillHist1D("jet2_pt", j2.Pt());
+    histos->fillHist1D("jet2_pt_log", j2.Pt());
+    histos->fillHist1D("jet2_eta", j2.Eta());
+    histos->fillHist1D("jet2_phi", j2.Phi());
 
     histos->fillHist1D("dijet_mass", jj.M());
     histos->fillHist1D("dijet_pt", jj.Pt());
