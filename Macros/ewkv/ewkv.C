@@ -48,8 +48,8 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130417_new";
-  for(TString type : {"ZMUMU","ZEE"}){
+  TString outputTag = "20130502";
+  for(TString type : {"ZMUMU"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -280,7 +280,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     tmvaVariables["weight"] = mySample->getWeight(nPileUp);
     fillTMVAtree();
 
-    histos->fillHist1D("BDTD", tmvaReader->EvaluateMVA("BDTD"));
+  //  histos->fillHist1D("BDTD", tmvaReader->EvaluateMVA("BDTD"));
 
 
     if(fabs(Zeppenfeld)> 1.2) continue;
@@ -297,12 +297,12 @@ void ewkvAnalyzer::analyze_Zjets(){
 
 
 void ewkvAnalyzer::initTMVAreader(TString type){
-  tmvaReader = new TMVA::Reader("");
+//  tmvaReader = new TMVA::Reader("");
 
-  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgMLP_j1", "qgMLP_j2", "M_jj"};
-  for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
+//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgMLP_j1", "qgMLP_j2", "M_jj"};
+//  for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
-  tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/weights/TMVAClassification_BDT.weights.xml" );
+//  tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/weights/TMVAClassification_BDT.weights.xml" );
 }
 
 

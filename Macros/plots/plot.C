@@ -41,7 +41,7 @@ int main(){
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
   myPlotHistos->loop("ZMUMU");
-  myPlotHistos->loop("ZEE");
+//  myPlotHistos->loop("ZEE");
   delete myPlotHistos;
   return 0;
 }
@@ -81,7 +81,7 @@ bool plotHistos::configureStack(){
 void plotHistos::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D2.config")); 
+  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config")); 
   if(!readFile.is_open()){
     std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config not found!" << std::endl;
     return;
@@ -242,7 +242,7 @@ void plotHistos::next(TString type){
       float maxJEC = hists["ratio"]->GetBinLowEdge(bins + 1 - removeJESbinRight);
       float minJEC = hists["ratio"]->GetBinLowEdge(1 + removeJESbinLeft);
       for(TString sign : {"+","-"}){
-        hists["ratio"+sign+"temp"] = new TH1D("ratio"+sign,"ratio"+sign, bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
+        hists["ratio"+sign+"temp"] = new TH1D("ratio"+sign+"_","ratio"+sign+"_", bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
         if(logX) binLogX(hists["ratio"+sign+"temp"]);
         for(int i=1+removeJESbinLeft; i < bins + 1 - removeJESbinRight; ++i){
           hists["ratio"+sign+"temp"]->SetBinContent(i-removeJESbinLeft, hists["ratio"+sign]->GetBinContent(i));
