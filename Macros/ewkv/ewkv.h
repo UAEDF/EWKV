@@ -36,6 +36,7 @@ class ewkvAnalyzer{
     void analyze_Zjets();
     void analyze_Wjets(){std::cout << "ewkvAnalyzer:\t\t\tanalyze_WType() is not implemented yet" << std::endl;}
     void fillTMVAtree();
+    void fillSkimTree();
     void initTMVAreader(TString type);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
@@ -59,10 +60,11 @@ class ewkvAnalyzer{
     histoCollection* histos;
     cutFlow* cutflow;
     bool makeTMVAtree, firstTMVAevent;
+    bool makeSkimTree, firstSkimEvent, alreadyOnSkimmedTree;
     std::map<TString, float> tmvaVariables;
-    TFile *tmvaFile;
-    TTree *tmvaTree;
-    TString tmvaLocation;
+    TFile *tmvaFile, *skimFile;
+    TTree *tmvaTree, *skimTree;
+    TString tmvaLocation, skimLocation;
     TMVA::Reader *tmvaReader;
 
   public:
@@ -72,11 +74,13 @@ class ewkvAnalyzer{
     histoCollection* getHistoCollection(){ return histos;}; 
     cutFlow* getCutFlow(){ return cutflow;};
     void setMakeTMVAtree(TString location){ makeTMVAtree = true; tmvaLocation = location;}
+    void setMakeSkimTree(TString location){ makeSkimTree = true; skimLocation = location;}
 };
 
 
 ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   makeTMVAtree = false; tmvaLocation = ".";
+  makeSkimTree = false; skimLocation = ".";
   mySample = mySample_;
   tree = mySample->getTree();
   histos = new histoCollection(mySample, outfile);
@@ -156,6 +160,7 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
   double percentPoint = nEntries/100.;
   double nextPercentPoint = percentPoint;
   for(int i = 0; i < nEntries; ++i){
+    alreadyOnSkimmedTree = false;
     if(i > nextPercentPoint){ std::cout << "="<< std::flush; nextPercentPoint += percentPoint;}
     tree->GetEntry(i);
     if(vType != theType) continue;
@@ -164,19 +169,34 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
     if(theType == ZMUMU || theType == ZEE) analyze_Zjets();
     else analyze_Wjets();
   }
+  std::cout << std::endl;
+
   if(makeTMVAtree && !firstTMVAevent){
     tmvaFile->cd();
     tmvaFile->WriteTObject(tmvaTree);
     tmvaFile->Close();
+    std::cout << "ewkvAnalyzer:\t\t\tTMVA tree prepared" << std::endl;
   }
-  std::cout << std::endl;
+
+  if(makeSkimTree && !firstSkimEvent){
+    skimFile->cd();
+    skimFile->WriteTObject(skimTree);
+    skimFile->Close();
+    std::cout << "ewkvAnalyzer:\t\t\tSkimmed tree" << std::endl;
+  }
+
   return;
 }
 
 void ewkvAnalyzer::fillTMVAtree(){
   if(!makeTMVAtree) return;
   if(firstTMVAevent){
-    tmvaFile = new TFile(tmvaLocation + mySample->getName() + ".root","recreate");
+    tmvaFile = new TFile(tmvaLocation + mySample->getName() + ".root","new");
+    if(!tmvaFile->IsOpen()){
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << tmvaLocation << mySample->getName() << ".root (maybe already exists)" << std::endl;
+      makeTMVAtree = false;
+      return;
+    }
     tmvaFile->cd();
     tmvaTree = new TTree("ewkv-TMVA-input","tree used for TMVA input");
     for(auto tmvaVariable = tmvaVariables.begin(); tmvaVariable != tmvaVariables.end(); ++tmvaVariable){
@@ -187,4 +207,23 @@ void ewkvAnalyzer::fillTMVAtree(){
   tmvaTree->Fill();
 }
 
+
+void ewkvAnalyzer::fillSkimTree(){
+  if(!makeSkimTree) return;
+  if(alreadyOnSkimmedTree) return;
+  if(firstSkimEvent){
+    skimFile = new TFile(skimLocation + mySample->getName() + "_skim.root","new");
+    if(!skimFile->IsOpen()){
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << skimLocation << mySample->getName() << ".root (maybe already exists)" << std::endl;
+      makeSkimTree = false;
+      return;
+    }
+    skimFile->cd();
+    skimTree = new TTree();
+    tree->CloneTree(0);
+    firstSkimEvent = false;
+  }
+  skimTree->Fill();
+  alreadyOnSkimmedTree = true;
+}
 #endif

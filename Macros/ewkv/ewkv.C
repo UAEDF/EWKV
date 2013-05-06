@@ -61,7 +61,8 @@ int main(){
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
-//    myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
+      myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
+      myAnalyzer->setMakeSkimTree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/skimmed/"+type+"/"); 	//Use if TMVA input trees has to be remade
       myAnalyzer->loop(type);										//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
       cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
@@ -163,7 +164,7 @@ void ewkvAnalyzer::analyze_Zjets(){
 	  ++nGenLeptons;
         }
         if(nGenQJets < 2 && (fabs(idGenPart[g]) < 6)){
-          if(fabs(genParticle.Eta()) > 3.6) continue;
+          if(fabs(genParticle.Eta()) > 4.7) continue;
           if((nGenQJets == 0) && (fabs(genParticle.Pt()) < 65)) continue;
           if((nGenQJets == 1) && (fabs(genParticle.Pt()) < 40)) continue;
 	  ++nGenQJets;
@@ -207,6 +208,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     if(j2.Pt() < 40) continue;
     cutflow->track("2 jets"); 
 
+    fillSkimTree();
 
     //Analyze jets
     TLorentzVector jj = TLorentzVector(j1 + j2);
@@ -278,7 +280,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     tmvaVariables["qgLikelihood_j2"] = jetQGLikelihood[leadingJets.at(1)];
     tmvaVariables["M_jj"] = jj.M();
     tmvaVariables["weight"] = mySample->getWeight(nPileUp);
-    fillTMVAtree();
+    if(branch == "") fillTMVAtree();
 
   //  histos->fillHist1D("BDTD", tmvaReader->EvaluateMVA("BDTD"));
 
