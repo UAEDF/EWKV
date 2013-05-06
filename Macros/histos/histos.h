@@ -119,6 +119,7 @@ void histoCollection::bookHist1D(TString hName, int Xbins, double Xmin, double X
 TH1D* histoCollection::makeBranch1D(TH1D* h){
   outputFile->cd();
   hist1DList[h->GetName()+branch] = new TH1D(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax());
+  if(h->GetBinWidth(1) != h->GetBinWidth(2)) binLogX(hist1DList[h->GetName()+branch]);
 }
 
 
@@ -143,7 +144,8 @@ void histoCollection::bookProfileHist(TString hName, int Xbins, double Xmin, dou
 
 TProfile* histoCollection::makeBranchProfile(TProfile* h){
   outputFile->cd();
-  hist1DList[h->GetName()+branch] = new TProfile(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray());
+  profileList[h->GetName()+branch] = new TProfile(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray());
+  if(h->GetBinWidth(1) != h->GetBinWidth(2)) binLogX(profileList[h->GetName()+branch]);
 }
 
 
@@ -191,6 +193,7 @@ void histoCollection::fillProfileHist(TString hName, double Xvalue, double Yvalu
 
 void histoCollection::binLogX(TH1* h){
   TAxis *axis = h->GetXaxis();
+  if(axis->GetXmin() == 0) std::cout << "histoCollection:\t!!!\tLogX is not compatible with x_min = 0" << std::endl;
   int bins = axis->GetNbins();
   Axis_t logMin = TMath::Log10(axis->GetXmin());
   Axis_t logMax = TMath::Log10(axis->GetXmax());
