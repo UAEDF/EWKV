@@ -41,7 +41,7 @@ int main(){
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
   myPlotHistos->loop("ZMUMU");
-//  myPlotHistos->loop("ZEE");
+  myPlotHistos->loop("ZEE");
   delete myPlotHistos;
   return 0;
 }

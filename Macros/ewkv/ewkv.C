@@ -48,8 +48,8 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130502";
-  for(TString type : {"ZMUMU"}){
+  TString outputTag = "20130507";
+  for(TString type : {"ZEE"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -92,8 +92,6 @@ void ewkvAnalyzer::analyze_Zjets(){
   if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
   if((vType == ZEE) && !(Ele17_Ele8 || Ele17T_Ele8T)) return;
 
-  histos->fillHist1D("nPriVtxs", nPriVtxs);
-
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson
   TLorentzVector l1 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 0 : 1));
   TLorentzVector l2 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 1 : 0));
@@ -102,6 +100,9 @@ void ewkvAnalyzer::analyze_Zjets(){
 
   histos->setFillWeight(mySample->getWeight(nPileUp));		//TO DO: update sample::getWeight function with lepton efficiencies
   cutflow->setFillWeight(mySample->getWeight(nPileUp));
+
+  histos->fillHist1D("nPriVtxs", nPriVtxs);
+  histos->fillHist1D("nPileUp", nPileUp);
 
   histos->fillHist1D("lepton_pt", l1.Pt());
   histos->fillHist1D("lepton_eta", l1.Eta());
