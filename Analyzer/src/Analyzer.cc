@@ -202,7 +202,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 
     jecUnc->setJetEta(jet->eta());
     jecUnc->setJetPt(jet->pt());
-    try { jetUncertainty[nJets] = jecUnc->getUncertainty(true) } 
+    try { jetUncertainty[nJets] = jecUnc->getUncertainty(true); } 
     catch (...) { jetUncertainty[nJets] = 999;}
 
     std::vector<reco::PFCandidatePtr> jetParts = jet->getPFConstituents();
