@@ -33,6 +33,9 @@
 // Constants
 #define ZMASS 91.1876
 
+#define JET1PT 50
+#define JET2PT 25 
+
 // Our header-files
 #include "../samples/sampleList.h"
 #include "../samples/sample.h"
@@ -48,8 +51,8 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130507";
-  for(TString type : {"ZEE"}){
+  TString outputTag = "20130515";
+  for(TString type : {"ZMUMU"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -61,8 +64,8 @@ int main(){
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
-      myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
-      myAnalyzer->setMakeSkimTree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/skimmed/"+type+"/"); 	//Use if TMVA input trees has to be remade
+//    myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
+//    myAnalyzer->setMakeSkimTree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/skimmed/"+type+"/"); 	//Use if TMVA input trees has to be remade
       myAnalyzer->loop(type);										//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
       cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
@@ -166,8 +169,8 @@ void ewkvAnalyzer::analyze_Zjets(){
         }
         if(nGenQJets < 2 && (fabs(idGenPart[g]) < 6)){
           if(fabs(genParticle.Eta()) > 4.7) continue;
-          if((nGenQJets == 0) && (fabs(genParticle.Pt()) < 65)) continue;
-          if((nGenQJets == 1) && (fabs(genParticle.Pt()) < 40)) continue;
+          if((nGenQJets == 0) && (fabs(genParticle.Pt()) < JET1PT)) continue;
+          if((nGenQJets == 1) && (fabs(genParticle.Pt()) < JET2PT)) continue;
 	  ++nGenQJets;
         }
       }
@@ -188,7 +191,7 @@ void ewkvAnalyzer::analyze_Zjets(){
       if(branch == "JES-") jet *= (1-jetUncertainty[j]);
       if(branch == "JES+") jet *= (1+jetUncertainty[j]);
 
-      if(fabs(jet.Eta()) > 3.6) continue;
+      if(fabs(jet.Eta()) > 4.7) continue;
       for(auto k = leadingJets.begin(); k != leadingJets.end(); ++k){
         TLorentzVector leadingJet = *((TLorentzVector*) vJets->At(*k));
         if(jet.Pt() > leadingJet.Pt()){
@@ -205,8 +208,15 @@ void ewkvAnalyzer::analyze_Zjets(){
     if(branch == "JES+") j1 *= (1+jetUncertainty[leadingJets.at(0)]);
     if(branch == "JES-") j2 *= (1-jetUncertainty[leadingJets.at(1)]);
     if(branch == "JES+") j2 *= (1+jetUncertainty[leadingJets.at(1)]);
-    if(j1.Pt() < 65) continue;
-    if(j2.Pt() < 40) continue;
+
+    histos->fillHist1D("jet1_pt", j1.Pt());
+    histos->fillHist1D("jet1_pt_log", j1.Pt());
+    histos->fillHist1D("jet2_pt", j2.Pt());
+    histos->fillHist1D("jet2_pt_log", j2.Pt());
+
+    cutflow->track("2 jets, no $p_T$ cut");
+    if(j1.Pt() < JET1PT) continue;
+    if(j2.Pt() < JET2PT) continue;
     cutflow->track("2 jets"); 
 
     fillSkimTree();
@@ -215,13 +225,9 @@ void ewkvAnalyzer::analyze_Zjets(){
     TLorentzVector jj = TLorentzVector(j1 + j2);
     TLorentzVector all = TLorentzVector(l1 + l2 + j1 + j2);
 
-    histos->fillHist1D("jet1_pt", j1.Pt());
-    histos->fillHist1D("jet1_pt_log", j1.Pt());
     histos->fillHist1D("jet1_eta", j1.Eta());
     histos->fillHist1D("jet1_phi", j1.Phi());
 
-    histos->fillHist1D("jet2_pt", j2.Pt());
-    histos->fillHist1D("jet2_pt_log", j2.Pt());
     histos->fillHist1D("jet2_eta", j2.Eta());
     histos->fillHist1D("jet2_phi", j2.Phi());
 

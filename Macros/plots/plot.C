@@ -172,10 +172,18 @@ void plotHistos::next(TString type){
 
 
   //Set up legend
-  TLegend *leg = new TLegend(0.78, 0.64, 0.95, 0.94);
+  bool putEvents = true;
+  TLegend *leg;
+  if(putEvents){
+    leg = new TLegend(0.70, 0.64, 0.95, 0.94);
+    leg->SetTextSize(0.04);
+    leg->SetNColumns(2);
+  } else {
+    leg = new TLegend(0.78, 0.64, 0.95, 0.94);
+    leg->SetTextSize(0.045);
+  }
   leg->SetBorderSize(0);
   leg->SetFillColor(0);
-  leg->SetTextSize(0.045);
 
 
   //Get the histograms (and immidiatly stack the MC histograms)
@@ -193,13 +201,28 @@ void plotHistos::next(TString type){
 
   //Draw the histograms
   padUP->cd();
+  double lastEvents = 0;
   for(TString mc : mcs){
     hists[mc]->SetLineWidth(1.);
     hists[mc]->SetLineColor(color[mc]);
     hists[mc]->SetFillColor(color[mc]);
     hists[mc]->Draw("same hist");
-    if(useLegend[mc]) leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
+    if(useLegend[mc]){
+      if(putEvents){
+        double events = lastEvents - hists[mc]->Integral();
+        if(lastEvents != 0) leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+        lastEvents = hists[mc]->Integral();
+      }
+      leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
+    }
   }
+  if(putEvents){
+    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(lastEvents+.5)),"");
+    leg->AddEntry((TObject*)0, "Total MC","");
+    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(hists[mcs.front()]->Integral()+.5)),"");
+  }
+
+
 /*
   //In case of line for the signal only
   hists["signal only"]->SetLineWidth(2.);
@@ -210,6 +233,7 @@ void plotHistos::next(TString type){
   hists["data"]->SetLineWidth(2.);
   hists["data"]->Draw("same e");
   leg->AddEntry(hists["data"], " Data ", "P");
+  if(putEvents) leg->AddEntry((TObject*)0, TString::Format("%d", (int)(hists["data"]->Integral()+.5)),"");
   leg->Draw();
   drawText(type);
   fixOverlay();
