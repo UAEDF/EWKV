@@ -45,6 +45,11 @@ process.ak5PFJetsNoV = process.ak5PFJets.clone(
 process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
 if MC: jetcorrection = 'ak5PFL1FastL2L3'			# for MC
 else : jetcorrection = 'ak5PFL1FastL2L3Residual'	 	# for DATA
+
+process.ak5PFJetsL1FastL2L3 = cms.EDProducer('PFJetCorrectionProducer',
+    src         = cms.InputTag('ak5PFJets'), 
+    correctors  = cms.vstring(jetcorrection)
+)
 process.ak5PFJetsL1FastL2L3NoV = cms.EDProducer('PFJetCorrectionProducer',
     src         = cms.InputTag('ak5PFJetsNoV'), 
     correctors  = cms.vstring(jetcorrection)
@@ -69,10 +74,12 @@ process.jetPUMVA = puJetMva.clone(
 process.jetPUIdSequence = cms.Sequence(process.jetPUId * process.jetPUMVA)
 
 
-# MET corrections (type I + x/y shift correction)
-process.load("JetMETCorrections.Type1MET.pfMETCorrections_cff")
-process.pfJetMETcorr.src = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
+# MET corrections (type I)
+process.load("EWKV.Analyzer.pfMETCorrections_cff")
+process.pfJetMETcorr.src = cms.InputTag('ak5PFJetsL1FastL2L3')
+process.pfJetMETcorrNoV.src = cms.InputTag('ak5PFJetsL1FastL2L3NoV')
 process.pfJetMETcorr.jetCorrLabel = cms.string(jetcorrection)
+process.pfJetMETcorrNoV.jetCorrLabel = cms.string(jetcorrection)
 
 
 # QuarkGluonTagger
@@ -103,14 +110,20 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 	pfJetsNoVJetsInputTag	= cms.InputTag('ak5PFJetsL1FastL2L3NoV'),
 	pfLeptonsInputTag	= cms.InputTag('PFCandidatesNoV', 'pfLeptons'),
 	metInputTag		= cms.InputTag('pfMet'),
+	metCorrInputTag		= cms.InputTag('pfType1CorrectedMet'),
+	metCorrNoVInputTag	= cms.InputTag('pfType1CorrectedMetNoV'),
 	softTrackJetsInputTag	= cms.InputTag('ak5SoftTrackJets'),
 	rhoInputTag		= cms.InputTag('kt6PFJets','rho'),
         primaryVertexInputTag	= cms.InputTag('offlinePrimaryVertices')
 )
 
-process.p = cms.Path(process.seqPFCandidatesNoV * 
-		     process.kt6PFJets * process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
-		     process.jetPUIdSequence * process.producePFMETCorrections *
+process.p = cms.Path(process.kt6PFJets * 
+                     process.ak5PFJets * process.ak5PFJetsL1FastL2L3 * 
+                     process.producePFMETCorrections *
+                     process.seqPFCandidatesNoV * 
+		     process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
+                     process.producePFMETCorrectionsNoV *
+		     process.jetPUIdSequence * 
 		     process.QuarkGluonTagger * process.QGTaggerHIG13011 *
                      process.seqSoftTrackJets * process.ewkv)
 
