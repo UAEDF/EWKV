@@ -51,7 +51,7 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130515";
+  TString outputTag = "20130521";
   for(TString type : {"ZMUMU"}){
 
     sampleList* samples = new sampleList();
@@ -66,7 +66,7 @@ int main(){
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
 //    myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
 //    myAnalyzer->setMakeSkimTree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/skimmed/"+type+"/"); 	//Use if TMVA input trees has to be remade
-      myAnalyzer->loop(type);										//loop over events in tree
+      myAnalyzer->loop(type, 0.01);									//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
       cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
       delete myAnalyzer;
@@ -93,7 +93,7 @@ int main(){
 void ewkvAnalyzer::analyze_Zjets(){
   // Trigger 
   if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
-  if((vType == ZEE) && !(Ele17_Ele8 || Ele17T_Ele8T)) return;
+  if((vType == ZEE) && !Ele17T_Ele8T) return;
 
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson
   TLorentzVector l1 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 0 : 1));
@@ -236,10 +236,12 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dijet_dphi", fabs(j1.DeltaPhi(j2)));
     histos->fillHist1D("dijet_deta", fabs(j1.Eta() - j2.Eta()));
 
-    histos->fillHist1D("QGMLP_j1", jetQGMLP[leadingJets.at(0)]);
-    histos->fillHist1D("QGMLP_j2", jetQGMLP[leadingJets.at(1)]);
-    histos->fillHist1D("QGLikelihood_j1", jetQGLikelihood[leadingJets.at(0)]);
-    histos->fillHist1D("QGLikelihood_j2", jetQGLikelihood[leadingJets.at(1)]);
+    histos->fillHist1D("QGMLP_j1", jetQGvariables["qgMLP"]->at(leadingJets.at(0)));
+    histos->fillHist1D("QGMLP_j2", jetQGvariables["qgMLP"]->at(leadingJets.at(1)));
+    histos->fillHist1D("QGLikelihood_j1", jetQGvariables["qgLikelihood"]->at(leadingJets.at(0)));
+    histos->fillHist1D("QGLikelihood_j2", jetQGvariables["qgLikelihood"]->at(leadingJets.at(1)));
+    histos->fillHist1D("QGHIG13011_j1", jetQGvariables["qgHIG13011"]->at(leadingJets.at(0)));
+    histos->fillHist1D("QGHIG13011_j2", jetQGvariables["qgHIG13011"]->at(leadingJets.at(1)));
 
     // Zeppenfeld variable
     double Zeppenfeld = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
@@ -281,10 +283,12 @@ void ewkvAnalyzer::analyze_Zjets(){
     tmvaVariables["dPhi_jj"] = fabs(j1.DeltaPhi(j2)); 
     tmvaVariables["dEta_jj"] = fabs(j1.Eta() - j2.Eta());
     tmvaVariables["avEta_jj"] = fabs((j1.Eta() + j2.Eta())/2); 
-    tmvaVariables["qgMLP_j1"] = jetQGMLP[leadingJets.at(0)];
-    tmvaVariables["qgMLP_j2"] = jetQGMLP[leadingJets.at(1)];
-    tmvaVariables["qgLikelihood_j1"] = jetQGLikelihood[leadingJets.at(0)];
-    tmvaVariables["qgLikelihood_j2"] = jetQGLikelihood[leadingJets.at(1)];
+    tmvaVariables["qgMLP_j1"] = jetQGvariables["qgMLP"]->at(leadingJets.at(0));
+    tmvaVariables["qgMLP_j2"] = jetQGvariables["qgMLP"]->at(leadingJets.at(1));
+    tmvaVariables["qgLikelihood_j1"] = jetQGvariables["qgLikelihood"]->at(leadingJets.at(0));
+    tmvaVariables["qgLikelihood_j2"] = jetQGvariables["qgLikelihood"]->at(leadingJets.at(0));
+    tmvaVariables["qgHIG13011_j1"] = jetQGvariables["qgHIG13011"]->at(leadingJets.at(0));
+    tmvaVariables["qgHIG13011_j2"] = jetQGvariables["qgHIG13011"]->at(leadingJets.at(0));
     tmvaVariables["M_jj"] = jj.M();
     tmvaVariables["weight"] = mySample->getWeight(nPileUp);
     if(branch == "") fillTMVAtree();

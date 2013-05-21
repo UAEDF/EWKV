@@ -51,9 +51,10 @@ class ewkvAnalyzer{
     int idGenPart[10], ncJets[15], leptonCharge[2];
     double jetUncertainty[15];
     float jetSmearedPt[15], genJetPt[15];
-    float jetQGMLP[15], jetQGLikelihood[15];
     bool jetID[15];
-    bool Mu17_Mu8, Mu17_TkMu8, Ele17_Ele8, Ele17T_Ele8T;
+    bool Mu17_Mu8, Mu17_TkMu8, Ele17T_Ele8T;
+
+    std::map<TString, std::vector<float>*> jetQGvariables;
 
     TTree* tree;
     sample* mySample;
@@ -118,17 +119,18 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   tree->SetBranchAddress("nJets",		&nJets);
   tree->SetBranchAddress("vJets",		&vJets);
   tree->SetBranchAddress("jetUncertainty", 	jetUncertainty);
-  tree->SetBranchAddress("jetQGMLP", 		jetQGMLP);
-  tree->SetBranchAddress("jetQGLikelihood", 	jetQGLikelihood);
   tree->SetBranchAddress("genJetPt", 		genJetPt);
   tree->SetBranchAddress("jetSmearedPt", 	jetSmearedPt);
+
+  for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		tree->SetBranchAddress(product + "MLP", &jetQGvariables[product + "MLP"]);
+  for(TString product : {"qg","axis2","mult","ptD"}) 			tree->SetBranchAddress(product + "Likelihood", &jetQGvariables[product + "Likelihood"]);
+  for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	tree->SetBranchAddress(product + "HIG13011", &jetQGvariables[product + "HIG13011"]);
 
   tree->SetBranchAddress("nSoftTrackJets",	&nSoftTrackJets);
   tree->SetBranchAddress("vSoftTrackJets",	&vSoftTrackJets);
 
-  tree->SetBranchAddress("HLT_Mu17_TkMu8", 	&Mu17_Mu8);
+  tree->SetBranchAddress("HLT_Mu17_Mu8", 	&Mu17_Mu8);
   tree->SetBranchAddress("HLT_Mu17_TkMu8", 	&Mu17_TkMu8);
-  tree->SetBranchAddress("HLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL", &Ele17_Ele8);
   tree->SetBranchAddress("HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL", &Ele17T_Ele8T);
 
   std::cout << "ewkvAnalyzer:\t\t\tTree initialized for " << mySample->getName() << std::endl;
