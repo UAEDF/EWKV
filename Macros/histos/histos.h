@@ -21,7 +21,7 @@
 
 #include "../samples/sampleList.h"
 #include "../samples/sample.h"
-#include "../CMSSWBASE.h"
+#include "../shellVariables.h"
 
 #include <TObjArray.h>
 #include <TFractionFitter.h>

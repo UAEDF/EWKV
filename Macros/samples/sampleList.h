@@ -7,7 +7,7 @@
 #include <map>
 #include <stdlib.h>
 #include "sample.h"
-#include "../CMSSWBASE.h"
+#include "../shellVariables.h"
 
 class sampleList{
   public:
@@ -29,7 +29,7 @@ class sampleList{
     bool readInitFile(TString file, TString type);
     bool readLeptonEfficiencies();
 
-    TString base;
+    TString base, host, location;
     std::vector<sample*> samples;
     std::vector<dataRun*> dataRuns;
 };
@@ -41,6 +41,12 @@ sampleList::~sampleList(){
 
 bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   base = getCMSSWBASE();
+  host = getHost();
+  if(host == "iihe") location = "/user/tomc/public/merged/EWKV/";
+  if(host == "infn") location = "/gpfs/gpfsddn/cms/user/EWKV/";
+  if(host == "lxplus") location = "/afs/cern.ch/work/t/tomc/public/EWKV/";
+  location += "2013-04/";
+  std::cout << location << std::endl;
   if(!(readInitFile(dataFile, "data") && readInitFile(mcFile, "mc"))) return false;
   if(mode == "pileUp") return true;
 
@@ -80,16 +86,15 @@ bool sampleList::readInitFile(TString file, TString type){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
-    TString name, location;
+    TString name;
     if(type == "data"){
       double lumi;
-      TString JSON;
-      readFile >> name >> lumi >> location >> JSON;
-      dataRuns.push_back(new dataRun(name, location, lumi, base + JSON));
+      readFile >> name >> lumi;
+      dataRuns.push_back(new dataRun(name, location, lumi, base + "/src/EWKV/Crab/JSON"));
     } else {
       double crossSection; 
       int nEvents;
-      readFile >> name >> crossSection >> nEvents >> location;
+      readFile >> name >> crossSection >> nEvents;
       samples.push_back(new mcSample(name, location, crossSection, nEvents));
     }    
   }

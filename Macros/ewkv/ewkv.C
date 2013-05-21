@@ -40,7 +40,7 @@
 #include "../samples/sampleList.h"
 #include "../samples/sample.h"
 #include "../histos/histos.h"
-#include "../CMSSWBASE.h"
+#include "../shellVariables.h"
 #include "../cutFlow/cutFlow.h"
 #include "../cutFlow/cutFlowHandler.h"
 #include "ewkv.h"
