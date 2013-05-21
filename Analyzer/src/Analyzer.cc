@@ -59,6 +59,8 @@ Analyzer::Analyzer(const edm::ParameterSet& iConfig) :
   pfJetsNoVInputTag(    	iConfig.getParameter<edm::InputTag>("pfJetsNoVJetsInputTag")),
   pfLeptonsInputTag(    	iConfig.getParameter<edm::InputTag>("pfLeptonsInputTag")),
   metInputTag(            	iConfig.getParameter<edm::InputTag>("metInputTag")),
+  metCorrInputTag(            	iConfig.getParameter<edm::InputTag>("metCorrInputTag")),
+  metCorrNoVInputTag(           iConfig.getParameter<edm::InputTag>("metCorrNoVInputTag")),
   softTrackJetsInputTag(    	iConfig.getParameter<edm::InputTag>("softTrackJetsInputTag")),
   rhoInputTag(    	     	iConfig.getParameter<edm::InputTag>("rhoInputTag")),
   primaryVertexInputTag(  	iConfig.getParameter<edm::InputTag>("primaryVertexInputTag"))
@@ -156,6 +158,25 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
  /**********
   * PF MET *
   **********/
+  vMETCorrNoV->Clear();
+  edm::Handle<reco::PFMETCollection> METCollectionCorrNoV;
+  iEvent.getByLabel(metCorrNoVInputTag, METCollectionCorrNoV);
+  const reco::PFMET *pfMetCorrNoV = &(METCollectionCorrNoV->front());
+  new((*vMETCorrNoV)[0]) TLorentzVector(pfMetCorrNoV->px(), pfMetCorrNoV->py(), pfMetCorrNoV->pz(), pfMetCorrNoV->energy());
+  metCorrNoV = pfMetCorrNoV->et();
+  metPhiCorrNoV = pfMetCorrNoV->phi();
+  metSigCorrNoV = pfMetCorrNoV->et()/pfMetCorrNoV->sumEt();
+
+  vMETCorr->Clear();
+  edm::Handle<reco::PFMETCollection> METCollectionCorr;
+  iEvent.getByLabel(metCorrInputTag, METCollectionCorr);
+  const reco::PFMET *pfMetCorr = &(METCollectionCorr->front());
+  new((*vMETCorr)[0]) TLorentzVector(pfMetCorr->px(), pfMetCorr->py(), pfMetCorr->pz(), pfMetCorr->energy());
+  metCorr = pfMetCorr->et();
+  metPhiCorr = pfMetCorr->phi();
+  metSigCorr = pfMetCorr->et()/pfMetCorr->sumEt();
+
+  vMET->Clear();
   edm::Handle<reco::PFMETCollection> METCollection;
   iEvent.getByLabel(metInputTag, METCollection);
   const reco::PFMET *pfMet = &(METCollection->front());
@@ -163,6 +184,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   met = pfMet->et();
   metPhi = pfMet->phi();
   metSig = pfMet->et()/pfMet->sumEt();
+
 
 
  /*************************************************************************************
@@ -332,6 +354,8 @@ void Analyzer::beginJob(){
   vGenPart = new TClonesArray("TLorentzVector", maxGen);
   vLeptons = new TClonesArray("TLorentzVector", 2);
   vMET = new TClonesArray("TLorentzVector", 1);
+  vMETCorr = new TClonesArray("TLorentzVector", 1);
+  vMETCorrNoV = new TClonesArray("TLorentzVector", 1);
   vJets = new TClonesArray("TLorentzVector", maxJet);
   vSoftTrackJets = new TClonesArray("TLorentzVector", maxSTJ);
 
@@ -361,6 +385,16 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("met",			&met ,			"met/F");
   t_Analyzer->Branch("metPhi",			&metPhi ,		"metPhi/F");
   t_Analyzer->Branch("metSig",			&metSig ,		"metSig/F");
+
+  t_Analyzer->Branch("vMETCorr","TClonesArray",	&vMETCorr, 		32000, 0);
+  t_Analyzer->Branch("metCorr",			&metCorr ,		"metCorr/F");
+  t_Analyzer->Branch("metPhiCorr",		&metPhiCorr ,		"metPhiCorr/F");
+  t_Analyzer->Branch("metSigCorr",		&metSigCorr ,		"metSigCorr/F");
+
+  t_Analyzer->Branch("vMETCorrNoV","TClonesArray", &vMETCorrNoV, 	32000, 0);
+  t_Analyzer->Branch("metCorrNoV",		&metCorrNoV ,		"metCorrNoV/F");
+  t_Analyzer->Branch("metPhiCorrNoV",		&metPhiCorrNoV ,	"metPhiCorrNoV/F");
+  t_Analyzer->Branch("metSigCorrNoV",		&metSigCorrNoV ,	"metSigCorrNoV/F");
  
   t_Analyzer->Branch("nJets",			&nJets,			"nJets/I");
   t_Analyzer->Branch("vJets","TClonesArray", 	&vJets, 		32000, 0);
@@ -393,6 +427,8 @@ void Analyzer::endJob(){
   delete vGenPart;
   delete vLeptons;
   delete vMET;
+  delete vMETCorr;
+  delete vMETCorrNoV;
   delete vJets;
   delete vSoftTrackJets;
 
@@ -436,6 +472,8 @@ void Analyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions){
   desc.add<edm::InputTag>("pfJetsNoVJetsInputTag");
   desc.add<edm::InputTag>("pfLeptonsInputTag");
   desc.add<edm::InputTag>("metInputTag");
+  desc.add<edm::InputTag>("metCorrInputTag");
+  desc.add<edm::InputTag>("metCorrNoVInputTag");
   desc.add<edm::InputTag>("softTrackJetsInputTag");
   desc.add<edm::InputTag>("rhoInputTag");
   desc.add<edm::InputTag>("primaryVertexInputTag");

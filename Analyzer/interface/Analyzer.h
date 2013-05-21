@@ -82,8 +82,8 @@ class Analyzer : public edm::EDAnalyzer{
     int leptonCharge[2];
     TClonesArray *vLeptons; 
 
-    TClonesArray *vMET; 
-    float met, metPhi, metSig; 
+    TClonesArray *vMET, *vMETCorr, *vMETCorrNoV; 
+    float met, metCorr, metCorrNoV, metPhi, metPhiCorr, metPhiCorrNoV, metSig, metSigCorr, metSigCorrNoV; 
 
     int nJets;
     int ncJets[maxJet];
@@ -109,6 +109,8 @@ class Analyzer : public edm::EDAnalyzer{
     edm::InputTag pfJetsNoVInputTag;
     edm::InputTag pfLeptonsInputTag;
     edm::InputTag metInputTag;
+    edm::InputTag metCorrInputTag;
+    edm::InputTag metCorrNoVInputTag;
     edm::InputTag softTrackJetsInputTag;
     edm::InputTag rhoInputTag;
     edm::InputTag primaryVertexInputTag;
