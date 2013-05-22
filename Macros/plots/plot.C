@@ -14,7 +14,7 @@
 #include "text.h"
 #include "log.h"
 #include "tdrstyle.h"
-#include "../CMSSWBASE.h"
+#include "../shellVariables.h"
 #include "color.h"
 
 class plotHistos{

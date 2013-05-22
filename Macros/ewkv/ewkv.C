@@ -52,7 +52,7 @@
 int main(){
   gROOT->SetBatch();
   TString outputTag = "20130521";
-  for(TString type : {"ZMUMU"}){
+  for(TString type : {"ZMUMU","ZEE"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -64,9 +64,9 @@ int main(){
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
-//    myAnalyzer->setMakeTMVAtree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/tmva-input/"+type+"/"); //Use if TMVA input trees has to be remade
-//    myAnalyzer->setMakeSkimTree("/afs/cern.ch/work/t/tomc/public/EWKV/2013-03/skimmed/"+type+"/"); 	//Use if TMVA input trees has to be remade
-      myAnalyzer->loop(type, 0.01);									//loop over events in tree
+      myAnalyzer->setMakeTMVAtree("~/public/merged/EWKV/2013-04/tmva-input/"+type+"/");		        //Use if TMVA input trees has to be remade
+      myAnalyzer->setMakeSkimTree("~/public/merged/EWKV/2013-04/skimmed/"+type+"/"); 			//Use if TMVA input trees has to be remade
+      myAnalyzer->loop(type);										//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
       cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
       delete myAnalyzer;

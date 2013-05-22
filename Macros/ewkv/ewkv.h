@@ -82,6 +82,7 @@ class ewkvAnalyzer{
 ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   makeTMVAtree = false; tmvaLocation = ".";
   makeSkimTree = false; skimLocation = ".";
+  firstSkimEvent = true;
   mySample = mySample_;
   tree = mySample->getTree();
   histos = new histoCollection(mySample, outfile);
@@ -221,8 +222,7 @@ void ewkvAnalyzer::fillSkimTree(){
       return;
     }
     skimFile->cd();
-    skimTree = new TTree();
-    tree->CloneTree(0);
+    skimTree = tree->CloneTree(0);
     firstSkimEvent = false;
   }
   skimTree->Fill();
