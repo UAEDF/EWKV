@@ -42,6 +42,7 @@ class ewkvAnalyzer{
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
     VType vType;
+    TString type;
     int nRun, nEvent, nLumi;
     int nPileUp, nPriVtxs;
     float rho;
@@ -52,6 +53,7 @@ class ewkvAnalyzer{
     double jetUncertainty[15];
     float jetSmearedPt[15], genJetPt[15];
     bool jetID[15];
+    int jetPUIdFlag[15];
     bool Mu17_Mu8, Mu17_TkMu8, Ele17T_Ele8T;
 
     std::map<TString, std::vector<float>*> jetQGvariables;
@@ -65,23 +67,23 @@ class ewkvAnalyzer{
     std::map<TString, float> tmvaVariables;
     TFile *tmvaFile, *skimFile;
     TTree *tmvaTree, *skimTree;
-    TString tmvaLocation, skimLocation;
+    TString tmvaOutputTag, skimOutputTag;
     TMVA::Reader *tmvaReader;
 
   public:
     ewkvAnalyzer(sample* mySample_, TFile *outfile);
     ~ewkvAnalyzer();
-    void loop(TString type, double testFraction = 1.);
+    void loop(TString type_, double testFraction = 1.);
     histoCollection* getHistoCollection(){ return histos;}; 
     cutFlow* getCutFlow(){ return cutflow;};
-    void setMakeTMVAtree(TString location){ makeTMVAtree = true; tmvaLocation = location;}
-    void setMakeSkimTree(TString location){ makeSkimTree = true; skimLocation = location;}
+    void setMakeTMVAtree(TString outputTag = ""){ makeTMVAtree = true; tmvaOutputTag = outputTag;};
+    void setMakeSkimTree(TString outputTag = ""){ makeSkimTree = true; skimOutputTag = outputTag;};
 };
 
 
 ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
-  makeTMVAtree = false; tmvaLocation = ".";
-  makeSkimTree = false; skimLocation = ".";
+  makeTMVAtree = false;
+  makeSkimTree = false;
   firstSkimEvent = true;
   mySample = mySample_;
   tree = mySample->getTree();
@@ -122,6 +124,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   tree->SetBranchAddress("jetUncertainty", 	jetUncertainty);
   tree->SetBranchAddress("genJetPt", 		genJetPt);
   tree->SetBranchAddress("jetSmearedPt", 	jetSmearedPt);
+  tree->SetBranchAddress("jetID", 		jetID);
+  tree->SetBranchAddress("jetPUIdFlag", 	jetPUIdFlag);
 
   for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		tree->SetBranchAddress(product + "MLP", &jetQGvariables[product + "MLP"]);
   for(TString product : {"qg","axis2","mult","ptD"}) 			tree->SetBranchAddress(product + "Likelihood", &jetQGvariables[product + "Likelihood"]);
@@ -134,7 +138,7 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   tree->SetBranchAddress("HLT_Mu17_TkMu8", 	&Mu17_TkMu8);
   tree->SetBranchAddress("HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL", &Ele17T_Ele8T);
 
-  std::cout << "ewkvAnalyzer:\t\t\tTree initialized for " << mySample->getName() << std::endl;
+  std::cout << std::endl << "ewkvAnalyzer:\t\t\tTree initialized for " << mySample->getName() << std::endl;
 }
 
 
@@ -144,8 +148,9 @@ ewkvAnalyzer::~ewkvAnalyzer(){
   delete histos;
 }
 
-void ewkvAnalyzer::loop(TString type, double testFraction){
+void ewkvAnalyzer::loop(TString type_, double testFraction){
   firstTMVAevent = true;
+  type = type_;
   VType theType;
   if(type == "ZMUMU") theType = ZMUMU;
   else if(type == "ZEE") theType = ZEE;
@@ -160,11 +165,10 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
   std::cout << "ewkvAnalyzer:\t\t\tLoop over " << mySample->getName() << " tree (" << type << " mode)" << std::endl;
   int nEntries = tree->GetEntries();
   if(testFraction != 1.) nEntries = (int) nEntries*testFraction;
-  double percentPoint = nEntries/100.;
-  double nextPercentPoint = percentPoint;
+  int bar = 0;
   for(int i = 0; i < nEntries; ++i){
     alreadyOnSkimmedTree = false;
-    if(i > nextPercentPoint){ std::cout << "="<< std::flush; nextPercentPoint += percentPoint;}
+    while(bar < ((double)i/(double)nEntries)*100){ std::cout << "="<< std::flush; ++bar;}
     tree->GetEntry(i);
     if(vType != theType) continue;
     histos->setBranch();
@@ -172,6 +176,7 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
     if(theType == ZMUMU || theType == ZEE) analyze_Zjets();
     else analyze_Wjets();
   }
+  while(bar < 100){ std::cout << "="<< std::flush; ++bar;}
   std::cout << std::endl;
 
   if(makeTMVAtree && !firstTMVAevent){
@@ -185,7 +190,7 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
     skimFile->cd();
     skimFile->WriteTObject(skimTree);
     skimFile->Close();
-    std::cout << "ewkvAnalyzer:\t\t\tSkimmed tree" << std::endl;
+    std::cout << "ewkvAnalyzer:\t\t\tSkim of tree done" << std::endl;
   }
 
   return;
@@ -194,9 +199,17 @@ void ewkvAnalyzer::loop(TString type, double testFraction){
 void ewkvAnalyzer::fillTMVAtree(){
   if(!makeTMVAtree) return;
   if(firstTMVAevent){
-    tmvaFile = new TFile(tmvaLocation + mySample->getName() + ".root","new");
+    TString fileName = mySample->getLocation() + "tmva-input/";
+    if(!exists(fileName)) system("mkdir " + fileName);
+    fileName += type + "/";
+    if(!exists(fileName)) system("mkdir " + fileName);
+    fileName += tmvaOutputTag + "/";
+    if(!exists(fileName)) system("mkdir " + fileName);
+    fileName += mySample->getName() + ".root";
+
+    tmvaFile = new TFile(fileName ,"new");
     if(!tmvaFile->IsOpen()){
-      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << tmvaLocation << mySample->getName() << ".root (maybe already exists)" << std::endl;
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << fileName << " (maybe already exists)" << std::endl;
       makeTMVAtree = false;
       return;
     }
@@ -215,9 +228,17 @@ void ewkvAnalyzer::fillSkimTree(){
   if(!makeSkimTree) return;
   if(alreadyOnSkimmedTree) return;
   if(firstSkimEvent){
-    skimFile = new TFile(skimLocation + mySample->getName() + "_skim.root","new");
+    TString fileName = mySample->getLocation() + "skimmed/";
+    if(!exists(fileName)) system("mkdir " + fileName);
+    fileName += type + "/";
+    if(!exists(fileName)) system("mkdir " + fileName);
+    fileName += skimOutputTag + "/";
+    if(!exists(fileName)) system("mkdir " + fileName);
+    fileName += mySample->getName() + ".root";
+
+    skimFile = new TFile(fileName ,"new");
     if(!skimFile->IsOpen()){
-      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << skimLocation << mySample->getName() << ".root (maybe already exists)" << std::endl;
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << fileName << " (maybe already exists)" << std::endl;
       makeSkimTree = false;
       return;
     }

@@ -51,7 +51,7 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130521";
+  TString outputTag = "20130522";
   for(TString type : {"ZMUMU","ZEE"}){
 
     sampleList* samples = new sampleList();
@@ -63,9 +63,10 @@ int main(){
     TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
+      (*it)->useSkim(type, "20130521");									//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
-      myAnalyzer->setMakeTMVAtree("~/public/merged/EWKV/2013-04/tmva-input/"+type+"/");		        //Use if TMVA input trees has to be remade
-      myAnalyzer->setMakeSkimTree("~/public/merged/EWKV/2013-04/skimmed/"+type+"/"); 			//Use if TMVA input trees has to be remade
+//      myAnalyzer->setMakeTMVAtree(outputTag);								//Use if TMVA input trees has to be remade
+      myAnalyzer->setMakeSkimTree(outputTag); 								//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
       cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
@@ -92,7 +93,7 @@ int main(){
  *******************************************/
 void ewkvAnalyzer::analyze_Zjets(){
   // Trigger 
-  if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
+  if((vType == ZMUMU) && !Mu17_Mu8) return;
   if((vType == ZEE) && !Ele17T_Ele8T) return;
 
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson
@@ -187,6 +188,8 @@ void ewkvAnalyzer::analyze_Zjets(){
     std::vector<int> leadingJets;
     for(int j=0; j < vJets->GetEntries(); ++j){
       if(jetUncertainty[j] > .5) continue;
+      if(!jetID[j]) continue;
+      if(!(jetPUIdFlag[j] & (1 << 2)) != 0) continue;	//2 == kLoose
       TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
       if(branch == "JES-") jet *= (1-jetUncertainty[j]);
       if(branch == "JES+") jet *= (1+jetUncertainty[j]);
@@ -236,12 +239,18 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dijet_dphi", fabs(j1.DeltaPhi(j2)));
     histos->fillHist1D("dijet_deta", fabs(j1.Eta() - j2.Eta()));
 
-    histos->fillHist1D("QGMLP_j1", jetQGvariables["qgMLP"]->at(leadingJets.at(0)));
-    histos->fillHist1D("QGMLP_j2", jetQGvariables["qgMLP"]->at(leadingJets.at(1)));
-    histos->fillHist1D("QGLikelihood_j1", jetQGvariables["qgLikelihood"]->at(leadingJets.at(0)));
-    histos->fillHist1D("QGLikelihood_j2", jetQGvariables["qgLikelihood"]->at(leadingJets.at(1)));
-    histos->fillHist1D("QGHIG13011_j1", jetQGvariables["qgHIG13011"]->at(leadingJets.at(0)));
-    histos->fillHist1D("QGHIG13011_j2", jetQGvariables["qgHIG13011"]->at(leadingJets.at(1)));
+    for(TString product : {"qg","axis1","axis2","mult","ptD"}){
+      histos->fillHist1D(product + "MLP_j1", jetQGvariables[product + "MLP"]->at(leadingJets.at(0)));
+      histos->fillHist1D(product + "MLP_j2", jetQGvariables[product + "MLP"]->at(leadingJets.at(1)));
+    }
+    for(TString product : {"qg","axis2","mult","ptD"}){
+      histos->fillHist1D(product + "Likelihood_j1", jetQGvariables[product + "Likelihood"]->at(leadingJets.at(0)));
+      histos->fillHist1D(product + "Likelihood_j2", jetQGvariables[product + "Likelihood"]->at(leadingJets.at(1)));
+    }
+    for(TString product : {"qg","axis1","axis2","mult","R","pull"}){
+      histos->fillHist1D(product + "HIG13011_j1", jetQGvariables[product + "HIG13011"]->at(leadingJets.at(0)));
+      histos->fillHist1D(product + "HIG13011_j2", jetQGvariables[product + "HIG13011"]->at(leadingJets.at(1)));
+    }
 
     // Zeppenfeld variable
     double Zeppenfeld = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;

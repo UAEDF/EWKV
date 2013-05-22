@@ -6,7 +6,7 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TH1.h"
-
+#include "../shellVariables.h"
 
 /****************
  * Class sample *
@@ -15,23 +15,33 @@ class sample{
   protected:
     TString location, name;
     double lumi, lumiWeight;
+    bool skimmed;
+    TString type, tag;
 
   public:
     virtual TTree* getTree();
     virtual bool isData() = 0;
     virtual double getPileUpWeight(int nPileUp) = 0;
     virtual double getWeight(int nPileUp) = 0;
- 
+
     TString getName(){		return name;};
     TString getLocation(){	return location;};
     double getLumi(){		return lumi;};
     void setLumiWeight(double weight){ lumiWeight = weight;};
+
+    void useSkim(TString type_, TString tag_){ skimmed = true; type = type_; tag = tag_;};
 };
 
 TTree* sample::getTree(){
-  TFile* file = new TFile(location + "ewkv_" + name + ".root");
+  TString fileName = location + "ewkv_" + name + ".root";
+  if(skimmed){
+    TString skimmedFileName = location + "skimmed/" + type + "/" + tag + "/" + name + ".root";
+    if(exists(skimmedFileName)) fileName = skimmedFileName;
+    else std::cout << "sample:\t\t\t!!!\tNo skimmed file for " << name << ", full root tree is taken" << std::endl;
+  }
+  TFile* file = new TFile(fileName);
   if(file->IsZombie()){
-    std::cout << "sample:\t\t\tERROR\tCould not find "<< location << "ewkv_" << name << ".root" << std::endl;
+    std::cout << "sample:\t\t\tERROR\tCould not find "<< fileName << std::endl;
     exit(1);
   }
   TTree* tree = (TTree*) file->Get("EWKV");
@@ -59,6 +69,9 @@ dataRun::dataRun(TString name_, TString location_, double lumi_, TString JSON_){
   location 	= location_;
   lumi 		= lumi_;
   JSON		= JSON_;
+  skimmed	= false;
+  type		= "";
+  tag		= "";
 }
 
 
@@ -82,11 +95,22 @@ dataSample::dataSample(TString name_, std::vector<dataRun*> runs_) : dataRun(nam
   for(auto run = runs.begin(); run != runs.end(); ++run){
     lumi += (*run)->getLumi();
     mergeString += "_" + (*run)->getName();
+    location = (*run)->getLocation();
   }
   std::cout << "dataSample:\t\t\t" << name << " with total lumi = " << lumi << "/pb" << std::endl;
 }
 
 TTree* dataSample::getTree(){
+  if(skimmed){
+    TString fileName = location + "skimmed/" + type + "/" + tag + "/data.root";
+    TFile* file = new TFile(fileName);
+    if(file->IsZombie()){
+      std::cout << "sample:\t\t\t!!!\tNo skimmed file for data, full root tree is taken" << std::endl;
+    } else {
+      TTree* tree = (TTree*) file->Get("EWKV");
+      return tree; 
+    }
+  }
   TChain *chain = new TChain("EWKV");
   for(auto run = runs.begin(); run != runs.end(); ++run){
     if(!chain->Add((*run)->getLocation() + "ewkv_" + (*run)->getName() + ".root", -1)){
@@ -123,6 +147,9 @@ mcSample::mcSample(TString name_, TString location_, double crossSection_, int n
   crossSection 	= crossSection_;
   nEvents 	= nEvents_;
   lumi 		= nEvents/crossSection;
+  skimmed	= false;
+  type		= "";
+  tag		= "";
 
   std::cout << "mcSample:\t\t\t" << name << " added (lumi = " << lumi << "/pb)" << std::endl;
 }

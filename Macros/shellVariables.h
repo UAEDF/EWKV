@@ -4,6 +4,7 @@
 #include <TString.h>
 #include <stdlib.h>
 #include <fstream>
+#include <sys/stat.h>
 
 TString getCMSSWBASE(){
   system("echo $CMSSW_BASE > .myCMSSW_BASE.txt");
@@ -28,5 +29,7 @@ TString getHost(){
   if(host.Contains("lxplus")) return "lxplus";
   return host;
 }
+
+bool exists(TString path){ struct stat buffer; return (stat (path.Data(), &buffer) == 0);};
 
 #endif
