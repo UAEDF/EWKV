@@ -61,6 +61,7 @@ class PFCandidatesNoV : public edm::EDFilter{
     double electron_eta_max;
 
     const reco::PFCandidate *lepton1, *lepton2;
+    double Zmass;
 
     TFile *f_pileUp; 
     TH1I *h_pileUp;
@@ -75,4 +76,10 @@ class PFCandidatesNoV : public edm::EDFilter{
     PFIsolationEstimator isolator;
 
     VType type;
+
+    std::map<TString, int> counters;
+    void count(TString trackPoint){
+      if(counters.find(trackPoint) == counters.end()) counters[trackPoint] = 1;
+      else counters[trackPoint] += 1;
+    };
 };

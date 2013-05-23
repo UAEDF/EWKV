@@ -29,6 +29,7 @@
 #include "../interface/PFCandidatesNoV.h"
 
 bool PFCandidatesNoV::muonSelection(const reco::MuonRef mu, edm::Handle<reco::VertexCollection> vtxs){
+  count("muons");
   if(mu->pt() < muon_pt_min)	  			return false;
   if(fabs(mu->eta()) > muon_eta_max) 			return false;
   if(!muon::isTightMuon(*(mu.get()), *(vtxs->begin())))	return false;
@@ -44,12 +45,14 @@ bool PFCandidatesNoV::muonSelection(const reco::MuonRef mu, edm::Handle<reco::Ve
   double iso = (chargedHadronPt + max(0., neutralHadronPt + photonPt - 0.5*sumPUPt))/mu->pt();
   if(iso > 0.2)				return false;  //or 0.12 (tight) https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId#Muon_Isolation_AN1
 */
+  count("mouns selected");
   return true;
 }
 
 
 bool PFCandidatesNoV::electronSelection(const reco::GsfElectronRef e, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection> vtxs, 
                                         edm::Handle<reco::ConversionCollection> conversions, edm::Handle<reco::BeamSpot> beamspot, edm::Handle<double> rhoIso){
+  count("electrons");
   if(e->pt() < electron_pt_min) 			return false;
   if(fabs(e->eta()) > electron_eta_max) 		return false;
   if(fabs(e->eta()) < 1.566 && fabs(e->eta()) > 1.4442)	return false;
@@ -59,7 +62,9 @@ bool PFCandidatesNoV::electronSelection(const reco::GsfElectronRef e, edm::Handl
   double iso_em = isolator.getIsolationPhoton();
   double iso_nh = isolator.getIsolationNeutral();
 
-  return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
+  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()))) return false;
+  count("electrons selected");
+  return true;
 //return EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::MEDIUM, e, conversions, *(beamspot.product()), vtxs, iso_ch, iso_em, iso_nh, *(rhoIso.product()));
 }
 

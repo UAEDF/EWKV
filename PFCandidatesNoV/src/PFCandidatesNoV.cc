@@ -81,6 +81,7 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   std::vector<const reco::PFCandidate*> selectedElectrons;
 
   // Try to find a V
+  Zmass = 0;
   for(std::vector<reco::PFCandidate>::const_iterator pfCandidate = pfCandidates->begin(); pfCandidate != pfCandidates->end(); ++pfCandidate){
     if(reco::PFCandidate::ParticleType(pfCandidate->particleId()) != reco::PFCandidate::mu) continue;
     reco::MuonRef muref = pfCandidate->muonRef();
@@ -96,7 +97,7 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   }
 
 
-  if(type != ZMUMU){											//If no Z found using muons, try electrons
+  if(type != ZMUMU || (Zmass < dilepton_mass_min)){							//If no Z found using muons, try electrons
     //Stuff needed for the electron ID
     edm::Handle<reco::ConversionCollection> conversions; 	iEvent.getByLabel(conversionsInputTag, conversions);
     edm::Handle<reco::BeamSpot> beamspot;			iEvent.getByLabel(beamSpotInputTag, beamspot);
@@ -119,6 +120,10 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   }
 
   if(type == UNDEFINED) return false;
+  if(type == ZEE && (Zmass < dilepton_mass_min)) return false;
+
+  if(type == WMUNU) count("WMUNU - no veto");
+  if(type == WENU) count("WENU - no veto");
 
   // Apply lepton veto in case of W events
   if(((type == WMUNU) || (type == WENU)) && vetoLepton) return false;
@@ -130,6 +135,11 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
     if(&(*pfCandidate) == lepton1 || &(*pfCandidate) == lepton2) pfLeptons->push_back(*pfCandidate);
     else pfCandidatesNoV->push_back(*pfCandidate);
   }
+
+  if(type == ZMUMU) count("ZMUMU");
+  if(type == ZEE) count("ZEE");
+  if(type == WMUNU) count("WMUNU");
+  if(type == WENU) count("WENU");
 
   // Put VType and splitted pfCandidates in the event
   std::auto_ptr<int> theType(new int(type));
@@ -148,8 +158,8 @@ bool PFCandidatesNoV::TryW(const reco::PFCandidate *lepton, const reco::PFMET *m
   double massT = eT*eT - px*px - py*py;
   if(massT < transverse_Wmass_min) return false;
   lepton1 = lepton;
-  if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::mu) type = WMUNU;
-  else type = WENU;
+  if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::mu){ type = WMUNU; }
+  else { type = WENU; }
   return true;
 }
 
@@ -158,10 +168,10 @@ bool PFCandidatesNoV::TryZ(const reco::PFCandidate *lepton, std::vector<const re
   for(std::vector<const reco::PFCandidate*>::const_iterator secondLepton = selectedLeptons.begin(); secondLepton != selectedLeptons.end(); ++secondLepton){
     if(lepton->charge() == (*secondLepton)->charge()) continue;
     reco::Candidate::LorentzVector ZCandidate = lepton->p4() + (*secondLepton)->p4();
-    if(sqrt(ZCandidate.M2()) < dilepton_mass_min) continue;
     lepton1 = lepton; lepton2 = *secondLepton;
-    if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::mu) type = ZMUMU;
-    else type = ZEE;
+    Zmass = sqrt(ZCandidate.M2());
+    if(reco::PFCandidate::ParticleType(lepton->particleId()) == reco::PFCandidate::mu){ type = ZMUMU; }
+    else {type = ZEE; }
     return true;
   }
   return false;
@@ -190,7 +200,8 @@ void PFCandidatesNoV::beginJob(){
 }
 
 
-void PFCandidatesNoV::endJob() {
+void PFCandidatesNoV::endJob(){
+  for(auto it = counters.begin(); it != counters.end(); ++it) std::cout << it->first << "\t" << it->second << std::endl; 
   f_pileUp->WriteTObject(h_pileUp);
   f_pileUp->Close();
   delete h_pileUp;
