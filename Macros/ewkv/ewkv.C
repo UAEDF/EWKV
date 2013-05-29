@@ -51,8 +51,8 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130522";
-  for(TString type : {"ZMUMU","ZEE"}){
+  TString outputTag = "20130528";
+  for(TString type : {"ZEE"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -63,9 +63,9 @@ int main(){
     TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
-      (*it)->useSkim(type, "20130521");									//Use skimmed files to go faster
+//      (*it)->useSkim(type, "20130522");									//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
-//      myAnalyzer->setMakeTMVAtree(outputTag);								//Use if TMVA input trees has to be remade
+      myAnalyzer->setMakeTMVAtree(outputTag);								//Use if TMVA input trees has to be remade
       myAnalyzer->setMakeSkimTree(outputTag); 								//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
@@ -93,7 +93,7 @@ int main(){
  *******************************************/
 void ewkvAnalyzer::analyze_Zjets(){
   // Trigger 
-  if((vType == ZMUMU) && !Mu17_Mu8) return;
+  if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
   if((vType == ZEE) && !Ele17T_Ele8T) return;
 
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson
@@ -187,7 +187,6 @@ void ewkvAnalyzer::analyze_Zjets(){
     // Find leading jets (at least 3) and sort
     std::vector<int> leadingJets;
     for(int j=0; j < vJets->GetEntries(); ++j){
-      if(jetUncertainty[j] > .5) continue;
       if(!jetID[j]) continue;
       if(!(jetPUIdFlag[j] & (1 << 2)) != 0) continue;	//2 == kLoose
       TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
@@ -239,17 +238,33 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dijet_dphi", fabs(j1.DeltaPhi(j2)));
     histos->fillHist1D("dijet_deta", fabs(j1.Eta() - j2.Eta()));
 
+
+    TString app;
     for(TString product : {"qg","axis1","axis2","mult","ptD"}){
-      histos->fillHist1D(product + "MLP_j1", jetQGvariables[product + "MLP"]->at(leadingJets.at(0)));
-      histos->fillHist1D(product + "MLP_j2", jetQGvariables[product + "MLP"]->at(leadingJets.at(1)));
+      if(j1.Eta() < 2.5) app = "_c";
+      else app = "_f";
+      histos->fillHist1D(product + "MLP_j1" + app, jetQGvariables[product + "MLP"]->at(leadingJets.at(0)));
+      if(j2.Eta() < 2.5) app = "_c";
+      else app = "_f";
+      histos->fillHist1D(product + "MLP_j2" + app, jetQGvariables[product + "MLP"]->at(leadingJets.at(1)));
     }
     for(TString product : {"qg","axis2","mult","ptD"}){
-      histos->fillHist1D(product + "Likelihood_j1", jetQGvariables[product + "Likelihood"]->at(leadingJets.at(0)));
-      histos->fillHist1D(product + "Likelihood_j2", jetQGvariables[product + "Likelihood"]->at(leadingJets.at(1)));
+      if(j1.Eta() < 2.5) app = "_c";
+      else app = "_f";
+      histos->fillHist1D(product + "Likelihood_j1" + app, jetQGvariables[product + "Likelihood"]->at(leadingJets.at(0)));
+      if(j2.Eta() < 2.5) app = "_c";
+      else app = "_f";
+      histos->fillHist1D(product + "Likelihood_j2" + app, jetQGvariables[product + "Likelihood"]->at(leadingJets.at(1)));
     }
     for(TString product : {"qg","axis1","axis2","mult","R","pull"}){
-      histos->fillHist1D(product + "HIG13011_j1", jetQGvariables[product + "HIG13011"]->at(leadingJets.at(0)));
-      histos->fillHist1D(product + "HIG13011_j2", jetQGvariables[product + "HIG13011"]->at(leadingJets.at(1)));
+      if(j1.Eta() < 2) app = "_c";
+      else if(j1.Eta() < 3) app = "_t";
+      else app = "_f";
+      histos->fillHist1D(product + "HIG13011_j1" + app, jetQGvariables[product + "HIG13011"]->at(leadingJets.at(0)));
+      if(j2.Eta() < 2) app = "_c";
+      else if(j2.Eta() < 3) app = "_t";
+      else app = "_f";
+      histos->fillHist1D(product + "HIG13011_j2" + app, jetQGvariables[product + "HIG13011"]->at(leadingJets.at(1)));
     }
 
     // Zeppenfeld variable
@@ -319,12 +334,12 @@ void ewkvAnalyzer::analyze_Zjets(){
 
 
 void ewkvAnalyzer::initTMVAreader(TString type){
-//  tmvaReader = new TMVA::Reader("");
+//tmvaReader = new TMVA::Reader("");
 
-//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgMLP_j1", "qgMLP_j2", "M_jj"};
-//  for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
+//std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgMLP_j1", "qgMLP_j2", "M_jj"};
+//for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
-//  tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/weights/TMVAClassification_BDT.weights.xml" );
+//tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/weights/TMVAClassification_BDT.weights.xml" );
 }
 
 
