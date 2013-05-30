@@ -41,6 +41,7 @@
 #include "DataFormats/HLTReco/interface/HLTPrescaleTable.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
+#include "CMGTools/External/interface/PileupJetIdentifier.h"
 
 #include "TH1.h"
 #include "TFile.h"
@@ -218,28 +219,28 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   for(TString product : {"qg","axis2","mult","ptD"}) 			jetQGvariables[product + "Likelihood"].clear();
   for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	jetQGvariables[product + "HIG13011"].clear();
 
-  for(reco::PFJetCollection::const_iterator jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet, ++nJets){
-    jetID[nJets] = jetId(&(*jet));
-    new((*vJets)[nJets]) TLorentzVector(jet->px(), jet->py(), jet->pz(), jet->energy());
+  for(reco::PFJetCollection::const_iterator jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet){
+    if(!jetId(&(*jet))) continue;
+    edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(pfJets, jet - pfJets->begin()));
+    if(!(puJetIdFlag.isValid() && PileupJetIdentifier::passJetId((*puJetIdFlag)[jetRef] , PileupJetIdentifier::kLoose))) continue;
 
     jecUnc->setJetEta(jet->eta());
     jecUnc->setJetPt(jet->pt());
     try { jetUncertainty[nJets] = jecUnc->getUncertainty(true); } 
-    catch (...) { jetUncertainty[nJets] = 999;}
+    catch (...) { continue;}
+
+    if(puJetIdMVA.isValid())  	jetPUIdMVA[nJets]	= (*puJetIdMVA)[jetRef];
+    else 			jetPUIdMVA[nJets]	= -999;
+
+    new((*vJets)[nJets]) TLorentzVector(jet->px(), jet->py(), jet->pz(), jet->energy());
 
     std::vector<reco::PFCandidatePtr> jetParts = jet->getPFConstituents();
     ncJets[nJets] = jetParts.size();
 
-    edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(pfJets, jet - pfJets->begin()));
     for(auto it = QGTaggerHandle.begin(); it != QGTaggerHandle.end(); ++it){
       if((it->second).isValid()) 	jetQGvariables[it->first].push_back((*(it->second))[jetRef]);
       else 				jetQGvariables[it->first].push_back(-996);
     }
-
-    if(puJetIdMVA.isValid())  	jetPUIdMVA[nJets]	= (*puJetIdMVA)[jetRef];
-    else 			jetPUIdMVA[nJets]	= -966;
-    if(puJetIdFlag.isValid())   jetPUIdFlag[nJets]	= (*puJetIdFlag)[jetRef];
-    else			jetPUIdFlag[nJets]	= 10;
 
     genJetPt[nJets] = -1;
     if(jet->pt()>5 && genJets.isValid()){
@@ -263,7 +264,8 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 	  jetSmearedPt[nJets] = std::max(0., genJetPt[nJets] + smearPt[k]*(jet->pt() - genJetPt[nJets]));
 	}  
       }
-    } 
+    }
+    ++nJets; 
   }
 
 
@@ -360,7 +362,7 @@ void Analyzer::beginJob(){
   vSoftTrackJets = new TClonesArray("TLorentzVector", maxSTJ);
 
   f_Analyzer = new TFile(fileName, "RECREATE");
-  t_Analyzer = new TTree("EWKV","EWKV tree");
+  t_Analyzer = new TTree("EWKV","EWK V+2 jets tree");
 
   t_Analyzer->Branch("run",			&nRun,			"run/I");
   t_Analyzer->Branch("event",			&nEvent,		"event/I");
@@ -399,9 +401,7 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("nJets",			&nJets,			"nJets/I");
   t_Analyzer->Branch("vJets","TClonesArray", 	&vJets, 		32000, 0);
   t_Analyzer->Branch("jetUncertainty",		jetUncertainty, 	"jetUncertainty[nJets]/D");
-  t_Analyzer->Branch("jetID",			jetID, 			"jetID[nJets]/O");
   t_Analyzer->Branch("jetPUIdMVA",		jetPUIdMVA,		"jetPUIdMVA[nJets]/F");
-  t_Analyzer->Branch("jetPUIdFlag",		jetPUIdFlag,		"jetPUIdFlag[nJets]/I");
   t_Analyzer->Branch("genJetPt",		genJetPt, 		"jenGenPt[nJets]/F");
   t_Analyzer->Branch("jetSmearedPt",		jetSmearedPt, 		"jetSmearedPt[nJets]/F");
   t_Analyzer->Branch("ncJets", 			ncJets, 		"ncJets[nJets]/I");
