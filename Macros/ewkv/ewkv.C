@@ -51,8 +51,8 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130528";
-  for(TString type : {"ZEE"}){
+  TString outputTag = "20130529b";
+  for(TString type : {"ZEE","ZMUMU"}){
 
     sampleList* samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
@@ -74,6 +74,7 @@ int main(){
     }
     outFile->Close();
     cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + "_notmerged.tex");
+    cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});
     cutflows->merge("Diboson",{"WW","WZ","ZZ"});
     cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
     cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
@@ -157,7 +158,7 @@ void ewkvAnalyzer::analyze_Zjets(){
         histos->fillProfileHist("nJets_vs_dEta_jj", dEta , nJets);
         histos->fillProfileHist("cosDPhi_vs_HT", HT , cosDPhi);
     }*/
-
+/*
     //Generator level cuts
     if(mySample->getName() == "signal"){
       int nGenLeptons = 0, nGenQJets = 0;
@@ -181,7 +182,7 @@ void ewkvAnalyzer::analyze_Zjets(){
         cutflow->setBranch("fake");
       } else cutflow->track("GEN level cuts");
     } else cutflow->track("GEN level cuts");
-
+*/
  
 
     // Find leading jets (at least 3) and sort
