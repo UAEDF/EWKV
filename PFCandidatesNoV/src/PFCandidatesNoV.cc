@@ -22,7 +22,6 @@
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/PFMET.h"
-#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
 
 #include "TH1.h"
 #include "TFile.h"
@@ -50,9 +49,6 @@ PFCandidatesNoV::PFCandidatesNoV(const edm::ParameterSet& iConfig):
   produces<reco::PFCandidateCollection>("pfCandidatesNoV");
   produces<reco::PFCandidateCollection>("pfLeptons");
   produces<int>("VType");
-
-  isolator.initializeElectronIsolation(kTRUE);
-  isolator.setConeSize(0.3); 
 }
 
 

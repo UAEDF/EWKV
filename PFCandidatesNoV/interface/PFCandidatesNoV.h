@@ -21,7 +21,6 @@
 #include "DataFormats/MuonReco/interface/Muon.h" 
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/METReco/interface/PFMET.h"
-#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
 
 #include "TH1.h"
 #include "TFile.h"
@@ -71,8 +70,6 @@ class PFCandidatesNoV : public edm::EDFilter{
     edm::InputTag               beamSpotInputTag;
     edm::InputTag               rhoIsoInputTag;
     edm::InputTag               primaryVertexInputTag;
-
-    PFIsolationEstimator isolator;
 
     VType type;
 };
