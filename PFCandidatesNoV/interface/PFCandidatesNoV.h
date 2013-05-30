@@ -21,7 +21,6 @@
 #include "DataFormats/MuonReco/interface/Muon.h" 
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/METReco/interface/PFMET.h"
-#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
 
 #include "TH1.h"
 #include "TFile.h"
@@ -45,9 +44,9 @@ class PFCandidatesNoV : public edm::EDFilter{
     bool muonSelection(const reco::MuonRef, edm::Handle<reco::VertexCollection>);
     bool muonSelectionVeto(const reco::MuonRef);
     bool electronSelection(const reco::GsfElectronRef, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection>, 
-                           edm::Handle<reco::ConversionCollection>, edm::Handle<reco::BeamSpot>, edm::Handle<double> rhoIso);
+                           edm::Handle<reco::ConversionCollection>, edm::Handle<reco::BeamSpot>);
     bool electronSelectionVeto(const reco::GsfElectronRef, edm::Handle<reco::PFCandidateCollection> pfCandidates, edm::Handle<reco::VertexCollection>, 
-                               edm::Handle<reco::ConversionCollection>, edm::Handle<reco::BeamSpot>, edm::Handle<double> rhoIso);
+                               edm::Handle<reco::ConversionCollection>, edm::Handle<reco::BeamSpot>);
     void fillPU(edm::Event&);
 
     TString fileName;
@@ -64,15 +63,17 @@ class PFCandidatesNoV : public edm::EDFilter{
 
     TFile *f_pileUp; 
     TH1I *h_pileUp;
+    TH1I *h_pileUp5;
+    TH1I *h_pileUp6;
+    TH1I *h_pileUp7;
+    TH1I *h_pileUp8;
+    TH1I *h_pileUp9;
 
     edm::InputTag               pfCandidatesInputTag;
     edm::InputTag               metInputTag;
     edm::InputTag               conversionsInputTag;
     edm::InputTag               beamSpotInputTag;
-    edm::InputTag               rhoIsoInputTag;
     edm::InputTag               primaryVertexInputTag;
-
-    PFIsolationEstimator isolator;
 
     VType type;
 };

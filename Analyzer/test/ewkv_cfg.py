@@ -18,10 +18,18 @@ process.load('Configuration.StandardSequences.Generator_cff')
 process.load('GeneratorInterface.GenFilters.TotalKinematicsFilter_cfi')
 
 # Signal and number of events for test runs
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2500))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(500))
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/AODSIM/PU_S10_START53_V7A-v1/00000/FE987AF3-1E2A-E211-997F-008CFA002490.root')
 )
+
+# good offline primary vertices
+from PhysicsTools.SelectorUtils.pvSelector_cfi import pvSelector
+process.goodOfflinePrimaryVertices = cms.EDFilter("PrimaryVertexObjectFilter",
+    filterParams = pvSelector.clone( minNdof = cms.double(4.0), maxZ = cms.double(24.0) ),
+    src          = cms.InputTag('offlinePrimaryVertices')
+)
+
 
 # GEN Particles 
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
@@ -114,13 +122,13 @@ process.ewkv = cms.EDAnalyzer('Analyzer',
 	metCorrNoVInputTag	= cms.InputTag('pfType1CorrectedMetNoV'),
 	softTrackJetsInputTag	= cms.InputTag('ak5SoftTrackJets'),
 	rhoInputTag		= cms.InputTag('kt6PFJets','rho'),
-        primaryVertexInputTag	= cms.InputTag('offlinePrimaryVertices')
+        primaryVertexInputTag	= cms.InputTag('goodOfflinePrimaryVertices')
 )
 
-process.p = cms.Path(process.kt6PFJets * 
+process.p = cms.Path(process.goodOfflinePrimaryVertices * process.kt6PFJets * 
                      process.ak5PFJets * process.ak5PFJetsL1FastL2L3 * 
                      process.producePFMETCorrections *
-                     process.seqPFCandidatesNoV * 
+                     process.PFCandidatesNoV * 
 		     process.ak5PFJetsNoV * process.ak5PFJetsL1FastL2L3NoV * 
                      process.producePFMETCorrectionsNoV *
 		     process.jetPUIdSequence * 

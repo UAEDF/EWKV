@@ -1,7 +1,6 @@
 /* PFCandidatesNoV.cc
  * Package:	EWKV/PFCandidatesNoV
  * Author:	Tom Cornelis
- * Update:	2013/03/27
  * Based on:	http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/UserCode/PaoloA/VBFZ/PFCandidatesNoV/src/PFCandidatesNoV.cc?view=markup
  *
  * Class to select and extract the lepton(s) from Z or W from the PFCandidates collection
@@ -17,12 +16,12 @@
 
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/MuonReco/interface/Muon.h" 
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/METReco/interface/PFMETCollection.h"
 #include "DataFormats/METReco/interface/PFMET.h"
-#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
 
 #include "TH1.h"
 #include "TFile.h"
@@ -44,15 +43,11 @@ PFCandidatesNoV::PFCandidatesNoV(const edm::ParameterSet& iConfig):
   metInputTag(            	iConfig.getParameter<edm::InputTag>("metInputTag")),
   conversionsInputTag(    	iConfig.getParameter<edm::InputTag>("conversionsInputTag")),
   beamSpotInputTag(       	iConfig.getParameter<edm::InputTag>("beamSpotInputTag")),
-  rhoIsoInputTag(         	iConfig.getParameter<edm::InputTag>("rhoIsoInputTag")),
   primaryVertexInputTag(  	iConfig.getParameter<edm::InputTag>("primaryVertexInputTag"))
 {
   produces<reco::PFCandidateCollection>("pfCandidatesNoV");
   produces<reco::PFCandidateCollection>("pfLeptons");
   produces<int>("VType");
-
-  isolator.initializeElectronIsolation(kTRUE);
-  isolator.setConeSize(0.3); 
 }
 
 
@@ -100,14 +95,13 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
     //Stuff needed for the electron ID
     edm::Handle<reco::ConversionCollection> conversions; 	iEvent.getByLabel(conversionsInputTag, conversions);
     edm::Handle<reco::BeamSpot> beamspot;			iEvent.getByLabel(beamSpotInputTag, beamspot);
-    edm::Handle<double> rhoIso;					iEvent.getByLabel(rhoIsoInputTag, rhoIso);
 
     // find PF electrons
     for(std::vector<reco::PFCandidate>::const_iterator pfCandidate = pfCandidates->begin(); pfCandidate != pfCandidates->end(); ++pfCandidate){
       if(reco::PFCandidate::ParticleType(pfCandidate->particleId()) != reco::PFCandidate::e) continue;
       reco::GsfElectronRef eref = pfCandidate->gsfElectronRef();
-      if(!(eref.isNonnull() && electronSelection(eref, pfCandidates, vtxs, conversions, beamspot, rhoIso))){
-        if(electronSelectionVeto(eref, pfCandidates, vtxs, conversions, beamspot, rhoIso)) vetoLepton = true;
+      if(!(eref.isNonnull() && electronSelection(eref, pfCandidates, vtxs, conversions, beamspot))){
+        if(electronSelectionVeto(eref, pfCandidates, vtxs, conversions, beamspot)) vetoLepton = true;
         continue;
       }
       if(TryZ(&(*pfCandidate), selectedElectrons)) break;						//Vectors are pt-ordered: select first pair which combine to Z, stop looking
@@ -180,20 +174,47 @@ void PFCandidatesNoV::fillPU(edm::Event& iEvent){
       }
     }  
   }
+
   h_pileUp->Fill(nPileUp);
+
+  edm::Handle<LHEEventProduct> lheH; 
+  iEvent.getByType(lheH);
+  if(lheH.isValid()){
+    int nParticleEntries = lheH->hepeup().NUP; 
+    if(nParticleEntries == 5) h_pileUp5->Fill(nPileUp);
+    if(nParticleEntries == 6) h_pileUp6->Fill(nPileUp);
+    if(nParticleEntries == 7) h_pileUp7->Fill(nPileUp);
+    if(nParticleEntries == 8) h_pileUp8->Fill(nPileUp);
+    if(nParticleEntries == 9) h_pileUp9->Fill(nPileUp);
+  }
 }
 
 
 void PFCandidatesNoV::beginJob(){
   f_pileUp = new TFile(fileName,"RECREATE");
   h_pileUp = new TH1I("pileUp", "pileUp", 51, -.5, 50.5);
+  h_pileUp5 = new TH1I("pileUp5", "pileUp5", 51, -.5, 50.5);
+  h_pileUp6 = new TH1I("pileUp6", "pileUp6", 51, -.5, 50.5);
+  h_pileUp7 = new TH1I("pileUp7", "pileUp7", 51, -.5, 50.5);
+  h_pileUp8 = new TH1I("pileUp8", "pileUp8", 51, -.5, 50.5);
+  h_pileUp9 = new TH1I("pileUp9", "pileUp9", 51, -.5, 50.5);
 }
 
 
 void PFCandidatesNoV::endJob() {
   f_pileUp->WriteTObject(h_pileUp);
+  f_pileUp->WriteTObject(h_pileUp5);
+  f_pileUp->WriteTObject(h_pileUp6);
+  f_pileUp->WriteTObject(h_pileUp7);
+  f_pileUp->WriteTObject(h_pileUp8);
+  f_pileUp->WriteTObject(h_pileUp9);
   f_pileUp->Close();
   delete h_pileUp;
+  delete h_pileUp5;
+  delete h_pileUp6;
+  delete h_pileUp7;
+  delete h_pileUp8;
+  delete h_pileUp9;
   delete f_pileUp;
 }
 
@@ -213,7 +234,6 @@ void PFCandidatesNoV::fillDescriptions(edm::ConfigurationDescriptions& descripti
   desc.add<edm::InputTag>("metInputTag");
   desc.add<edm::InputTag>("conversionsInputTag");
   desc.add<edm::InputTag>("beamSpotInputTag");
-  desc.add<edm::InputTag>("rhoIsoInputTag");
   desc.add<edm::InputTag>("primaryVertexInputTag");
   descriptions.add("PFCandidatesNoV", desc);
 }
