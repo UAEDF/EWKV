@@ -450,13 +450,20 @@ void Analyzer::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup){
 
 bool Analyzer::jetId(const reco::PFJet *jet){
   //jetID taken from https://twiki.cern.ch/twiki/bin/view/CMS/JetID#Recommendations_for_7_TeV_data_a (no twiki for 8TeV available)
-  if(!(jet->neutralHadronEnergyFraction() < .99)) return false;
-  if(!(jet->neutralEmEnergyFraction() < .99)) return false;
-  if(!(jet->getPFConstituents().size() > 1)) return false;
-  if(abs(jet->eta()) < 2.4){
-    if(!(jet->chargedHadronEnergyFraction() > 0)) return false;
-    if(!(jet->chargedEmEnergyFraction() < .99)) return false;
-    if(!(jet->chargedMultiplicity() > 0)) return false;
+  double jetEnergyUncorrected = jet->chargedHadronEnergy() + jet->neutralHadronEnergy() + jet->photonEnergy() + 
+				jet->electronEnergy() + jet->muonEnergy() + jet->HFHadronEnergy() + jet->HFEMEnergy();
+  double neutralHadronEnergyFraction = (jet->neutralHadronEnergy() + jet->HFHadronEnergy())/jetEnergyUncorrected;
+  double neutralEmEnergyFraction = (jet->neutralEmEnergy())/jetEnergyUncorrected;
+  double chargedHadronEnergyFraction = (jet->chargedHadronEnergy())/jetEnergyUncorrected;
+  double chargedEmEnergyFraction = (jet->chargedEmEnergy())/jetEnergyUncorrected;
+
+  if(! (neutralHadronEnergyFraction < .99) ) 					return false;
+  if(! (neutralEmEnergyFraction < .99) ) 					return false;
+  if(! ((jet->chargedMultiplicity() + jet->neutralMultiplicity()) > 1) ) 	return false;
+  if(fabs(jet->eta()) < 2.4){
+    if(! (chargedHadronEnergyFraction > 0) ) 					return false;
+    if(! (chargedEmEnergyFraction < .99) ) 					return false;
+    if(! (jet->chargedMultiplicity() > 0) ) 					return false;
   }
   return true;
 }
