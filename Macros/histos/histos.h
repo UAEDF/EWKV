@@ -106,6 +106,30 @@ void histoCollection::bookHistos(){
     readFile.ignore(unsigned(-1), '\n');
   }
   readFile.close();
+
+
+  std::ifstream readFile2;
+  readFile2.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config")); 
+  if(!readFile2.is_open()){
+    std::cout << "histos.h:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config not found!" << std::endl;
+    return;
+  }
+  while(!readFile2.eof()){
+    TString useLine;
+    readFile2 >> useLine;
+    if(useLine != "1"){
+      readFile2.ignore(unsigned(-1), '\n');
+      continue;
+    }
+    TString name;
+    int bins;
+    double min, max;
+    bool logX;
+    readFile2 >> name >> bins >> min >> max >> logX;
+    bookProfileHist(name, bins, min, max, logX);
+    readFile2.ignore(unsigned(-1), '\n');
+  }
+  readFile2.close();
   return;
 }
 

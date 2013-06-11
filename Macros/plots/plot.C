@@ -193,7 +193,7 @@ void plotHistos::next(TString type){
     hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
     if(file->FindKey(name + "JES+_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JES+_" + *mc));
     if(file->FindKey(name + "JES-_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JES-_" + *mc));
-    if(*mc == "signal") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
+    if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
     mcbefore = mc;
   }
   hists["data"]->Add(hists["data"], (TH1D*) file->Get(name + "_data"));

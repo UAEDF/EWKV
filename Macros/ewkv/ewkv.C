@@ -34,7 +34,7 @@
 #define ZMASS 91.1876
 
 #define JET1PT 50
-#define JET2PT 25 
+#define JET2PT 30 
 
 // Our header-files
 #include "../samples/sampleList.h"
@@ -51,15 +51,16 @@
  *****************/
 int main(){
   gROOT->SetBatch();
-  TString outputTag = "20130529b";
-  for(TString type : {"ZEE","ZMUMU"}){
+  TString cmsswbase = getCMSSWBASE();
+  TString outputTag = "20130611c";
+  for(TString type : {"ZMUMU"}){
 
     sampleList* samples = new sampleList();
-    TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
+    TString samplesDir = cmsswbase + "/src/EWKV/Macros/samples/";
     if(type == "ZMUMU" && !samples->init(samplesDir + "data.config", samplesDir + "mc.config")) return 1;			//Set up list of samples
     if(type == "ZEE" && !samples->init(samplesDir + "dataDoubleElectron.config", samplesDir + "mc.config")) return 1;
 
-    TString outputDir = getCMSSWBASE() + "/src/EWKV/Macros/outputs/";
+    TString outputDir = cmsswbase + "/src/EWKV/Macros/outputs/";
     TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
@@ -74,10 +75,12 @@ int main(){
     }
     outFile->Close();
     cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + "_notmerged.tex");
-    cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});
+//    cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});
+//    cutflows->merge("DY-powheg",{"DYEE-powheg","DYMUMU-powheg","DYTAUTAU-powheg"});
     cutflows->merge("Diboson",{"WW","WZ","ZZ"});
-    cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
-    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
+    cutflows->merge("TTJets",{"TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"});
+//    cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
+//    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
     cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + ".tex");
     delete cutflows;
     delete samples;
@@ -133,19 +136,19 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->setBranch(branch);
     cutflow->setBranch(branch);
 
-/*
+
     // Radiation patterns section
     int nJets = 0;
-    double jetHT = 0, dEta = 0, cosDPhi = 0;
+    double HT = 0, dEta = 0, cosDPhi = 0;
     for(int j=0; j < vJets->GetEntries(); ++j){
       TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
-      if(jet.Pt() > 40 && fabs(jet.Eta()) < 3.6){
+      if(jet.Pt() > 40 && fabs(jet.Eta()) < 4.7){
         ++nJets;
-        jetHT += jet.Pt();
+        HT += jet.Pt();
       }
       for(int k=0; k < j; ++k){
-        TLorentzVector otherjet = *((TLorentzVector*) vPF5Jets->At(k));
-        if(jet.Pt() > 40 && fabs(jet.Eta()) < 3.6){
+        TLorentzVector otherjet = *((TLorentzVector*) vJets->At(k));
+        if(jet.Pt() > 40 && fabs(jet.Eta()) < 4.7){
           if(fabs(otherjet.Eta() - jet.Eta()) > dEta){
             dEta = fabs(otherjet.Eta() - jet.Eta());
             cosDPhi = TMath::Cos(fabs(jet.DeltaPhi(otherjet)));
@@ -155,9 +158,12 @@ void ewkvAnalyzer::analyze_Zjets(){
     }
     if(nJets > 0) histos->fillProfileHist("nJets_vs_HT", HT , nJets);
     if(nJets > 1){
-        histos->fillProfileHist("nJets_vs_dEta_jj", dEta , nJets);
-        histos->fillProfileHist("cosDPhi_vs_HT", HT , cosDPhi);
-    }*/
+        histos->fillProfileHist("nJets_vs_detajj", dEta , nJets);
+        histos->fillProfileHist("cosdPhi_vs_HT", HT , cosDPhi);
+        histos->fillProfileHist("cosdPhi_vs_detajj", dEta , cosDPhi);
+    }
+
+
 /*
     //Generator level cuts
     if(mySample->getName() == "signal"){
@@ -188,8 +194,6 @@ void ewkvAnalyzer::analyze_Zjets(){
     // Find leading jets (at least 3) and sort
     std::vector<int> leadingJets;
     for(int j=0; j < vJets->GetEntries(); ++j){
-      if(!jetID[j]) continue;
-      if(!(jetPUIdFlag[j] & (1 << 2)) != 0) continue;	//2 == kLoose
       TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
       if(branch == "JES-") jet *= (1-jetUncertainty[j]);
       if(branch == "JES+") jet *= (1+jetUncertainty[j]);
@@ -268,6 +272,7 @@ void ewkvAnalyzer::analyze_Zjets(){
       histos->fillHist1D(product + "HIG13011_j2" + app, jetQGvariables[product + "HIG13011"]->at(leadingJets.at(1)));
     }
 
+
     // Zeppenfeld variable
     double Zeppenfeld = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
     histos->fillHist1D("ystar", fabs(Zeppenfeld));
@@ -288,11 +293,15 @@ void ewkvAnalyzer::analyze_Zjets(){
       ++nStj;
     }
     histos->fillHist1D("stjHT3", stjHT3);
-/*
-    histos->fillProfileHist("HT_vs_PV", nPriVtxs, sumPt3);
-    histos->fillProfileHist("HT_vs_Mjj", jj.M(), sumPt3);
-    histos->fillProfileHist("HT_vs_dEta_jj", dEta_jj , sumPt3);
-*/
+    histos->fillHist1D("totalSoftHT", totalSoftHT);
+
+    histos->fillProfileHist("softHT3_vs_PV", nPriVtxs, stjHT3);
+    histos->fillProfileHist("softHT3_vs_mjj", jj.M(), stjHT3);
+    histos->fillProfileHist("softHT3_vs_detajj", fabs(j1.Eta() - j2.Eta()) , stjHT3);
+    histos->fillProfileHist("softHT_vs_PV", nPriVtxs, totalSoftHT);
+    histos->fillProfileHist("softHT_vs_mjj", jj.M(), totalSoftHT);
+    histos->fillProfileHist("softHT_vs_detajj", fabs(j1.Eta() - j2.Eta()) , totalSoftHT);
+
 
     // Additional cutflow
     if(jj.M() < 200) continue;

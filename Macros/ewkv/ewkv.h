@@ -47,13 +47,12 @@ class ewkvAnalyzer{
     int nPileUp, nPriVtxs;
     float rho;
     int nGenPart, nJets, nLeptons, nSoftTrackJets;
-    TClonesArray *vGenPart, *vLeptons, *vMET, *vJets, *vSoftTrackJets;
+    TClonesArray *vGenPart, *vLeptons, *vMET, *vMETCorr, *vMETCorrNoV, *vJets, *vSoftTrackJets;
     float met, metPhi, metSig;
+    float totalSoftHT;
     int idGenPart[10], ncJets[15], leptonCharge[2];
     double jetUncertainty[15];
     float jetSmearedPt[15], genJetPt[15];
-    bool jetID[15];
-    int jetPUIdFlag[15];
     bool Mu17_Mu8, Mu17_TkMu8, Ele17T_Ele8T;
 
     std::map<TString, std::vector<float>*> jetQGvariables;
@@ -69,6 +68,7 @@ class ewkvAnalyzer{
     TTree *tmvaTree, *skimTree;
     TString tmvaOutputTag, skimOutputTag;
     TMVA::Reader *tmvaReader;
+
 
   public:
     ewkvAnalyzer(sample* mySample_, TFile *outfile);
@@ -93,6 +93,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   vGenPart = 		new TClonesArray("TLorentzVector", 10);
   vLeptons = 		new TClonesArray("TLorentzVector", 2);
   vMET = 		new TClonesArray("TLorentzVector", 1);
+  vMETCorr = 		new TClonesArray("TLorentzVector", 1);
+  vMETCorrNoV = 	new TClonesArray("TLorentzVector", 1);
   vJets = 		new TClonesArray("TLorentzVector", 15);
   vSoftTrackJets = 	new TClonesArray("TLorentzVector", 25);
 
@@ -115,6 +117,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   tree->SetBranchAddress("leptonCharge",	leptonCharge);
 
   tree->SetBranchAddress("vMET",		&vMET);
+  tree->SetBranchAddress("vMETCorr",		&vMETCorr);
+  tree->SetBranchAddress("vMETCorrNoV",		&vMETCorrNoV);
   tree->SetBranchAddress("met",			&met);
   tree->SetBranchAddress("metPhi",		&metPhi);
   tree->SetBranchAddress("metSig",		&metSig);
@@ -124,8 +128,6 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
   tree->SetBranchAddress("jetUncertainty", 	jetUncertainty);
   tree->SetBranchAddress("genJetPt", 		genJetPt);
   tree->SetBranchAddress("jetSmearedPt", 	jetSmearedPt);
-  tree->SetBranchAddress("jetID", 		jetID);
-  tree->SetBranchAddress("jetPUIdFlag", 	jetPUIdFlag);
 
   for(TString product : {"qg","axis1","axis2","mult","ptD"}) 		tree->SetBranchAddress(product + "MLP", &jetQGvariables[product + "MLP"]);
   for(TString product : {"qg","axis2","mult","ptD"}) 			tree->SetBranchAddress(product + "Likelihood", &jetQGvariables[product + "Likelihood"]);
@@ -133,6 +135,7 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
 
   tree->SetBranchAddress("nSoftTrackJets",	&nSoftTrackJets);
   tree->SetBranchAddress("vSoftTrackJets",	&vSoftTrackJets);
+  tree->SetBranchAddress("totalSoftHT",		&totalSoftHT);
 
   tree->SetBranchAddress("HLT_Mu17_Mu8", 	&Mu17_Mu8);
   tree->SetBranchAddress("HLT_Mu17_TkMu8", 	&Mu17_TkMu8);
@@ -147,6 +150,7 @@ ewkvAnalyzer::~ewkvAnalyzer(){
   delete vGenPart, vLeptons, vMET, vJets, vSoftTrackJets;
   delete histos;
 }
+
 
 void ewkvAnalyzer::loop(TString type_, double testFraction){
   firstTMVAevent = true;
