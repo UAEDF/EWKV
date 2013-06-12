@@ -220,10 +220,11 @@ void ewkvAnalyzer::fillTMVAtree(){
     tmvaFile->cd();
     tmvaTree = new TTree("ewkv-TMVA-input","tree used for TMVA input");
     for(auto tmvaVariable = tmvaVariables.begin(); tmvaVariable != tmvaVariables.end(); ++tmvaVariable){
-      tmvaTree->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/D");
+      tmvaTree->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/F");
     }
     firstTMVAevent = false;
   }
+
   tmvaTree->Fill();
 }
 

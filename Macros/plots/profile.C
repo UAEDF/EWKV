@@ -10,6 +10,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <TProfile.h>
 
 #include "text.h"
 #include "log.h"
@@ -41,7 +42,7 @@ class plotProfile{
 int main(){
   plotProfile *myPlotHistos = new plotProfile();
   if(!myPlotHistos->configureStack()) return 1;
- // myPlotHistos->loop("ZMUMU");
+  myPlotHistos->loop("ZMUMU");
   myPlotHistos->loop("ZEE");
   delete myPlotHistos;
   return 0;
@@ -112,7 +113,7 @@ void plotProfile::loop(TString type){
 
 
 void plotProfile::next(TString type){
-  std::map<TString, TH1*> profileHists;
+  std::map<TString, TProfile*> profileHists;
 
   TLegend *leg = new TLegend(.85,.85,1,1);
   TCanvas *c = new TCanvas("Canvas", "Canvas", 1500, 1200);
@@ -127,28 +128,38 @@ void plotProfile::next(TString type){
   data->SetMarkerStyle(20);
   data->SetStats(0);
   data->SetTitle("");
+  data->SetMarkerSize(1.5);
   leg->AddEntry(data, "data", "p");
   if(data->GetBinWidth(1) != data->GetBinWidth(2)) c->SetLogx();
   data->GetXaxis()->SetTitle(xtitle);
   data->GetYaxis()->SetTitle(ytitle);
   data->Draw("e1p X0");
 
+  
 
-  int i = 1;
+  int j = 1;
   for(auto mc = mcs.begin(); mc != mcs.end(); ++mc){
-    if((*mc != "ZVBF") && (*mc != "DY")) continue;
-    double displaceFactor;
-    if(*mc == "ZVBF") displaceFactor = -.1;
-    if(*mc == "DY") displaceFactor = .1;
+    profileHists[*mc] = (TProfile*) file->Get(name + "_" + *mc);
+  }
 
-    profileHists[*mc] = (TH1*) file->Get(name + "_" + *mc);
-    if(profileHists[*mc]->GetMaximum()*1.1 > data->GetMaximum()) data->SetMaximum(profileHists[*mc]->GetMaximum()*1.1);
-    if(profileHists[*mc]->GetMinimum()*.9 < data->GetMinimum()) data->SetMinimum(profileHists[*mc]->GetMinimum()*.9);
-    TH1* displacedBinHisto = displaceBins(profileHists[*mc], displaceFactor);
-    displacedBinHisto->SetMarkerStyle(2+i%4);
-    displacedBinHisto->SetMarkerColor(color[*mc]);
-    displacedBinHisto->SetLineColor(color[*mc]);
-    leg->AddEntry(displacedBinHisto, *mc, "p");
+  profileHists["DY"] = (TProfile*) profileHists["DY0"]->Clone();
+  color["DY"] = color["DY0"];
+  for(TString i : {"1","2","3","4"}) profileHists["DY"]->Add(profileHists["DY"+i]);
+
+  for(TString i : {"ZVBF","DY"}){
+    double displaceFactor;
+    if(i == "ZVBF") displaceFactor = -.1;
+    if(i == "DY") displaceFactor = .1;
+
+    if(profileHists[i]->GetMaximum()*1.1 > data->GetMaximum()) data->SetMaximum(profileHists[i]->GetMaximum()*1.1);
+    if(profileHists[i]->GetMinimum()*.9 < data->GetMinimum()) data->SetMinimum(profileHists[i]->GetMinimum()*.9);
+    TH1* displacedBinHisto = displaceBins(profileHists[i], displaceFactor);
+    displacedBinHisto->SetMarkerStyle(2+j%4);
+    displacedBinHisto->SetMarkerSize(1.5);
+    displacedBinHisto->SetMarkerColor(color[i]);
+    displacedBinHisto->SetLineColor(color[i]);
+    if(i == "ZVBF") leg->AddEntry(displacedBinHisto, "signal", "p");
+    else leg->AddEntry(displacedBinHisto, i, "p");
     displacedBinHisto->Draw("e1p X0 same");
   }
   leg->Draw();
