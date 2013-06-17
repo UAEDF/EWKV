@@ -1,4 +1,4 @@
-// @(#)root/tmva $Id: classification.C,v 1.1 2013/06/12 20:49:38 tomc Exp $
+// @(#)root/tmva $Id: classification.C,v 1.2 2013/06/17 13:02:05 tomc Exp $
 /**********************************************************************************
  * Project   : TMVA - a Root-integrated toolkit for multivariate data analysis    *
  * Package   : TMVA                                                               *
@@ -43,8 +43,8 @@
 #include <TMVA/Config.h>
 #include "../shellVariables.h"
 
-TString type = "ZMUMU";
-TString tag = "20130617";
+TString type = "ZEE";
+TString tag = "20130617c";
 TString option = "_BDTD";
 TString DYtype = "";
 TString production = "2013-06-JetIDfix";
@@ -92,7 +92,7 @@ int main(){
    factory->SetSignalWeightExpression("weight");
    factory->SetBackgroundWeightExpression("weight");
 
-   factory->PrepareTrainingAndTestTree( "pT_j1 > 65;pT_j2 > 40", "pT_j1 > 65;pT_j2 > 40", "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:!V" );
+   factory->PrepareTrainingAndTestTree( "", "", "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:!V" );
    factory->BookMethod( TMVA::Types::kBDT, "BDTD", "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:VarTransform=Decorrelate" );
 //   factory->BookMethod( TMVA::Types::kMLP, "MLP", "!H:!V:VarTransform=N:TestRate=3:UseRegulator" );
    

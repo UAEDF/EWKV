@@ -33,8 +33,8 @@
 // Constants
 #define ZMASS 91.1876
 
-#define JET1PT 65 
-#define JET2PT 40 
+#define JET1PT 50 
+#define JET2PT 30 
 
 // Our header-files
 #include "../samples/sampleList.h"
@@ -50,7 +50,7 @@
  * Main function *
  *****************/
 int main(){
-  TString outputTag = "20130617";
+  TString outputTag = "20130617c";
   TString DYtype = "";
 
 
@@ -79,7 +79,7 @@ int main(){
     TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
-//      (*it)->useSkim(type, "20130612");									//Use skimmed files to go faster
+//      (*it)->useSkim(type, "20130617");									//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
       myAnalyzer->setMakeTMVAtree(outputTag);								//Use if TMVA input trees has to be remade
       myAnalyzer->setMakeSkimTree(outputTag); 								//Use if skimmed trees has to be remade
@@ -97,7 +97,7 @@ int main(){
     cutflows->merge("Diboson",{"WW","WZ","ZZ"});
     cutflows->merge("TTJets",{"TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"});
     cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
-    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
+//    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
     cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + ".tex");
     delete cutflows;
     delete samples;
@@ -365,7 +365,7 @@ void ewkvAnalyzer::initTMVAreader(TString type){
   std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
-  TString tmvaTag = "20130612_BDTD";
+  TString tmvaTag = "20130617_BDTD";
   tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/"+tmvaTag+"/weights/TMVAClassification_BDTD.weights.xml" );
 //tmvaReader->BookMVA( "MLP", "../TMVAtraining/"+type+"/"+tmvaTag+"/weights/TMVAClassification_MLP.weights.xml" );
 }

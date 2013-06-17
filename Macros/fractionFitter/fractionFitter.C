@@ -29,7 +29,7 @@
 using namespace std;
 
 TString plot = "BDTD";
-TString tag = "20130614h";
+TString tag = "20130617b";
 bool powheg = false;
 
 int main(){
@@ -58,9 +58,9 @@ int main(){
       mc->Add(histos["signal"]);
       TFractionFitter* fit = new TFractionFitter(histos["data"], mc, "Q");
 
-      fit->Constrain(1,.95,1);
-      fit->Constrain(2,0,.05);
-      fit->SetRangeX(10,23); 
+      fit->Constrain(1,0,1);
+      fit->Constrain(2,0,1);
+      fit->SetRangeX(5,23); 
       if(fit->Fit() == 0){                      
         double fractionDY, fractionSignal, errorFractionDY, errorFractionSignal;
         fit->GetResult( 0, fractionDY, errorFractionDY);
