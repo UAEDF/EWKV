@@ -33,8 +33,8 @@
 // Constants
 #define ZMASS 91.1876
 
-#define JET1PT 50
-#define JET2PT 30 
+#define JET1PT 65 
+#define JET2PT 40 
 
 // Our header-files
 #include "../samples/sampleList.h"
@@ -50,24 +50,39 @@
  * Main function *
  *****************/
 int main(){
+  TString outputTag = "20130617";
+  TString DYtype = "";
+
+
   gROOT->SetBatch();
   TString cmsswbase = getCMSSWBASE();
-  TString outputTag = "20130612e";
   for(TString type : {"ZMUMU"}){
+
+    TString dataConfig;
+    if(type == "ZMUMU") dataConfig = "data.config";
+    else dataConfig = "dataDoubleElectron.config"; 
+
+    TString mcConfig;
+    if(DYtype == "powheg"){
+      if(type == "ZMUMU") mcConfig = "mcPowhegMUMU.config";
+      else mcConfig = "mcPowhegEE.config"; 
+    } else {
+      if(DYtype == "inclusive") mcConfig = "mcInclusive.config";
+      else mcConfig = "mc.config";
+    }
 
     sampleList* samples = new sampleList();
     TString samplesDir = cmsswbase + "/src/EWKV/Macros/samples/";
-    if(type == "ZMUMU" && !samples->init(samplesDir + "data.config", samplesDir + "mc.config")) return 1;			//Set up list of samples
-    if(type == "ZEE" && !samples->init(samplesDir + "dataDoubleElectron.config", samplesDir + "mc.config")) return 1;
+    if(!samples->init(samplesDir + dataConfig, samplesDir + mcConfig)) return 1;			//Set up list of samples
 
     TString outputDir = cmsswbase + "/src/EWKV/Macros/outputs/";
     TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
-      (*it)->useSkim(type, "20130612");									//Use skimmed files to go faster
+//      (*it)->useSkim(type, "20130612");									//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
       myAnalyzer->setMakeTMVAtree(outputTag);								//Use if TMVA input trees has to be remade
-//      myAnalyzer->setMakeSkimTree(outputTag); 								//Use if skimmed trees has to be remade
+      myAnalyzer->setMakeSkimTree(outputTag); 								//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//loop over events in tree
       myAnalyzer->getHistoCollection()->toFile();							//write all the histograms to file				
       cutflows->add(myAnalyzer->getCutFlow());								//get the cutflow
@@ -75,12 +90,14 @@ int main(){
     }
     outFile->Close();
     cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + "_notmerged.tex");
-    cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});
-//    cutflows->merge("DY-powheg",{"DYEE-powheg","DYMUMU-powheg","DYTAUTAU-powheg"});
+    if(DYtype == "powheg"){
+      if(type == "ZMUMU") cutflows->merge("DY-powheg",{"DYMUMU-powheg","DYTAUTAU-powheg"});
+      else cutflows->merge("DY-powheg",{"DYEE-powheg","DYTAUTAU-powheg"});
+    } else if (DYtype != "inclusive") cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});
     cutflows->merge("Diboson",{"WW","WZ","ZZ"});
     cutflows->merge("TTJets",{"TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"});
-//    cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
-//    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
+    cutflows->merge("Single top",{"T-s","T-t","T-W","Tbar-s","Tbar-t","Tbar-W"});
+    cutflows->merge("QCD",{"QCD100","QCD250","QCD500","QCD1000"});
     cutflows->toLatex(outputDir + "cutflow/" + type + "/" + outputTag + ".tex");
     delete cutflows;
     delete samples;
@@ -244,40 +261,12 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dijet_deta", fabs(j1.Eta() - j2.Eta()));
 
 
-    TString app;
-    for(TString product : {"qg","axis1","axis2","mult","ptD"}){
-      if(product == "qg") histos->fillHist1D(product + "MLP_j1", jetQGvariables[product + "MLP"]->at(leadingJets.at(0)));
-      if(product == "qg") histos->fillHist1D(product + "MLP_j2", jetQGvariables[product + "MLP"]->at(leadingJets.at(1)));
-      if(j1.Eta() < 2.5) app = "_c";
-      else app = "_f";
-      histos->fillHist1D(product + "MLP_j1" + app, jetQGvariables[product + "MLP"]->at(leadingJets.at(0)));
-      if(j2.Eta() < 2.5) app = "_c";
-      else app = "_f";
-      histos->fillHist1D(product + "MLP_j2" + app, jetQGvariables[product + "MLP"]->at(leadingJets.at(1)));
-    }
-    for(TString product : {"qg","axis2","mult","ptD"}){
-      if(product == "qg") histos->fillHist1D(product + "Likelihood_j1", jetQGvariables[product + "Likelihood"]->at(leadingJets.at(0)));
-      if(product == "qg") histos->fillHist1D(product + "Likelihood_j2", jetQGvariables[product + "Likelihood"]->at(leadingJets.at(1)));
-      if(j1.Eta() < 2.5) app = "_c";
-      else app = "_f";
-      histos->fillHist1D(product + "Likelihood_j1" + app, jetQGvariables[product + "Likelihood"]->at(leadingJets.at(0)));
-      if(j2.Eta() < 2.5) app = "_c";
-      else app = "_f";
-      histos->fillHist1D(product + "Likelihood_j2" + app, jetQGvariables[product + "Likelihood"]->at(leadingJets.at(1)));
-    }
-    for(TString product : {"qg","axis1","axis2","mult","R","pull"}){
-      if(product == "qg") histos->fillHist1D(product + "HIG13011_j1", jetQGvariables[product + "HIG13011"]->at(leadingJets.at(0)));
-      if(product == "qg") histos->fillHist1D(product + "HIG13011_j2", jetQGvariables[product + "HIG13011"]->at(leadingJets.at(1)));
-      if(j1.Eta() < 2) app = "_c";
-      else if(j1.Eta() < 3) app = "_t";
-      else app = "_f";
-      histos->fillHist1D(product + "HIG13011_j1" + app, jetQGvariables[product + "HIG13011"]->at(leadingJets.at(0)));
-      if(j2.Eta() < 2) app = "_c";
-      else if(j2.Eta() < 3) app = "_t";
-      else app = "_f";
-      histos->fillHist1D(product + "HIG13011_j2" + app, jetQGvariables[product + "HIG13011"]->at(leadingJets.at(1)));
-    }
-
+    histos->fillHist1D("qgMLP_j1", jetQGvariables["qgMLP"]->at(leadingJets.at(0)));
+    histos->fillHist1D("qgMLP_j2", jetQGvariables["qgMLP"]->at(leadingJets.at(1)));
+    histos->fillHist1D("qgLikelihood_j1", jetQGvariables["qgLikelihood"]->at(leadingJets.at(0)));
+    histos->fillHist1D("qgLikelihood_j2", jetQGvariables["qgLikelihood"]->at(leadingJets.at(1)));
+    histos->fillHist1D("qgHIG13011_j1", jetQGvariables["qgHIG13011"]->at(leadingJets.at(0)));
+    histos->fillHist1D("qgHIG13011_j2", jetQGvariables["qgHIG13011"]->at(leadingJets.at(1)));
 
     // Zeppenfeld variable
     double Zeppenfeld = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
@@ -331,25 +320,29 @@ void ewkvAnalyzer::analyze_Zjets(){
 
     double BDTD = tmvaReader->EvaluateMVA("BDTD"); 
     histos->fillHist1D("BDTD", BDTD);
-
-    if(BDTD > 0.05){ cutflow->track("BDT $>$ .05"); histos->fillHist1D("BDTD05", BDTD);}
-    if(BDTD > 0.10){ cutflow->track("BDT $>$ .10"); histos->fillHist1D("BDTD10", BDTD);}
-    if(BDTD > 0.15){ cutflow->track("BDT $>$ .15"); histos->fillHist1D("BDTD15", BDTD);}
-    if(BDTD > 0.20){ cutflow->track("BDT $>$ .20"); histos->fillHist1D("BDTD20", BDTD);}
-
-
+    histos->fillHist1D("BDTD_bin10", BDTD);
+    histos->fillHist1D("BDTD_bin15", BDTD);
+    histos->fillHist1D("BDTD_bin20", BDTD);
+    histos->fillHist1D("BDTD_bin50", BDTD);
+    histos->fillHist1D("BDTD_bin100", BDTD);
+/*
+    double MLP = tmvaReader->EvaluateMVA("MLP"); 
+    histos->fillHist1D("MLP", MLP);
+i*/
+/*
     //With MCFM reweighting
     double ystarWeight = (9.50782e-01) + (-5.23409e-03)*Zeppenfeld + (3.01934e-02)*Zeppenfeld*Zeppenfeld;
     double mjjWeight = (1.04886e+00) + (-1.67724e-04)*jj.M();
     histos->setFillWeight(mySample->getWeight(nPileUp)*ystarWeight*mjjWeight);
     histos->fillHist1D("BDTD_MCFMreweighted", BDTD);
     histos->setFillWeight(mySample->getWeight(nPileUp)); 
-
+*/
     // Additional cutflow
     if(jj.M() < 200) continue;
     cutflow->track("$m_{jj} > 200$ GeV");
 
     if(fabs(j1.Eta() - j2.Eta()) > 3.5){ 
+//      if(jj.M() > 600) histos->fillHist1D("MLP_simpleCuts", MLP);
       if(jj.M() > 600) histos->fillHist1D("BDTD_simpleCuts", BDTD);
     }
 
@@ -372,8 +365,9 @@ void ewkvAnalyzer::initTMVAreader(TString type){
   std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
-  TString tmvaTag = "20130612d";
+  TString tmvaTag = "20130612_BDTD";
   tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/"+tmvaTag+"/weights/TMVAClassification_BDTD.weights.xml" );
+//tmvaReader->BookMVA( "MLP", "../TMVAtraining/"+type+"/"+tmvaTag+"/weights/TMVAClassification_MLP.weights.xml" );
 }
 
 

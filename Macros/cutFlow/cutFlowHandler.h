@@ -45,13 +45,21 @@ void cutFlowHandler::toLatex(TString fileName){
     int i = 0;
     totalMC = 0; totalMCplus = 0; totalMCmin = 0;
 
+    double signal, signalPlus, signalMin, data;
     for(auto cutflow : cutflows){
       double counts = cutflow->get(*trackPoint, "");
       double countsJESplus = cutflow->get(*trackPoint, "JES+");
       double countsJESmin = cutflow->get(*trackPoint, "JES-");
 
-      if(cutflow->getName() == "data") texstream << " & " << (counts);
-      else{
+      if(cutflow->getName() == "data"){
+        texstream << " & " << (counts);
+        data = counts;
+      } else{
+        if(cutflow->getName() == "ZVBF"){
+          signal = counts;
+          signalPlus = countsJESplus;
+          signalMin = countsJESmin;
+        }
         if(counts < 10){ texstream << setprecision(1); roundingUp = 0.05;}
         texstream << " & " << counts; 
         if(errors && ((countsJESplus-counts) != 0 || (counts-countsJESmin) != 0)){
@@ -68,6 +76,18 @@ void cutFlowHandler::toLatex(TString fileName){
     texstream << " & " << totalMC;
     if(errors) texstream << "$^{ +" << (totalMCplus-totalMC+roundingUp) << "}_{ -" << (totalMC-totalMCmin+roundingUp) << "}$";
     texstream << "\\\\" << endl;
+
+    if(errors){
+      //Calculate K_s
+      double background = totalMC - signal;
+      double backgroundPlus = totalMCplus - signalPlus;
+      double backgroundMin = totalMCmin - signalMin;
+      double K_s = (data - background)/signal;
+      double K_s_statErr = sqrt(data)/signal;
+      double K_s_jesErrPlus = (data - backgroundPlus)/signalPlus - K_s;
+      double K_s_jesErrMin = K_s - (data - backgroundMin)/signalMin;
+      cout << *trackPoint << "\t" << K_s << "\\pm " << K_s_statErr << "^{ +" << K_s_jesErrPlus << "}_{ -" << K_s_jesErrMin << "}$ \\\\" << endl;
+    }
   }
 
   texstream << "  \\hline" << endl;

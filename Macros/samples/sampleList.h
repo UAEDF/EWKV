@@ -45,7 +45,7 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   if(host == "iihe") location = "/user/tomc/public/merged/EWKV/";
   if(host == "infn") location = "/gpfs/gpfsddn/cms/user/EWKV/";
   if(host == "lxplus") location = "/afs/cern.ch/work/t/tomc/public/EWKV/";
-  location += "2013-06/";
+  location += "2013-06-JetIDfix/";
   if(!(readInitFile(dataFile, "data") && readInitFile(mcFile, "mc"))) return false;
   if(mode == "pileUp") return true;
 

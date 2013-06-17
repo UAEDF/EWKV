@@ -1,4 +1,4 @@
-// @(#)root/tmva $Id: TMVAClassification.C,v 1.36 2009-04-14 13:08:13 andreas.hoecker Exp $
+// @(#)root/tmva $Id: classification.C,v 1.1 2013/06/12 20:49:38 tomc Exp $
 /**********************************************************************************
  * Project   : TMVA - a Root-integrated toolkit for multivariate data analysis    *
  * Package   : TMVA                                                               *
@@ -44,15 +44,18 @@
 #include "../shellVariables.h"
 
 TString type = "ZMUMU";
-TString tag = "20130612d"; 
+TString tag = "20130617";
+TString option = "_BDTD";
+TString DYtype = "";
+TString production = "2013-06-JetIDfix";
    
 int main(){
    if(!exists(type)) system("mkdir " + type);
-   if(!exists(type + "/" + tag )) system("mkdir " + type + "/" + tag );
+   if(!exists(type + "/" + tag + option)) system("mkdir " + type + "/" + tag + option);
    // Create a new root output file.
-   TString outfileName( type + "/" + tag  + "/TMVA.root" );
+   TString outfileName( type + "/" + tag  + option + "/TMVA.root" );
    TFile* outputFile = TFile::Open( outfileName, "RECREATE" );
-   (TMVA::gConfig().GetIONames()).fWeightFileDir = type + "/" + tag  + "/weights/";
+   (TMVA::gConfig().GetIONames()).fWeightFileDir = type + "/" + tag  + option + "/weights/";
 
    TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile, "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D" );
 
@@ -69,30 +72,29 @@ int main(){
    factory->AddVariable( "qgHIG13011_j2", 'F' );
    factory->AddVariable( "M_jj", 'F' );
 
-
-   std::map<TString, double> weights;
-   weights["signal"] = 1. / 1.50871e+06;
-   weights["DY0"] = 1. / 8693.5;
-   weights["DY1"] = 1. / 36087.7;
-   weights["DY2"] = 1. / 101652.;
-   weights["DY3"] = 1. / 181503.;
-   weights["DY4"] = 1. / 234021.;
-
    std::map<TString, TFile*> files;
    std::map<TString, TTree*> trees;
-   files["signal"] = new TFile("~/public/merged/EWKV/2013-06/tmva-input/" + type + "/" + tag + "/ZVBF.root");
-   for(TString i : {"0","1","2","3","4"}) files["DY" + i] = new TFile("~/public/merged/EWKV/2013-06/tmva-input/" + type + "/" + tag + "/DY" + i + ".root");
+   files["signal"] = new TFile("~/public/merged/EWKV/" + production + "/tmva-input/" + type + "/" + tag + "/ZVBF.root");
+   if(DYtype == "powheg"){
+     if(type == "ZEE") files["DY"] = new TFile("~/public/merged/EWKV/" + production + "/tmva-input/" + type + "/" + tag + "/DYEE-powheg.root");
+     if(type == "ZMUMU") files["DY"] = new TFile("~/public/merged/EWKV/" + production + "/tmva-input/" + type + "/" + tag + "/DYMUMU-powheg.root");
+   } else {
+     if(DYtype == "inclusive") files["DY"] = new TFile("~/public/merged/EWKV/" + production + "/tmva-input/" + type + "/" + tag + "/DY.root");
+     else for(TString i : {"0","1","2","3","4"}) files["DY" + i] = new TFile("~/public/merged/EWKV/" + production + "/tmva-input/" + type + "/" + tag + "/DY" + i + ".root");
+   }
 
    for(auto file = files.begin(); file != files.end(); ++file) trees[file->first] = (TTree*) file->second->Get("ewkv-TMVA-input");
 
-   factory->AddSignalTree(trees["signal"], weights["signal"]);
-   for(TString i : {"0","1","2","3","4"}) factory->AddBackgroundTree(trees["DY" + i], weights["DY" + i]);
+   factory->AddSignalTree(trees["signal"]);
+   if(DYtype == "powheg" || DYtype  == "inclusive") factory->AddBackgroundTree(trees["DY"]);
+   else for(TString i : {"0","1","2","3","4"}) factory->AddBackgroundTree(trees["DY" + i]);
    
    factory->SetSignalWeightExpression("weight");
    factory->SetBackgroundWeightExpression("weight");
 
-   factory->PrepareTrainingAndTestTree( "", "", "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:!V" );
+   factory->PrepareTrainingAndTestTree( "pT_j1 > 65;pT_j2 > 40", "pT_j1 > 65;pT_j2 > 40", "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:!V" );
    factory->BookMethod( TMVA::Types::kBDT, "BDTD", "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:VarTransform=Decorrelate" );
+//   factory->BookMethod( TMVA::Types::kMLP, "MLP", "!H:!V:VarTransform=N:TestRate=3:UseRegulator" );
    
 
    factory->TrainAllMethods();
