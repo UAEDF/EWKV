@@ -93,7 +93,7 @@ void histoCollection::bookHistos(){
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
-    if(useLine != "1"){
+    if((useLine != "1") && (useLine != "2")){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }

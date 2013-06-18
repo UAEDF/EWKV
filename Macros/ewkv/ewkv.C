@@ -50,13 +50,13 @@
  * Main function *
  *****************/
 int main(){
-  TString outputTag = "20130617c";
-  TString DYtype = "";
+  TString outputTag = "20130617e";
+  TString DYtype = "inclusive";
 
 
   gROOT->SetBatch();
   TString cmsswbase = getCMSSWBASE();
-  for(TString type : {"ZMUMU"}){
+  for(TString type : {"ZEE"}){
 
     TString dataConfig;
     if(type == "ZMUMU") dataConfig = "data.config";
@@ -79,7 +79,7 @@ int main(){
     TFile *outFile = new TFile(outputDir + "rootfiles/" + type + "/" + outputTag + ".root", "RECREATE");
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//loop over samples
-//      (*it)->useSkim(type, "20130617");									//Use skimmed files to go faster
+      (*it)->useSkim(type, "20130617c");									//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile);					//set up analyzer
       myAnalyzer->setMakeTMVAtree(outputTag);								//Use if TMVA input trees has to be remade
       myAnalyzer->setMakeSkimTree(outputTag); 								//Use if skimmed trees has to be remade
@@ -365,7 +365,7 @@ void ewkvAnalyzer::initTMVAreader(TString type){
   std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
-  TString tmvaTag = "20130617_BDTD";
+  TString tmvaTag = "20130617c_BDTD";
   tmvaReader->BookMVA( "BDTD", "../TMVAtraining/"+type+"/"+tmvaTag+"/weights/TMVAClassification_BDTD.weights.xml" );
 //tmvaReader->BookMVA( "MLP", "../TMVAtraining/"+type+"/"+tmvaTag+"/weights/TMVAClassification_MLP.weights.xml" );
 }

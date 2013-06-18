@@ -24,6 +24,7 @@ class plotHistos{
   bool logX;
   bool JES;
   int removeJESbinLeft, removeJESbinRight;
+  bool plotSignificance;
 
   std::vector<TString> mcs;
   std::map<TString, int> color;
@@ -89,7 +90,7 @@ void plotHistos::loop(TString type){
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
-    if(useLine != "1"){
+    if((useLine != "1") && (useLine != "2")){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
@@ -99,6 +100,8 @@ void plotHistos::loop(TString type){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
+    if(useLine == "2") plotSignificance = true;
+    else plotSignificance = false;
     readFile >> fileName >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
@@ -162,7 +165,9 @@ void plotHistos::next(TString type){
   frameRatio->GetXaxis()->SetTitleSize(.12);
   frameRatio->GetXaxis()->SetTitleOffset(1.2);
 
-  frameRatio->GetYaxis()->SetTitle("Data/MC");
+//if(plotSignificance) frameRatio->GetYaxis()->SetTitle("S");
+  if(plotSignificance) frameRatio->GetYaxis()->SetTitle("purity");
+  else frameRatio->GetYaxis()->SetTitle("Data/MC");
   frameRatio->GetYaxis()->SetNdivisions(10);
   frameRatio->GetYaxis()->SetTitleSize(.12);
   frameRatio->GetYaxis()->SetLabelSize(.09);
@@ -240,26 +245,69 @@ void plotHistos::next(TString type){
 
   //Draw the ratio histograms (and calculate errors)
   padDN->cd();
-  hists["ratio"]->Divide(hists["data"], hists[mcs.front()]);
-  for(int bin = 1; bin < bins+1; ++bin){ 
-    double hMC     = hists[mcs.front()]->GetBinContent(bin);
-    double hMC_er  = hists[mcs.front()]->GetBinError(bin);
-    double hDat    = hists["data"]->GetBinContent(bin);
-    double hDat_er = hists["data"]->GetBinError(bin);
-    if(hMC > 1.&& hDat > 0.5){
-      double hR = hDat/hMC;
-      double h_e = sqrt((hMC_er/hMC)*(hMC_er/hMC)+(hDat_er/hDat)*(hDat_er/hDat));
-      double error = h_e*hR;
-      hists["ratio"]->SetBinError(bin, error);
-    } 
-  }
-  hists["ratio"]->SetLineWidth(2.);
-  hists["ratio"]->Draw("same e");
+  if(plotSignificance){
+    TH1D* hObserved = (TH1D*) hists["data"]->Clone();
+    TH1D* hExpected = (TH1D*) hists["data"]->Clone();
+    for(int i = 0; i < bins + 2; ++i){
+      double data = hists["data"]->GetBinContent(i);
+      double MC = hists[mcs.front()]->GetBinContent(i);
+      double signal = hists["signal only"]->GetBinContent(i);
+      double bkg = MC - signal;
+      double plus = hists["JES+"]->GetBinContent(i);
+      double min = hists["JES-"]->GetBinContent(i);
+//      double mcfm = hMCFM->GetBinContent(i);
+      double deltaB = 0.5*((bkg-plus)*(bkg-plus)+(bkg-min)*(bkg-min));
+      if(sqrt(bkg+deltaB) != 0){
+        hObserved->SetBinContent(i, (data-bkg)/sqrt(bkg+deltaB));
+//        hExpected->SetBinContent(i, signal/sqrt(bkg+deltaB));
+        hExpected->SetBinContent(i, signal/(bkg+signal));
+//        hModeling->SetBinContent(i, (mcfm-bkg)/sqrt(bkg+deltaB));
+      } else {
+        hObserved->SetBinContent(i, NULL);
+        hExpected->SetBinContent(i, NULL);
+//        hModeling->SetBinContent(i, NULL);
+      }
+    }
+ 
+    hObserved->SetLineWidth(2.);
+    hObserved->SetFillColor(26);
+//    hObserved->Draw("same hist ][");
+    hExpected->SetLineWidth(2.);
+    hExpected->SetLineColor(color["ZVBF"]);
+    hExpected->Draw("same hist ][");
+/*
+    hModeling->SetLineWidth(2.);
+    hModeling->SetLineColor(kBlue);
+    hModeling->SetLineStyle(2);
+    hModeling->Draw("same ][");
+*/
+    TLegend *legSignificance = new TLegend(0.15, 0.75, 0.35, 0.95);
+    legSignificance->AddEntry(hObserved, " observed ", "l");
+    legSignificance->AddEntry(hExpected, " expected ", "l");
+ //   legSignificance->AddEntry(hModeling, "bkg. modeling uncert.", "l");
+    legSignificance->Draw();
+  } else {
+    hists["ratio"]->Divide(hists["data"], hists[mcs.front()]);
+    for(int bin = 1; bin < bins+1; ++bin){ 
+      double hMC     = hists[mcs.front()]->GetBinContent(bin);
+      double hMC_er  = hists[mcs.front()]->GetBinError(bin);
+      double hDat    = hists["data"]->GetBinContent(bin);
+      double hDat_er = hists["data"]->GetBinError(bin);
+      if(hMC > 1.&& hDat > 0.5){
+        double hR = hDat/hMC;
+        double h_e = sqrt((hMC_er/hMC)*(hMC_er/hMC)+(hDat_er/hDat)*(hDat_er/hDat));
+        double error = h_e*hR;
+        hists["ratio"]->SetBinError(bin, error);
+      } 
+    }
+    hists["ratio"]->SetLineWidth(2.);
+    hists["ratio"]->Draw("same e");
 
-  //Ratio for JES
-  if(JES){
-    hists["ratio+"]->Divide(hists["JES+"], hists[mcs.front()]);
-    hists["ratio-"]->Divide(hists["JES-"], hists[mcs.front()]);
+    //Ratio for JES
+    if(JES){
+      hists["ratio+"]->Divide(hists["JES+"], hists[mcs.front()]);
+      hists["ratio-"]->Divide(hists["JES-"], hists[mcs.front()]);
+    }
 
     //To remove bins from the JES (when fluctuations are too high)
     if(removeJESbinRight != 0 || removeJESbinLeft != 0){

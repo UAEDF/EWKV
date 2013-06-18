@@ -29,7 +29,7 @@
 using namespace std;
 
 TString plot = "BDTD";
-TString tag = "20130617b";
+TString tag = "20130617d";
 bool powheg = false;
 
 int main(){
