@@ -61,7 +61,7 @@ bool PFCandidatesNoV::filter(edm::Event& iEvent, const edm::EventSetup& iSetup){
   //Get primary vertex
   edm::Handle<reco::VertexCollection> vtxs;
   iEvent.getByLabel(primaryVertexInputTag, vtxs);
-  if(!vtxs.isValid()) return false; 
+  if(!vtxs.isValid() || (*vtxs.product()).size() == 0) return false;
 
   // Get PF candidates
   edm::Handle<reco::PFCandidateCollection> pfCandidates;
