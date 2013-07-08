@@ -1,12 +1,3 @@
-/********************************************************************************************************
- * cutFlowTable.h:											*
- *													*
- * void init(sample, scalefactor)	start column with new sample					*
- *					the numbers in this column are scaled with the scalefactor	*
- * void track(trackPoint, errorSign=0)  count the number of events at this point			*
- *                                      use errorSign = +1 or -1 when errors are specified		*
- * void toLatex()			table is written into a tex-file				*
- ********************************************************************************************************/
 #ifndef CUTFLOW_H
 #define CUTFLOW_H
 

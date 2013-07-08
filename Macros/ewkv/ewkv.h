@@ -30,6 +30,7 @@
 #include "../samples/sample.h"
 #include "../histos/histos.h"
 #include "../cutFlow/cutFlow.h"
+#include "../environment.h"
 
 class ewkvAnalyzer{
   private:
@@ -38,6 +39,8 @@ class ewkvAnalyzer{
     void fillTMVAtree();
     void fillSkimTree();
     void initTMVAreader(TString type);
+    void checkRadiationPattern(double zRapidity);
+    void mcfmReweighting(double mjj, double ystar);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
@@ -61,33 +64,31 @@ class ewkvAnalyzer{
     sample* mySample;
     histoCollection* histos;
     cutFlow* cutflow;
-    bool makeTMVAtree, firstTMVAevent;
-    bool makeSkimTree, firstSkimEvent, alreadyOnSkimmedTree;
+    bool makeTMVAtree_, firstTMVAevent;
+    bool makeSkimTree_, firstSkimEvent, alreadyOnSkimmedTree;
     std::map<TString, float> tmvaVariables;
     TFile *tmvaFile, *skimFile;
     TTree *tmvaTree, *skimTree;
-    TString tmvaOutputTag, skimOutputTag;
+    TString outputTag;
     TMVA::Reader *tmvaReader;
 
 
   public:
-    ewkvAnalyzer(sample* mySample_, TFile *outfile);
+    ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag);
     ~ewkvAnalyzer();
     void loop(TString type_, double testFraction = 1.);
-    histoCollection* getHistoCollection(){ return histos;}; 
     cutFlow* getCutFlow(){ return cutflow;};
-    void setMakeTMVAtree(TString outputTag = ""){ makeTMVAtree = true; tmvaOutputTag = outputTag;};
-    void setMakeSkimTree(TString outputTag = ""){ makeSkimTree = true; skimOutputTag = outputTag;};
+    void makeTMVAtree(){ makeTMVAtree_ = true;};
+    void makeSkimTree(){ makeSkimTree_ = true;};
 };
 
 
-ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile *outfile){
-  makeTMVAtree = false;
-  makeSkimTree = false;
-  firstSkimEvent = true;
+ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_){
+  makeTMVAtree_ = false; makeSkimTree_ = false;
+  outputTag = outputTag_;
   mySample = mySample_;
   tree = mySample->getTree();
-  histos = new histoCollection(mySample, outfile);
+  histos = new histoCollection(mySample, outFile);
   cutflow = new cutFlow(mySample->getName());
 
   vGenPart = 		new TClonesArray("TLorentzVector", 10);
@@ -153,7 +154,7 @@ ewkvAnalyzer::~ewkvAnalyzer(){
 
 
 void ewkvAnalyzer::loop(TString type_, double testFraction){
-  firstTMVAevent = true;
+  firstTMVAevent = true; firstSkimEvent = true;
   type = type_;
   VType theType;
   if(type == "ZMUMU") theType = ZMUMU;
@@ -183,38 +184,35 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   while(bar < 100){ std::cout << "="<< std::flush; ++bar;}
   std::cout << std::endl;
 
-  if(makeTMVAtree && !firstTMVAevent){
+  if(makeTMVAtree_ && !firstTMVAevent){
     tmvaFile->cd();
     tmvaFile->WriteTObject(tmvaTree);
     tmvaFile->Close();
     std::cout << "ewkvAnalyzer:\t\t\tTMVA tree prepared" << std::endl;
   }
 
-  if(makeSkimTree && !firstSkimEvent){
+  if(makeSkimTree_ && !firstSkimEvent){
     skimFile->cd();
     skimFile->WriteTObject(skimTree);
     skimFile->Close();
     std::cout << "ewkvAnalyzer:\t\t\tSkim of tree done" << std::endl;
   }
 
+  histos->toFile(); 
+
   return;
 }
 
 void ewkvAnalyzer::fillTMVAtree(){
-  if(!makeTMVAtree) return;
+  if(!makeTMVAtree_) return;
   if(firstTMVAevent){
-    TString fileName = mySample->getLocation() + "tmva-input/";
-    if(!exists(fileName)) system("mkdir " + fileName);
-    fileName += type + "/";
-    if(!exists(fileName)) system("mkdir " + fileName);
-    fileName += tmvaOutputTag + "/";
-    if(!exists(fileName)) system("mkdir " + fileName);
-    fileName += mySample->getName() + ".root";
+    TString location = getTreeLocation() + "tmva-input/" + type + "/" + outputTag + "/";
+    if(!exists(location)) system("mkdir -p " + location);
 
-    tmvaFile = new TFile(fileName ,"new");
+    tmvaFile = new TFile(location + mySample->getName() + ".root" ,"new");
     if(!tmvaFile->IsOpen()){
-      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << fileName << " (maybe already exists)" << std::endl;
-      makeTMVAtree = false;
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << location << mySample->getName() << ".root (maybe already exists)" << std::endl;
+      makeTMVAtree_ = false;
       return;
     }
     tmvaFile->cd();
@@ -230,21 +228,15 @@ void ewkvAnalyzer::fillTMVAtree(){
 
 
 void ewkvAnalyzer::fillSkimTree(){
-  if(!makeSkimTree) return;
-  if(alreadyOnSkimmedTree) return;
+  if(!makeSkimTree_ || alreadyOnSkimmedTree) return;
   if(firstSkimEvent){
-    TString fileName = mySample->getLocation() + "skimmed/";
-    if(!exists(fileName)) system("mkdir " + fileName);
-    fileName += type + "/";
-    if(!exists(fileName)) system("mkdir " + fileName);
-    fileName += skimOutputTag + "/";
-    if(!exists(fileName)) system("mkdir " + fileName);
-    fileName += mySample->getName() + ".root";
+    TString location = getTreeLocation() + "skimmed/" + type + "/" + outputTag + "/";
+    if(!exists(location)) system("mkdir -p " + location);
 
-    skimFile = new TFile(fileName ,"new");
+    skimFile = new TFile(location + mySample->getName() + ".root" ,"new");
     if(!skimFile->IsOpen()){
-      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << fileName << " (maybe already exists)" << std::endl;
-      makeSkimTree = false;
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << location << mySample->getName() << ".root (maybe already exists)" << std::endl;
+      makeSkimTree_ = false;
       return;
     }
     skimFile->cd();

@@ -76,7 +76,7 @@ void cutFlowHandler::toLatex(TString fileName){
     texstream << " & " << totalMC;
     if(errors) texstream << "$^{ +" << (totalMCplus-totalMC+roundingUp) << "}_{ -" << (totalMC-totalMCmin+roundingUp) << "}$";
     texstream << "\\\\" << endl;
-
+/*
     if(errors){
       //Calculate K_s
       double background = totalMC - signal;
@@ -87,7 +87,7 @@ void cutFlowHandler::toLatex(TString fileName){
       double K_s_jesErrPlus = (data - backgroundPlus)/signalPlus - K_s;
       double K_s_jesErrMin = K_s - (data - backgroundMin)/signalMin;
       cout << *trackPoint << "\t" << K_s << "\\pm " << K_s_statErr << "^{ +" << K_s_jesErrPlus << "}_{ -" << K_s_jesErrMin << "}$ \\\\" << endl;
-    }
+    }*/
   }
 
   texstream << "  \\hline" << endl;
@@ -108,12 +108,12 @@ bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList){
     }
   }
   auto cutflow = cutflows.begin();
-  while((*cutflow)->getName() != mergeList[0]) ++cutflow;
-  cutflows.insert(cutflow, cutflowsMap[newName]);
+  while((cutflow != cutflows.end()) && (std::find(mergeList.begin(), mergeList.end(), (*cutflow)->getName()) == mergeList.end())) ++cutflow;
+  if(cutflow != cutflows.end()) cutflows.insert(cutflow, cutflowsMap[newName]);
   for(TString i : mergeList){
     cutflow = cutflows.begin();
-    while((*cutflow)->getName() != i) ++cutflow;
-    cutflows.erase(cutflow);
+    while((cutflow != cutflows.end()) && ((*cutflow)->getName() != i)) ++cutflow;
+    if(cutflow != cutflows.end()) cutflows.erase(cutflow);
   }
 }
 #endif
