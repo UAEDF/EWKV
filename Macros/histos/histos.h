@@ -21,10 +21,7 @@
 
 #include "../samples/sampleList.h"
 #include "../samples/sample.h"
-#include "../shellVariables.h"
-
-#include <TObjArray.h>
-#include <TFractionFitter.h>
+#include "../environment.h"
 
 
 class histoCollection{

@@ -6,8 +6,9 @@
 #include <fstream>
 #include <map>
 #include <stdlib.h>
+
 #include "sample.h"
-#include "../shellVariables.h"
+#include "../environment.h"
 
 class sampleList{
   public:
@@ -29,7 +30,6 @@ class sampleList{
     bool readInitFile(TString file, TString type);
     bool readLeptonEfficiencies();
 
-    TString base, host, location;
     std::vector<sample*> samples;
     std::vector<dataRun*> dataRuns;
 };
@@ -40,23 +40,14 @@ sampleList::~sampleList(){
 }
 
 bool sampleList::init(TString dataFile, TString mcFile, TString mode){
-  base = getCMSSWBASE();
-  host = getHost();
-  if(host == "iihe") location = "/user/tomc/public/merged/EWKV/";
-  if(host == "infn") location = "/gpfs/gpfsddn/cms/user/EWKV/";
-  if(host == "lxplus") location = "/afs/cern.ch/work/t/tomc/public/EWKV/";
-  location += "2013-06-JetIDfix/";
   if(!(readInitFile(dataFile, "data") && readInitFile(mcFile, "mc"))) return false;
   if(mode == "pileUp") return true;
 
   //pile-up weights
   dataSample *data = (dataSample*) get("data");
-  TString puWeightsFile = base + "/src/EWKV/Macros/pileUp/weights" + data->getMergeString() + ".txt";
-  std::ifstream readFile;
-  readFile.open(puWeightsFile.Data());
-  if(!readFile.is_open()) std::cout << "sampleList:\t\t!!!\t" + puWeightsFile + " not found, run pileUp.C first" << std::endl;
+  TString puWeightsFile = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + data->getMergeString() + ".txt";
+  if(!exists(puWeightsFile)) std::cout << "sampleList:\t\t!!!\t" + puWeightsFile + " not found, run pileUp.C first" << std::endl;
   else {
-    readFile.close();
     for(iterator it = samples.begin(); it != samples.end(); ++it){
       if((*it)->isData()) continue;
       mcSample* mc = (mcSample*) (*it);
@@ -89,12 +80,12 @@ bool sampleList::readInitFile(TString file, TString type){
     if(type == "data"){
       double lumi;
       readFile >> name >> lumi;
-      dataRuns.push_back(new dataRun(name, location, lumi, base + "/src/EWKV/Crab/JSON"));
+      dataRuns.push_back(new dataRun(name, getTreeLocation(), lumi, getCMSSWBASE() + "/src/EWKV/Crab/JSON"));
     } else {
       double crossSection; 
       int nEvents;
       readFile >> name >> crossSection >> nEvents;
-      samples.push_back(new mcSample(name, location, crossSection, nEvents));
+      samples.push_back(new mcSample(name, getTreeLocation(), crossSection, nEvents));
     }    
   }
   if(type == "data") samples.push_back(new dataSample("data", dataRuns));

@@ -6,14 +6,15 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TH1.h"
-#include "../shellVariables.h"
+
+#include "../environment.h"
 
 /****************
  * Class sample *
  ****************/
 class sample{
   protected:
-    TString location, name;
+    TString name;
     double lumi, lumiWeight;
     bool skimmed;
     TString type, tag;
@@ -25,7 +26,6 @@ class sample{
     virtual double getWeight(int nPileUp) = 0;
 
     TString getName(){		return name;};
-    TString getLocation(){	return location;};
     double getLumi(){		return lumi;};
     void setLumiWeight(double weight){ lumiWeight = weight;};
 
@@ -33,9 +33,9 @@ class sample{
 };
 
 TTree* sample::getTree(){
-  TString fileName = location + "ewkv_" + name + ".root";
+  TString fileName = getTreeLocation() + "ewkv_" + name + ".root";
   if(skimmed){
-    TString skimmedFileName = location + "skimmed/" + type + "/" + tag + "/" + name + ".root";
+    TString skimmedFileName = getTreeLocation() + "skimmed/" + type + "/" + tag + "/" + name + ".root";
     if(exists(skimmedFileName)) fileName = skimmedFileName;
     else std::cout << "sample:\t\t\t!!!\tNo skimmed file for " << name << ", full root tree is taken" << std::endl;
   }
@@ -57,18 +57,17 @@ class dataRun : public sample{
     TString JSON;
 
   public:
-    dataRun(TString name_, TString location_, double lumi_, TString JSON_);
-    bool isData(){ return true;};
-    double getPileUpWeight(int nPileUp){ return 1.;};
-    double getWeight(int nPileUp){ return 1.;};
-    TString getJSON(){ return JSON + "/lumiSummary_" + name + ".json";};
+    dataRun(TString name_, double lumi_);
+    bool isData(){ 				return true;};
+    double getPileUpWeight(int nPileUp){ 	return 1.;};
+    double getWeight(int nPileUp){ 		return 1.;};
+    TString getJSON(){ 				return JSON;};
 };
 
-dataRun::dataRun(TString name_, TString location_, double lumi_, TString JSON_){
+dataRun::dataRun(TString name_, double lumi_){
   name 		= name_; 
-  location 	= location_;
   lumi 		= lumi_;
-  JSON		= JSON_;
+  JSON		= getCMSSWBASE() + "/src/EWKV/Crab/JSON/lumiSummary_" + name + ".json";
   skimmed	= false;
   type		= "";
   tag		= "";
@@ -95,14 +94,13 @@ dataSample::dataSample(TString name_, std::vector<dataRun*> runs_) : dataRun(nam
   for(auto run = runs.begin(); run != runs.end(); ++run){
     lumi += (*run)->getLumi();
     mergeString += "_" + (*run)->getName();
-    location = (*run)->getLocation();
   }
   std::cout << "dataSample:\t\t\t" << name << " with total lumi = " << lumi << "/pb" << std::endl;
 }
 
 TTree* dataSample::getTree(){
   if(skimmed){
-    TString fileName = location + "skimmed/" + type + "/" + tag + "/data.root";
+    TString fileName = getTreeLocation() + "skimmed/" + type + "/" + tag + "/data.root";
     TFile* file = new TFile(fileName);
     if(file->IsZombie()){
       std::cout << "sample:\t\t\t!!!\tNo skimmed file for data, full root tree is taken" << std::endl;
@@ -132,7 +130,7 @@ class mcSample : public sample{
     int nEvents;
 
   public:
-    mcSample(TString name_, TString location_, double crossSection_, int nEvents_);
+    mcSample(TString name_, double crossSection_, int nEvents_);
     bool setPileUpWeights(TString pileUpWeightsFile);
     TH1I* getPileUpHisto();
  
@@ -141,12 +139,11 @@ class mcSample : public sample{
     double getWeight(int nPileUp){ return getPileUpWeight(nPileUp)*lumiWeight;}; //Add other weights here (lepton efficiencies)
 };
 
-mcSample::mcSample(TString name_, TString location_, double crossSection_, int nEvents_){
+mcSample::mcSample(TString name_, double crossSection_, int nEvents_){
   name 		= name_; 
-  location 	= location_;
   crossSection 	= crossSection_;
   nEvents 	= nEvents_;
-  lumi 		= nEvents/crossSection;
+  lumi 		= (double)nEvents/(double)crossSection;
   skimmed	= false;
   type		= "";
   tag		= "";
@@ -155,9 +152,9 @@ mcSample::mcSample(TString name_, TString location_, double crossSection_, int n
 }
 
 TH1I* mcSample::getPileUpHisto(){
-  TFile* file = new TFile(location + "pileUp_" + name + ".root");
+  TFile* file = new TFile(getTreeLocation() + "pileUp_" + name + ".root");
   if(file->IsZombie()){
-    std::cout << "mcSample:\t\tERROR\tCould not find "<< location << "pileUp_" << name << ".root" << std::endl;
+    std::cout << "mcSample:\t\tERROR\tCould not find "<< getTreeLocation() << "pileUp_" << name << ".root" << std::endl;
     exit(1);
   }
   TH1I* hist = (TH1I*) file->Get("pileUp");

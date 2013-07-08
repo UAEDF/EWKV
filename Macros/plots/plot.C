@@ -64,6 +64,7 @@ bool plotHistos::configureStack(){
     TString legendName, stackColor;
     std::string sample;
     readFile >> legendName >> stackColor >> sample;
+    legendName.ReplaceAll("__"," ");
     std::stringstream sampleList(sample);
     bool first = true;
     while(std::getline(sampleList, sample, ',')){
@@ -165,8 +166,8 @@ void plotHistos::next(TString type){
   frameRatio->GetXaxis()->SetTitleSize(.12);
   frameRatio->GetXaxis()->SetTitleOffset(1.2);
 
-//if(plotSignificance) frameRatio->GetYaxis()->SetTitle("S");
-  if(plotSignificance) frameRatio->GetYaxis()->SetTitle("purity");
+  if(plotSignificance) frameRatio->GetYaxis()->SetTitle("S");
+//  if(plotSignificance) frameRatio->GetYaxis()->SetTitle("purity");
   else frameRatio->GetYaxis()->SetTitle("Data/MC");
   frameRatio->GetYaxis()->SetNdivisions(10);
   frameRatio->GetYaxis()->SetTitleSize(.12);
@@ -177,7 +178,7 @@ void plotHistos::next(TString type){
 
 
   //Set up legend
-  bool putEvents = true;
+  bool putEvents = false;
   TLegend *leg;
   if(putEvents){
     leg = new TLegend(0.70, 0.64, 0.95, 0.94);
@@ -227,7 +228,6 @@ void plotHistos::next(TString type){
     leg->AddEntry((TObject*)0, TString::Format("%d", (int)(hists[mcs.front()]->Integral()+.5)),"");
   }
 
-
 /*
   //In case of line for the signal only
   hists["signal only"]->SetLineWidth(2.);
@@ -248,6 +248,8 @@ void plotHistos::next(TString type){
   if(plotSignificance){
     TH1D* hObserved = (TH1D*) hists["data"]->Clone();
     TH1D* hExpected = (TH1D*) hists["data"]->Clone();
+    double ks = 0;
+    double weights = 0;
     for(int i = 0; i < bins + 2; ++i){
       double data = hists["data"]->GetBinContent(i);
       double MC = hists[mcs.front()]->GetBinContent(i);
@@ -259,19 +261,28 @@ void plotHistos::next(TString type){
       double deltaB = 0.5*((bkg-plus)*(bkg-plus)+(bkg-min)*(bkg-min));
       if(sqrt(bkg+deltaB) != 0){
         hObserved->SetBinContent(i, (data-bkg)/sqrt(bkg+deltaB));
-//        hExpected->SetBinContent(i, signal/sqrt(bkg+deltaB));
-        hExpected->SetBinContent(i, signal/(bkg+signal));
+        hExpected->SetBinContent(i, signal/sqrt(bkg+deltaB));
+//        hExpected->SetBinContent(i, signal/(bkg+signal));
 //        hModeling->SetBinContent(i, (mcfm-bkg)/sqrt(bkg+deltaB));
       } else {
         hObserved->SetBinContent(i, NULL);
         hExpected->SetBinContent(i, NULL);
 //        hModeling->SetBinContent(i, NULL);
       }
+      double ki = (data - bkg*1.026)/signal;
+      double error = sqrt(data)/signal;
+      double weight = 1/(error*error);
+//      std::cout << ki << "\t" << error << std::endl;
+      if(signal > 0 && data > 0){
+        ks += ki * weight;
+        weights += weight;
+      }
     }
+//    std::cout << ks/weights << std::endl;
  
     hObserved->SetLineWidth(2.);
     hObserved->SetFillColor(26);
-//    hObserved->Draw("same hist ][");
+    hObserved->Draw("same hist ][");
     hExpected->SetLineWidth(2.);
     hExpected->SetLineColor(color["ZVBF"]);
     hExpected->Draw("same hist ][");
@@ -303,37 +314,44 @@ void plotHistos::next(TString type){
     hists["ratio"]->SetLineWidth(2.);
     hists["ratio"]->Draw("same e");
 
+    double kolmogorov = hists["data"]->KolmogorovTest(hists[mcs.front()]);
+    TText *kstext = new TText();
+    kstext->SetTextSize(0.1);
+//    kstext->DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
+
+
+
     //Ratio for JES
     if(JES){
       hists["ratio+"]->Divide(hists["JES+"], hists[mcs.front()]);
       hists["ratio-"]->Divide(hists["JES-"], hists[mcs.front()]);
-    }
 
-    //To remove bins from the JES (when fluctuations are too high)
-    if(removeJESbinRight != 0 || removeJESbinLeft != 0){
-      float maxJEC = hists["ratio"]->GetBinLowEdge(bins + 1 - removeJESbinRight);
-      float minJEC = hists["ratio"]->GetBinLowEdge(1 + removeJESbinLeft);
-      for(TString sign : {"+","-"}){
-        hists["ratio"+sign+"temp"] = new TH1D("ratio"+sign+"_","ratio"+sign+"_", bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
-        if(logX) binLogX(hists["ratio"+sign+"temp"]);
-        for(int i=1+removeJESbinLeft; i < bins + 1 - removeJESbinRight; ++i){
-          hists["ratio"+sign+"temp"]->SetBinContent(i-removeJESbinLeft, hists["ratio"+sign]->GetBinContent(i));
+      //To remove bins from the JES (when fluctuations are too high)
+      if(removeJESbinRight != 0 || removeJESbinLeft != 0){
+        float maxJEC = hists["ratio"]->GetBinLowEdge(bins + 1 - removeJESbinRight);
+        float minJEC = hists["ratio"]->GetBinLowEdge(1 + removeJESbinLeft);
+        for(TString sign : {"+","-"}){
+          hists["ratio"+sign+"temp"] = new TH1D("ratio"+sign+"_","ratio"+sign+"_", bins - removeJESbinRight - removeJESbinLeft, minJEC, maxJEC);
+          if(logX) binLogX(hists["ratio"+sign+"temp"]);
+          for(int i=1+removeJESbinLeft; i < bins + 1 - removeJESbinRight; ++i){
+            hists["ratio"+sign+"temp"]->SetBinContent(i-removeJESbinLeft, hists["ratio"+sign]->GetBinContent(i));
+          }
+          hists["ratio"+sign] = hists["ratio"+sign+"temp"];
         }
-        hists["ratio"+sign] = hists["ratio"+sign+"temp"];
       }
+
+      TLegend *JESleg = new TLegend(.15, .76, .35, .96);
+      JESleg->AddEntry(hists["ratio+"], "JES up", "l");
+      JESleg->AddEntry(hists["ratio-"], "JES down", "l");
+      JESleg->Draw();
+
+      hists["ratio+"]->SetLineWidth(2.);
+      hists["ratio+"]->SetLineColor(kRed);
+      hists["ratio+"]->Draw("same hist");
+      hists["ratio-"]->SetLineWidth(2.);
+      hists["ratio-"]->SetLineColor(kBlue);
+      hists["ratio-"]->Draw("same hist");
     }
-
-    TLegend *JESleg = new TLegend(.15, .76, .35, .96);
-    JESleg->AddEntry(hists["ratio+"], "JES up", "l");
-    JESleg->AddEntry(hists["ratio-"], "JES down", "l");
-    JESleg->Draw();
-
-    hists["ratio+"]->SetLineWidth(2.);
-    hists["ratio+"]->SetLineColor(kRed);
-    hists["ratio+"]->Draw("same hist");
-    hists["ratio-"]->SetLineWidth(2.);
-    hists["ratio-"]->SetLineColor(kBlue);
-    hists["ratio-"]->Draw("same hist");
   }
 
   c->SaveAs(getCMSSWBASE() + "/src/EWKV/Macros/outputs/pdf/" + type + "/" + name + ".pdf");  
