@@ -52,7 +52,7 @@
 #define TMVATAG "20130618_BDT50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "Full20130708"
+#define OUTPUTTAG "Full20130709"
 
 
 /*****************
@@ -288,7 +288,7 @@ void ewkvAnalyzer::initTMVAreader(TString type){
   std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
-  tmvaReader->BookMVA( TMVATYPE, getTreeLocation + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
+  tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
 }
 
 
@@ -333,7 +333,9 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
 void ewkvAnalyzer::mcfmReweighting(double mjj, double ystar){
   std::vector<TString> needReweighting = {"DY","DY2","DY3","DY4"};
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
-  double ystarWeight = (8.76856e-01) + (1.15122e-01)*ystar;
-  double mjjWeight = (1.02289) + (-9.81406e-05)*mjj;
+//double ystarWeight = (8.76856e-01) + (1.15122e-01)*ystar; 	 				// MCFM NLO/madGraph gen
+  double ystarWeight = (9.50782e-01) + (-5.23409e-03)*ystar + (3.01934e-02)*ystar*ystar;	// MCFM NLO/LO
+//double mjjWeight = (1.02289) + (-9.81406e-05)*mjj;						// MCFM NLO/madGraph gen
+  double mjjWeight = (1.04886e+00) + (-1.67724e-04)*mjj;					// MCFM NLO/LO
   histos->setFillWeight(mySample->getWeight(nPileUp)*ystarWeight*mjjWeight);
 }
