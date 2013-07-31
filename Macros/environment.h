@@ -43,7 +43,7 @@ TString getTreeLocation(){
   if(host == "iihe") location = "/user/tomc/public/merged/EWKV/";
   if(host == "infn") location = "/gpfs/gpfsddn/cms/user/EWKV/";
   if(host == "lxplus") location = "/afs/cern.ch/work/t/tomc/public/EWKV/";
-  location += getProduction();
+  location += getProduction() + "/";
   return location;
 }
 

@@ -15,7 +15,7 @@
 #include "text.h"
 #include "log.h"
 #include "tdrstyle.h"
-#include "../shellVariables.h"
+#include "../environment.h"
 #include "color.h"
 
 class plotProfile{
@@ -107,12 +107,12 @@ void plotProfile::loop(TString type){
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
     if(type != "both"){
-      fileName = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/" + type + "/" + fileName + ".root";
+      fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + fileName + ".root";
       defaultStyle(type);
     }
     else {
-      fileNameZEE = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/ZEE/" + fileName + ".root";
-      fileNameZMUMU = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/ZMUMU/" + fileName + ".root";
+      fileNameZEE = getTreeLocation() + "outputs/rootfiles/ZEE/" + fileName + ".root";
+      fileNameZMUMU = getTreeLocation() + "outputs/rootfiles/ZMUMU/" + fileName + ".root";
       combinedStyle();
     }
   }
@@ -173,7 +173,7 @@ void plotProfile::defaultStyle(TString type){
   }
   leg->Draw();
 
-  c->SaveAs(getCMSSWBASE() + "/src/EWKV/Macros/outputs/pdf/" + type + "/" + name + ".pdf");  
+  c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + name + ".pdf");  
   delete c;
   return;
 }
@@ -232,7 +232,8 @@ void plotProfile::combinedStyle(){
   tex->SetLineWidth(2);
   tex->Draw();
 
-  c->SaveAs(getCMSSWBASE() + "/src/EWKV/Macros/outputs/pdf/" + name + ".pdf");  
+  if(!exists(getTreeLocation() + "outputs/pdf/combined/")) system("mkdir -p " + getTreeLocation() + "outputs/pdf/combined/");
+  c->SaveAs(getTreeLocation() + "outputs/pdf/combined/" + name + ".pdf");  
   delete c;
   return;
 }

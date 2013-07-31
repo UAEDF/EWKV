@@ -52,7 +52,7 @@
 #define TMVATAG "20130618_BDT50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "Full20130709"
+#define OUTPUTTAG "Full20130709b"
 
 
 /*****************
@@ -331,6 +331,7 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
  * MCFM NLO/LO reweighting *
  ***************************/
 void ewkvAnalyzer::mcfmReweighting(double mjj, double ystar){
+  return;
   std::vector<TString> needReweighting = {"DY","DY2","DY3","DY4"};
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
 //double ystarWeight = (8.76856e-01) + (1.15122e-01)*ystar; 	 				// MCFM NLO/madGraph gen

@@ -14,7 +14,7 @@
 #include "text.h"
 #include "log.h"
 #include "tdrstyle.h"
-#include "../shellVariables.h"
+#include "../environment.h"
 #include "color.h"
 
 class plotHistos{
@@ -106,7 +106,7 @@ void plotHistos::loop(TString type){
     readFile >> fileName >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
-    fileName = getCMSSWBASE() + "/src/EWKV/Macros/outputs/rootfiles/" + type + "/" + fileName + ".root";
+    fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + fileName + ".root";
     next(type);
   }
   readFile.close();
@@ -354,7 +354,8 @@ void plotHistos::next(TString type){
     }
   }
 
-  c->SaveAs(getCMSSWBASE() + "/src/EWKV/Macros/outputs/pdf/" + type + "/" + name + ".pdf");  
+  if(!exists(getTreeLocation() + "outputs/pdf/" + type + "/")) system("mkdir -p " + getTreeLocation() + "/outputs/pdf/" + type + "/");
+  c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + name + ".pdf");  
   delete c;
   return;
 }

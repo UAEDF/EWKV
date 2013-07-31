@@ -88,7 +88,7 @@ class dataSample : public dataRun{
     TString getMergeString(){ return mergeString;};
 };
 
-dataSample::dataSample(TString name_, std::vector<dataRun*> runs_) : dataRun(name_, "", 0, ""){
+dataSample::dataSample(TString name_, std::vector<dataRun*> runs_) : dataRun(name_, 0){
   runs = runs_;
   mergeString = "";
   for(auto run = runs.begin(); run != runs.end(); ++run){
@@ -111,7 +111,7 @@ TTree* dataSample::getTree(){
   }
   TChain *chain = new TChain("EWKV");
   for(auto run = runs.begin(); run != runs.end(); ++run){
-    if(!chain->Add((*run)->getLocation() + "ewkv_" + (*run)->getName() + ".root", -1)){
+    if(!chain->Add(getTreeLocation() + "ewkv_" + (*run)->getName() + ".root", -1)){
       std::cout << "dataSample:\t\tERROR\tCouldn't add ewkv_" << (*run)->getName() + ".root to the tree" << std::endl;
       exit(1);
     }

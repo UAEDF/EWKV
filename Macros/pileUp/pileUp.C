@@ -4,7 +4,6 @@
 #include <TString.h>
 #include <TFile.h>
 #include <TH1.h>
-#include <sys/stat.h>
 
 #include "../samples/sampleList.h" 
 #include "../samples/sample.h" 
@@ -34,7 +33,7 @@ int main(int argc, char *argv[]){
     //Get pile-up distribution for data
     TString mergedJSON = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/lumiSummary" + mergeString + ".json";
     TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + ".root";
-    if((!exist(mergedROOT) || force){
+    if(!exists(mergedROOT) || force){
       std::cout << "pileUp.C:\t\t\tPile-up calculation of the data: this will take some time..." << std::endl;
       system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
       system("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_corr.txt --calcMode observed --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 temp.root"); 
@@ -52,10 +51,9 @@ int main(int argc, char *argv[]){
       pileUpWeights(pileUpData, mc->getPileUpHisto(), mc->getName());
     }
     writeFile.close();
-
     file_data->Close();
-    return 0;
   }
+  return 0;
 }
 
 

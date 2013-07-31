@@ -27,7 +27,7 @@ class sampleList{
     runIterator last(){ return dataRuns.end();};
 
   private:
-    bool readInitFile(TString file, TString type);
+    bool readInitFile(TString file, TString type, bool useAll = false);
     bool readLeptonEfficiencies();
 
     std::vector<sample*> samples;
@@ -40,7 +40,7 @@ sampleList::~sampleList(){
 }
 
 bool sampleList::init(TString dataFile, TString mcFile, TString mode){
-  if(!(readInitFile(dataFile, "data") && readInitFile(mcFile, "mc"))) return false;
+  if(!(readInitFile(dataFile, "data", mode == "pileUp") && readInitFile(mcFile, "mc", mode == "pileUp"))) return false;
   if(mode == "pileUp") return true;
 
   //pile-up weights
@@ -62,7 +62,7 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   return true;
 }
 
-bool sampleList::readInitFile(TString file, TString type){
+bool sampleList::readInitFile(TString file, TString type, bool useAll){
   std::ifstream readFile;
   readFile.open(file.Data());
   if(!readFile.is_open()){
@@ -73,19 +73,19 @@ bool sampleList::readInitFile(TString file, TString type){
     TString useLine;
     readFile >> useLine;
     if(useLine != "1"){
-      readFile.ignore(unsigned(-1), '\n');
-      continue;
+      if(!((useLine == "0") && useAll)){
+        readFile.ignore(unsigned(-1), '\n');
+        continue;
+      }
     }
-    TString name;
     if(type == "data"){
-      double lumi;
+      TString name; double lumi;
       readFile >> name >> lumi;
-      dataRuns.push_back(new dataRun(name, getTreeLocation(), lumi, getCMSSWBASE() + "/src/EWKV/Crab/JSON"));
+      dataRuns.push_back(new dataRun(name, lumi));
     } else {
-      double crossSection; 
-      int nEvents;
+      TString name; double crossSection; int nEvents;
       readFile >> name >> crossSection >> nEvents;
-      samples.push_back(new mcSample(name, getTreeLocation(), crossSection, nEvents));
+      samples.push_back(new mcSample(name, crossSection, nEvents));
     }    
   }
   if(type == "data") samples.push_back(new dataSample("data", dataRuns));
