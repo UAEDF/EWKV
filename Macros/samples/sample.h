@@ -24,6 +24,7 @@ class sample{
     virtual bool isData() = 0;
     virtual double getPileUpWeight(int nPileUp) = 0;
     virtual double getWeight(int nPileUp) = 0;
+    virtual double leptonEfficiency(TLorentzVector *l) = 0;
 
     TString getName(){		return name;};
     double getLumi(){		return lumi;};
@@ -61,6 +62,7 @@ class dataRun : public sample{
     bool isData(){ 				return true;};
     double getPileUpWeight(int nPileUp){ 	return 1.;};
     double getWeight(int nPileUp){ 		return 1.;};
+    double leptonEfficiency(TLorentzVector *l){	return 1.;};
     TString getJSON(){ 				return JSON;};
 };
 
@@ -126,23 +128,28 @@ TTree* dataSample::getTree(){
 class mcSample : public sample{
   private:
     std::vector<double> weights;
+    std::map<TString, TGraphAsymmErrors*> efficiencies;
     double crossSection;
     int nEvents;
 
+    double leptonEfficiency(TString type, double pt, double eta);
+
   public:
-    mcSample(TString name_, double crossSection_, int nEvents_);
+    mcSample(TString name_, double crossSection_, int nEvents_, std::map<TString, TGraphAsymmErrors*> efficiencies_);
     bool setPileUpWeights(TString pileUpWeightsFile);
     TH1I* getPileUpHisto();
  
     bool isData(){ return false;};
     double getPileUpWeight(int nPileUp){ return (nPileUp < 51 && nPileUp >= 0) ? weights.at(nPileUp) : 0;};
-    double getWeight(int nPileUp){ return getPileUpWeight(nPileUp)*lumiWeight;}; //Add other weights here (lepton efficiencies)
+    double leptonEfficiency(TLorentzVector *l);
+    double getWeight(int nPileUp){ return getPileUpWeight(nPileUp)*lumiWeight;};
 };
 
-mcSample::mcSample(TString name_, double crossSection_, int nEvents_){
+mcSample::mcSample(TString name_, double crossSection_, int nEvents_, std::map<TString, TGraphAsymmErrors*> efficiencies_){
   name 		= name_; 
   crossSection 	= crossSection_;
   nEvents 	= nEvents_;
+  efficiencies  = efficiencies_;
   lumi 		= (double)nEvents/(double)crossSection;
   skimmed	= false;
   type		= "";
@@ -182,6 +189,34 @@ bool mcSample::setPileUpWeights(TString pileUpWeightsFile){
   }
   readFile.close();
   return false;
+}
+
+
+double mcSample::leptonEfficiency(TLorentzVector *l){
+  double pt = l->Pt();
+  double eta = l->Eta();
+  return leptonEfficiency("iso", pt, eta)*leptonEfficiency("id", pt, eta);
+}
+ 
+double mcSample::leptonEfficiency(TString type, double pt, double eta){ 
+  TString etaBin;
+  if(fabs(eta) < .9) etaBin = "<0.9";
+  else if(fabs(eta) < 1.2) etaBin = "0.9-1.2";
+  else if(fabs(eta) < 2.1) etaBin = "1.2-2.1";
+  else if(fabs(eta) < 2.4) etaBin = "2.1-2.4";
+  else return 0.;
+  if(efficiencies.find(type + etaBin) == efficiencies.end()){
+    std::cout << "mcSample\t\t!!! No " << type << " efficiency found for pt=" << pt << " and eta=" << eta << std::endl;
+    return 1.;
+  }
+  double efficiency, ptlow, pthigh, ptbin;
+  int i = 0;
+  do{
+    efficiencies[type + etaBin]->GetPoint(i, ptbin, efficiency);
+    ptlow = ptbin - efficiencies[type + etaBin]->GetErrorXlow(i);
+    pthigh = ptbin + efficiencies[type + etaBin]->GetErrorXhigh(i++);
+  } while((pthigh < pt) && (i < efficiencies[type + etaBin]->GetN()));
+  return efficiency;
 }
 
 #endif

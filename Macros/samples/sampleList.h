@@ -25,6 +25,7 @@ class sampleList{
     typedef std::vector<dataRun*>::iterator runIterator;
     runIterator first(){ return dataRuns.begin();};
     runIterator last(){ return dataRuns.end();};
+   
 
   private:
     bool readInitFile(TString file, TString type, bool useAll = false);
@@ -32,6 +33,7 @@ class sampleList{
 
     std::vector<sample*> samples;
     std::vector<dataRun*> dataRuns;
+    std::map<TString, TGraphAsymmErrors*> efficiencies;
 };
 
 sampleList::~sampleList(){
@@ -40,6 +42,7 @@ sampleList::~sampleList(){
 }
 
 bool sampleList::init(TString dataFile, TString mcFile, TString mode){
+  if(!readLeptonEfficiencies()) std::cout << "sampleList:\t\t!!!\tFailed reading lepton efficiencies" << std::endl;
   if(!(readInitFile(dataFile, "data", mode == "pileUp") && readInitFile(mcFile, "mc", mode == "pileUp"))) return false;
   if(mode == "pileUp") return true;
 
@@ -58,7 +61,6 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   //lumi weights
   for(iterator it = samples.begin(); it != samples.end(); ++it){ (*it)->setLumiWeight(get("data")->getLumi()/(*it)->getLumi());}
 
-  if(!readLeptonEfficiencies()) std::cout << "sampleList:\t\t!!!\tNo lepton efficiencies implemented" << std::endl;
   return true;
 }
 
@@ -85,7 +87,7 @@ bool sampleList::readInitFile(TString file, TString type, bool useAll){
     } else {
       TString name; double crossSection; int nEvents;
       readFile >> name >> crossSection >> nEvents;
-      samples.push_back(new mcSample(name, crossSection, nEvents));
+      samples.push_back(new mcSample(name, crossSection, nEvents, efficiencies));
     }    
   }
   if(type == "data") samples.push_back(new dataSample("data", dataRuns));
@@ -102,32 +104,20 @@ sample* sampleList::get(TString name){
   return NULL;
 }
 
-//Still to be implemented
+
 bool sampleList::readLeptonEfficiencies(){
-  return false;
-  TFile *file = new TFile("STILL TO BE IMPLEMENTED");
-  if(file->IsZombie()) return false;
-  TString isolationKey = "relTKISO10";
-//  leptonEfficiencies["2011Aeta_pt>20"] = (TGraphAsymmErrors*) efficiencyFile->Get(isolationKey + "_" + "2011Aeta_pt>20");
-//  leptonEfficiencies["2011Beta_pt>20"] = (TGraphAsymmErrors*) efficiencyFile->Get(isolationKey + "_" + "2011Beta_pt>20");
-  delete file;
+  TFile *iso_file = new TFile(getCMSSWBASE() + "/src/EWKV/Macros/samples/efficiencies/MuonEfficiencies_ISO_Run_2012ReReco_53X.root");
+  TFile *id_file = new TFile(getCMSSWBASE() + "/src/EWKV/Macros/samples/efficiencies/MuonEfficiencies_ID_Run_2012ReReco_53X.root");
+  if(iso_file->IsZombie() || id_file->IsZombie()) return false;
+  TString isolationKey = "tkRelIso_Tight";
+  TString idKey = "Tight";
+  for(TString etaBin : {"<0.9","0.9-1.2","1.2-2.1","2.1-2.4"}){
+    efficiencies["iso" + etaBin] = (TGraphAsymmErrors*) iso_file->Get("DATA_over_MC_" + isolationKey + "_pt_abseta" + etaBin);
+    efficiencies["id" + etaBin] = (TGraphAsymmErrors*) id_file->Get("DATA_over_MC_" + idKey + "_pt_abseta" + etaBin);
+  }
+  delete iso_file, id_file;
   return true;
 }
-/*
-double sampleTable::leptonEfficiency(TGraphAsymmErrors *efficiencies, double x){
-  double efficiency, xlow, xhigh, xbin;
-  int i = 0;
-  do{
-    efficiencies->GetPoint(i, xbin, efficiency);
-    xlow = xbin - efficiencies->GetErrorXlow(i);
-    xhigh = xbin + efficiencies->GetErrorXhigh(i++);
-  } while((xhigh < x) && (i < efficiencies->GetN()));
-  return efficiency;
-}
 
-double sampleTable::leptonEfficiency(double eta){
-  return (lumiA*leptonEfficiency(leptonEfficiencies["2011Aeta_pt>20"], eta)+lumiB*leptonEfficiency(leptonEfficiencies["2011Beta_pt>20"],eta))/(lumiA+lumiB);
-}
-*/
 
 #endif

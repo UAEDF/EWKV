@@ -52,7 +52,7 @@
 #define TMVATAG "20130618_BDT50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "Full20130709b"
+#define OUTPUTTAG "Test_efficiency"
 
 
 /*****************
@@ -119,8 +119,10 @@ void ewkvAnalyzer::analyze_Zjets(){
   TLorentzVector Z 	= TLorentzVector(l1 + l2);
   TVector3 leptonPlane = l1.Vect().Cross(l2.Vect());
 
-  histos->setFillWeight(mySample->getWeight(nPileUp));		//TO DO: update sample::getWeight function with lepton efficiencies
-  cutflow->setFillWeight(mySample->getWeight(nPileUp));
+  //Get weight (lumi + pileUp) and lepton efficiencies (ISO+ID)
+  double weight = mySample->getWeight(nPileUp)*mySample->leptonEfficiency(&l1)*mySample->leptonEfficiency(&l2);
+  histos->setFillWeight(weight);
+  cutflow->setFillWeight(weight);
 
   histos->fillHist1D("nPriVtxs", nPriVtxs);
   histos->fillHist1D("nPileUp", nPileUp);
