@@ -24,7 +24,7 @@ class sample{
     virtual bool isData() = 0;
     virtual double getPileUpWeight(int nPileUp) = 0;
     virtual double getWeight(int nPileUp) = 0;
-    virtual double leptonEfficiency(TLorentzVector *l) = 0;
+    virtual double muonEfficiency(TLorentzVector *l) = 0;
 
     TString getName(){		return name;};
     double getLumi(){		return lumi;};
@@ -62,7 +62,7 @@ class dataRun : public sample{
     bool isData(){ 				return true;};
     double getPileUpWeight(int nPileUp){ 	return 1.;};
     double getWeight(int nPileUp){ 		return 1.;};
-    double leptonEfficiency(TLorentzVector *l){	return 1.;};
+    double muonEfficiency(TLorentzVector *l){	return 1.;};
     TString getJSON(){ 				return JSON;};
 };
 
@@ -132,7 +132,7 @@ class mcSample : public sample{
     double crossSection;
     int nEvents;
 
-    double leptonEfficiency(TString type, double pt, double eta);
+    double muonEfficiency(TString type, double pt, double eta);
 
   public:
     mcSample(TString name_, double crossSection_, int nEvents_, std::map<TString, TGraphAsymmErrors*> efficiencies_);
@@ -141,7 +141,7 @@ class mcSample : public sample{
  
     bool isData(){ return false;};
     double getPileUpWeight(int nPileUp){ return (nPileUp < 51 && nPileUp >= 0) ? weights.at(nPileUp) : 0;};
-    double leptonEfficiency(TLorentzVector *l);
+    double muonEfficiency(TLorentzVector *l);
     double getWeight(int nPileUp){ return getPileUpWeight(nPileUp)*lumiWeight;};
 };
 
@@ -192,13 +192,13 @@ bool mcSample::setPileUpWeights(TString pileUpWeightsFile){
 }
 
 
-double mcSample::leptonEfficiency(TLorentzVector *l){
+double mcSample::muonEfficiency(TLorentzVector *l){
   double pt = l->Pt();
   double eta = l->Eta();
-  return leptonEfficiency("iso", pt, eta)*leptonEfficiency("id", pt, eta);
+  return muonEfficiency("iso", pt, eta)*muonEfficiency("id", pt, eta);
 }
  
-double mcSample::leptonEfficiency(TString type, double pt, double eta){ 
+double mcSample::muonEfficiency(TString type, double pt, double eta){ 
   TString etaBin;
   if(fabs(eta) < .9) etaBin = "<0.9";
   else if(fabs(eta) < 1.2) etaBin = "0.9-1.2";

@@ -120,7 +120,9 @@ void ewkvAnalyzer::analyze_Zjets(){
   TVector3 leptonPlane = l1.Vect().Cross(l2.Vect());
 
   //Get weight (lumi + pileUp) and lepton efficiencies (ISO+ID)
-  double weight = mySample->getWeight(nPileUp)*mySample->leptonEfficiency(&l1)*mySample->leptonEfficiency(&l2);
+  double weight;
+  if(vType == ZMUMU) weight = mySample->getWeight(nPileUp)*mySample->muonEfficiency(&l1)*mySample->muonEfficiency(&l2);
+  if(vType == ZEE) weight = mySample->getWeight(nPileUp);
   histos->setFillWeight(weight);
   cutflow->setFillWeight(weight);
 
