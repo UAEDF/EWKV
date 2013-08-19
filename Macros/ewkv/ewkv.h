@@ -207,7 +207,7 @@ void ewkvAnalyzer::fillTMVAtree(){
   if(!makeTMVAtree_) return;
   if(firstTMVAevent){
     TString location = getTreeLocation() + "tmva-input/" + type + "/" + outputTag + "/";
-    if(!exists(location)) system("mkdir -p " + location);
+    makeDirectory(location);
 
     tmvaFile = new TFile(location + mySample->getName() + ".root" ,"new");
     if(!tmvaFile->IsOpen()){
@@ -231,7 +231,7 @@ void ewkvAnalyzer::fillSkimTree(){
   if(!makeSkimTree_ || alreadyOnSkimmedTree) return;
   if(firstSkimEvent){
     TString location = getTreeLocation() + "skimmed/" + type + "/" + outputTag + "/";
-    if(!exists(location)) system("mkdir -p " + location);
+    makeDirectory(location);
 
     skimFile = new TFile(location + mySample->getName() + ".root" ,"new");
     if(!skimFile->IsOpen()){

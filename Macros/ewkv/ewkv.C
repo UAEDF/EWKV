@@ -52,8 +52,8 @@
 // Options
 #define TMVATAG "20130618_BDT50k" 
 #define TMVATYPE "BDT"
-#define DYTYPE "composed"
-#define OUTPUTTAG "Test_3rdJet"
+#define DYTYPE "inclusive"
+#define OUTPUTTAG "20130819_InclusiveForTMVATrees"
 
 
 /*****************
@@ -73,23 +73,23 @@ int main(int argc, char *argv[]){
     if(!samples->init(dataConfig, mcConfig)) return 1;
 
     TString outputDir = getTreeLocation() + "/outputs/rootfiles/" + type + "/";				//Set up output rootfile
-    if(!exists(outputDir)) system("mkdir -p " + outputDir);
+    makeDirectory(outputDir);
     TFile *outFile = new TFile(outputDir + OUTPUTTAG + ".root", "RECREATE");
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
 //      (*it)->useSkim(type, "20130617c");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-//    myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //    myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
-      myAnalyzer->loop(type, 0.05);										//Loop over events in tree
+      myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
     }
     outFile->Close();
 
     TString cutFlowDir = getTreeLocation() + "cutflow/" + type + "/";
-    if(!exists(cutFlowDir)) system("mkdir -p " + cutFlowDir);
+    makeDirectory(cutFlowDir);
     cutflows->toLatex(cutFlowDir + OUTPUTTAG + "_notmerged.tex");					//Save cutflow table (individual samples)
     cutflows->merge("DY-powheg",{"DYEE-powheg","DYMUMU-powheg","DYTAUTAU-powheg"});
     cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});

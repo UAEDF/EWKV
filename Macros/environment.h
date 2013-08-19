@@ -9,6 +9,10 @@
 
 bool exists(TString path){ struct stat buffer; return (stat (path.Data(), &buffer) == 0);};
 
+void makeDirectory(TString path){
+  if(!exists(path)) system("mkdir -p " + path);
+}
+
 TString getProduction(){
   return "2013-06-JetIDfix";
 }
