@@ -18,7 +18,7 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20130819_InclusiveForTMVATrees";
+TString tag = "20130822_InclusiveForTMVATrees";
 TString option = "_BDT_50k";
 TString DYtype = "inclusive";
    
