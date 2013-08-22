@@ -50,10 +50,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20130618_BDT50k" 
+#define TMVATAG "20130819_InclusiveForTMVATrees_BDT_50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "inclusive"
-#define OUTPUTTAG "20130819_InclusiveForTMVATrees"
+#define OUTPUTTAG "20130822_InclusiveForTMVATrees"
 
 
 /*****************
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]){
 //      (*it)->useSkim(type, "20130617c");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
       myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-//    myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;

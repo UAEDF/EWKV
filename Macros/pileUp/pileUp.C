@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     if(!exists(mergedROOT) || force){
       std::cout << "pileUp.C:\t\t\tPile-up calculation of the data: this will take some time..." << std::endl;
       system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
-      system("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_corr.txt --calcMode observed --minBiasXsec 69400 --maxPileupBin 50 --numPileupBins 50 temp.root"); 
+      system("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_corr.txt --calcMode observed --minBiasXsec 70300 --maxPileupBin 100 --numPileupBins 100 temp.root"); 
       system(("mv temp.json " + mergedJSON).Data());
       system(("mv temp.root " + mergedROOT).Data());
     } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << ".root file, use -f to recreate this file" << std::endl;}
