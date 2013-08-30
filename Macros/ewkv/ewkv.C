@@ -53,7 +53,7 @@
 #define TMVATAG "20130822_InclusiveForTMVATrees_BDT_50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20130822_Full"
+#define OUTPUTTAG "20130827"
 
 
 /*****************
@@ -78,10 +78,10 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
-//      (*it)->useSkim(type, "20130617c");								//Use skimmed files to go faster
+      (*it)->useSkim(type, "20130826_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -263,16 +263,14 @@ void ewkvAnalyzer::analyze_Zjets(){
       ++nStj;
     }
     histos->fillHist1D("nSoftTrackJets", 		nStj);
-    if(nStj > 0){
-      histos->fillHist1D("stjHT3", 			stjHT3);
-      histos->fillHist1D("totalSoftHT", 		totalSoftHT);
-      histos->fillProfileHist("softHT3_vs_PV", 		nPriVtxs, 			stjHT3);
-      histos->fillProfileHist("softHT3_vs_mjj", 	jj.M(), 			stjHT3);
-      histos->fillProfileHist("softHT3_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	stjHT3);
-      histos->fillProfileHist("softHT_vs_PV", 		nPriVtxs, 			totalSoftHT);
-      histos->fillProfileHist("softHT_vs_mjj", 		jj.M(), 			totalSoftHT);
-      histos->fillProfileHist("softHT_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	totalSoftHT);
-    }
+    histos->fillHist1D("stjHT3", 			stjHT3);
+    histos->fillHist1D("totalSoftHT", 			totalSoftHT);
+    histos->fillProfileHist("softHT3_vs_PV", 		nPriVtxs, 			stjHT3);
+    histos->fillProfileHist("softHT3_vs_mjj", 		jj.M(), 			stjHT3);
+    histos->fillProfileHist("softHT3_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	stjHT3);
+    histos->fillProfileHist("softHT_vs_PV", 		nPriVtxs, 			totalSoftHT);
+    histos->fillProfileHist("softHT_vs_mjj", 		jj.M(), 			totalSoftHT);
+    histos->fillProfileHist("softHT_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	totalSoftHT);
 
 
     // Central activity with jets

@@ -104,7 +104,7 @@ void plotProfile::loop(TString type){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
-    readFile >> fileName >> xtitle >> ytitle >> ymin >> ymax >> xmin >> xmax;
+    readFile >> fileName >> xtitle >> ytitle >> ymin >> ymax >> xmin >> xmax >> rmin >> rmax;
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
     if(type != "both"){
@@ -274,7 +274,7 @@ void plotProfile::ratioStyle(){
   frame->GetYaxis()->SetTickLength(0.015);
   padUP->cd(); frame->Draw();
 
-  TH2F* frameRatio = new TH2F("frameratio","",2, xmin, xmax ,10, .41 , 1.59);
+  TH2F* frameRatio = new TH2F("frameratio","",2, xmin, xmax ,10, rmin , rmax);
   frameRatio->SetStats(kFALSE);
   frameRatio->GetXaxis()->SetMoreLogLabels(kTRUE);
   frameRatio->GetXaxis()->SetNoExponent(kTRUE);
@@ -326,7 +326,7 @@ void plotProfile::ratioStyle(){
   l->SetTextSize(0.045);
   l->Draw("");
 
-  TLatex *tex = new TLatex(0.12,0.95,"CMS preliminary Z+jets      #sqrt{s} = 8 TeV      L = 19.7 fb^{ -1}");
+  TLatex *tex = new TLatex(0.12,0.95,"CMS #bf{#it{preliminary}}, #sqrt{s}=8 TeV, #scale[0.5]{#int}L=19.7 fb^{-1}");
   tex->SetNDC();
   tex->SetTextFont(43);
   tex->SetTextSize(20);
@@ -338,7 +338,7 @@ void plotProfile::ratioStyle(){
 
   k = -0.1;
   for(TString i : {"ZEE","ZMUMU"}){   
-    th1Hists["ratio" + i] = (TH1D*) displaceBins(profileHists["data" + i]->ProjectionX(), k += 0.2);
+    th1Hists["ratio" + i] = (TH1D*) displaceBins(profileHists["data" + i]->ProjectionX(), k); k += 0.2;
     for(int bin = 1; bin < th1Hists["ratio"+i]->GetNbinsX()+1; ++bin){ 
       double hMC     = th1Hists["DY"+i]->GetBinContent(bin);
       double hMC_er  = th1Hists["DY"+i]->GetBinError(bin);

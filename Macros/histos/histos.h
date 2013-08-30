@@ -189,26 +189,32 @@ void histoCollection::fillHist1D(TString hName, double Xvalue){
 
 
 void histoCollection::fillHist2D(TString hName, double Xvalue, double Yvalue){
-  auto hid = hist2DList.find(hName);
+  auto hid = hist2DList.find(hName+branch);
   if(hid == hist2DList.end()){
     auto hidMainBranch = hist2DList.find(hName);
     if(hidMainBranch == hist2DList.end()){
       std::cout << "histoCollection:\t!!!\tTH2D " << hName << " was not booked" << std::endl;
       return;
-    } else makeBranch2D(hidMainBranch->second);
+    } else {
+      makeBranch2D(hidMainBranch->second);
+      hid = hist2DList.find(hName+branch);
+    }
   }
   hid->second->Fill(Xvalue, Yvalue, fillWeight);
 }
 
 
 void histoCollection::fillProfileHist(TString hName, double Xvalue, double Yvalue){
-  auto hid = profileList.find(hName);
+  auto hid = profileList.find(hName + branch);
   if(hid == profileList.end()){
     auto hidMainBranch = profileList.find(hName);
     if(hidMainBranch == profileList.end()){
       std::cout << "histoCollection:\t!!!\tTProfile " << hName << " was not booked" << std::endl;
       return;
-    } else makeBranchProfile(hidMainBranch->second);
+    } else {
+      makeBranchProfile(hidMainBranch->second);
+      hid = profileList.find(hName+branch);
+    }
   }
   hid->second->Fill(Xvalue, Yvalue, fillWeight);
 }
