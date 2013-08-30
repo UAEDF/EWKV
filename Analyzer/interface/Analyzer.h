@@ -40,6 +40,7 @@
 #include "FWCore/Common/interface/TriggerNames.h"
 
 #include "TH1.h"
+#include "TVector2.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TLorentzVector.h"
@@ -63,6 +64,7 @@ class Analyzer : public edm::EDAnalyzer{
     virtual void endJob() ;
     virtual void beginRun(edm::Run const&, edm::EventSetup const&);
     bool jetId(const reco::PFJet*);
+    TVector2 pull(reco::PFJetCollection::const_iterator jet, edm::Handle<reco::VertexCollection> vC, double power);
 
 
     TFile *f_Analyzer; 
@@ -92,7 +94,7 @@ class Analyzer : public edm::EDAnalyzer{
     float jetSmearedPt[maxJet], genJetPt[maxJet], jetPUIdMVA[maxJet];
     std::map<TString, std::vector<float>> jetQGvariables;
     int jetPUIdFlag[maxJet];
-    TClonesArray *vJets; 
+    TClonesArray *vJets, *vPull, *vPull2; 
 
     int nSoftTrackJets;
     TClonesArray *vSoftTrackJets; 

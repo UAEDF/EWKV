@@ -47,6 +47,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TLorentzVector.h"
+#include "TVector2.h"
 #include "TClonesArray.h"
 
 #include "../interface/Analyzer.h"
@@ -233,6 +234,8 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     else 			jetPUIdMVA[nJets]	= -999;
 
     new((*vJets)[nJets]) TLorentzVector(jet->px(), jet->py(), jet->pz(), jet->energy());
+    new((*vPull)[nJets]) TVector2(pull(jet, vtxs, 1));
+    new((*vPull2)[nJets]) TVector2(pull(jet, vtxs, 2));
 
     std::vector<reco::PFCandidatePtr> jetParts = jet->getPFConstituents();
     ncJets[nJets] = jetParts.size();
@@ -265,9 +268,9 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
 	}  
       }
     }
+
     ++nJets; 
   }
-
 
  /*******************
   * soft track-jets *
@@ -359,6 +362,8 @@ void Analyzer::beginJob(){
   vMETCorr = new TClonesArray("TLorentzVector", 1);
   vMETCorrNoV = new TClonesArray("TLorentzVector", 1);
   vJets = new TClonesArray("TLorentzVector", maxJet);
+  vPull = new TClonesArray("TVector2", maxJet);
+  vPull2 = new TClonesArray("TVector2", maxJet);
   vSoftTrackJets = new TClonesArray("TLorentzVector", maxSTJ);
 
   f_Analyzer = new TFile(fileName, "RECREATE");
@@ -400,6 +405,8 @@ void Analyzer::beginJob(){
  
   t_Analyzer->Branch("nJets",			&nJets,			"nJets/I");
   t_Analyzer->Branch("vJets","TClonesArray", 	&vJets, 		32000, 0);
+  t_Analyzer->Branch("vPull","TClonesArray", 	&vPull, 		32000, 0);
+  t_Analyzer->Branch("vPull2","TClonesArray", 	&vPull2, 		32000, 0);
   t_Analyzer->Branch("jetUncertainty",		jetUncertainty, 	"jetUncertainty[nJets]/D");
   t_Analyzer->Branch("jetPUIdMVA",		jetPUIdMVA,		"jetPUIdMVA[nJets]/F");
   t_Analyzer->Branch("genJetPt",		genJetPt, 		"jenGenPt[nJets]/F");
@@ -466,6 +473,61 @@ bool Analyzer::jetId(const reco::PFJet *jet){
     if(! (jet->chargedMultiplicity() > 0) ) 					return false;
   }
   return true;
+}
+
+
+TVector2 Analyzer::pull(reco::PFJetCollection::const_iterator jet, edm::Handle<reco::VertexCollection> vC, double power){
+  reco::VertexCollection::const_iterator vtxLead = vC->begin();
+
+  float sum_weight(0.);
+  std::vector<float> weights; 
+  TVector2 jetCenter = TVector2(jet->eta(), jet->phi());
+  TVector2 jetCenterNoPU = TVector2(0, 0);
+  std::vector<TVector2> rVectors; 
+
+  // Loop over the jet constituents
+  std::vector<reco::PFCandidatePtr> constituents = jet->getPFConstituents();
+  for(unsigned i = 0; i < constituents.size(); ++i){
+    reco::PFCandidatePtr part = jet->getPFConstituent(i);      
+    if(!part.isNonnull()) continue;
+
+    // Filter pu tracks
+    reco::TrackRef itrk = part->trackRef();
+    if(itrk.isNonnull()){
+      reco::VertexCollection::const_iterator vtxClose = vC->begin();
+      for(reco::VertexCollection::const_iterator vtx = vC->begin(); vtx != vC->end(); ++vtx){
+        if(fabs(itrk->dz(vtx->position())) < fabs(itrk->dz(vtxClose->position()))) vtxClose = vtx;
+      }
+      if(vtxClose != vtxLead) continue;
+
+      float dz = itrk->dz(vtxClose->position());
+      float dz_sigma = sqrt(pow(itrk->dzError(),2) + pow(vtxClose->zError(),2));
+      if(!(itrk->quality(reco::TrackBase::qualityByName("highPurity")) && fabs(dz/dz_sigma) < 5.)) continue;
+    }
+
+    float weight = pow(part->pt(), power);
+    TVector2 r = TVector2(part->eta(), part->phi()) - jetCenter;
+    r.Set(r.X(), 2*atan(tan(r.Y()/2)));
+
+    jetCenterNoPU += r*weight;
+    sum_weight += weight;
+
+    weights.push_back(weight);				//Store for next loop
+    rVectors.push_back(r);
+  }
+
+  if(sum_weight <= 0) return TVector2(0,0);
+  jetCenterNoPU /= sum_weight;
+      
+  TVector2 pull = TVector2(0, 0);
+  for(unsigned int i=0; i < rVectors.size(); ++i){
+    TVector2 ri = rVectors[i] - jetCenterNoPU; 
+    ri.Set(ri.X(), 2*atan(tan(ri.Y()/2)));
+    pull += ri*sqrt(ri*ri)*weights[i];
+  } 
+  pull /= sum_weight;
+
+  return pull;
 }
 
 
