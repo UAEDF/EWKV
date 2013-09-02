@@ -326,7 +326,7 @@ void plotProfile::ratioStyle(){
   l->SetTextSize(0.045);
   l->Draw("");
 
-  TLatex *tex = new TLatex(0.12,0.95,"CMS #bf{#it{preliminary}}, #sqrt{s}=8 TeV, #scale[0.5]{#int}L=19.7 fb^{-1}");
+  TLatex *tex = new TLatex(0.12,0.95,"#bf{CMS preliminary, #sqrt{s}=8 TeV, #scale[0.5]{#int}L=19.7 fb^{-1}}");
   tex->SetNDC();
   tex->SetTextFont(43);
   tex->SetTextSize(20);
