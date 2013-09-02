@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
   for(TString type : types){
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";					//Set up list of samples
     TString mcConfig = samplesDir + (DYTYPE == "inclusive"? "mcInclusive.config" : "mc.config");
-    TString dataConfig = samplesDir + "data_" + type + ".config";
+    TString dataConfig = samplesDir + "data_" + type + "_pixel.config";
     sampleList* samples = new sampleList();
     if(!samples->init(dataConfig, mcConfig)) return 1;
 

@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
     //Check data configuration
     sampleList *samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
-    if(!samples->init(samplesDir + "data_" + type + ".config", samplesDir + "mc.config", "pileUp")) return 1;
+    if(!samples->init(samplesDir + "data_" + type + "_pixel.config", samplesDir + "mc.config", "pileUp")) return 1;
     TString mergeString = "";
     TString listJSON = "";
     for(sampleList::runIterator run = samples->first(); run != samples->last(); ++run){
