@@ -50,10 +50,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20130822_InclusiveForTMVATrees_BDT_50k" 
+#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20130827"
+#define OUTPUTTAG "20130910_Fast"
 
 
 /*****************
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
-      (*it)->useSkim(type, "20130826_Full");								//Use skimmed files to go faster
+      (*it)->useSkim(type, "20130910_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
@@ -128,6 +128,7 @@ void ewkvAnalyzer::analyze_Zjets(){
 
   histos->fillHist1D("nPriVtxs", 	nPriVtxs);
   histos->fillHist1D("nPileUp", 	nPileUp);
+  if(nPriVtxs > 35) return;
 
   histos->fillHist1D("lepton_pt", 	l1.Pt());
   histos->fillHist1D("lepton_eta", 	l1.Eta());
@@ -151,6 +152,7 @@ void ewkvAnalyzer::analyze_Zjets(){
 
   // Set up parallel branches in the histograms/cutflow for JES
   for(TString branch : {"JES-", "", "JES+"}){
+    histos->restoreEventWeight();											// Go back to normal event weight
     histos->setBranch(branch); cutflow->setBranch(branch);
 
     // Sort leading jets again after jet energy corrections
@@ -189,14 +191,14 @@ void ewkvAnalyzer::analyze_Zjets(){
     cutflow->track("2 jets"); 
     fillSkimTree();
 
-    histos->fillHist1D("jet1_eta", 		j1.Eta());
     histos->fillHist1D("jet1_phi", 		j1.Phi());
+    histos->fillHist1D("jet1_eta", 		j1.Eta());
     histos->fillHist1D("qgMLP_j1", 		jetQGvariables["qgMLP"]->at(jetOrder.at(0)));
     histos->fillHist1D("qgLikelihood_j1",	jetQGvariables["qgLikelihood"]->at(jetOrder.at(0)));
     histos->fillHist1D("qgHIG13011_j1", 	jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)));
 
-    histos->fillHist1D("jet2_eta", 		j2.Eta());
     histos->fillHist1D("jet2_phi", 		j2.Phi());
+    histos->fillHist1D("jet2_eta", 		j2.Eta());
     histos->fillHist1D("qgMLP_j2", 		jetQGvariables["qgMLP"]->at(jetOrder.at(1)));
     histos->fillHist1D("qgLikelihood_j2", 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(1)));
     histos->fillHist1D("qgHIG13011_j2", 	jetQGvariables["qgHIG13011"]->at(jetOrder.at(1)));
@@ -231,6 +233,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
     histos->fillHist1D(TMVATYPE, 		mvaValue);
 
+    histos->fillHist1D("dijet_dphi_NR", 	fabs(j1.DeltaPhi(j2)));
     // From here on fill histograms with MCFM reweighted values
     mcfmReweighting(jj.M(), ystarZ);
 
@@ -238,6 +241,11 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dijet_pt", 		jj.Pt());
     histos->fillHist1D("dijet_dphi", 		fabs(j1.DeltaPhi(j2)));
     histos->fillHist1D("dijet_deta", 		fabs(j1.Eta() - j2.Eta()));
+
+    if(jj.M() > 100){
+      histos->fillHist1D("dijet_dphi_100",      fabs(j1.DeltaPhi(j2)));
+      histos->fillHist1D("ystar_Z_100", 	fabs(ystarZ));
+    }
 
     histos->fillHist1D("ystar_Z", 		fabs(ystarZ));
     histos->fillHist1D("zstar_Z", 		fabs(ystarZ/fabs(dy)));
@@ -354,8 +362,10 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
   std::vector<TString> needReweighting = {"DY","DY2","DY3","DY4"};							// Only selected samples need reweighting
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
 //double ystarZWeight = (8.76856e-01) + (1.15122e-01)*ystarZ; 	 							// MCFM NLO/madGraph gen
-  double ystarZWeight = (9.50782e-01) + (-5.23409e-03)*ystarZ + (3.01934e-02)*ystarZ*ystarZ;				// MCFM NLO/LO
+//  double ystarZWeight = (9.50782e-01) + (-5.23409e-03)*ystarZ + (3.01934e-02)*ystarZ*ystarZ;				// MCFM NLO/LO
+  double ystarZWeight = 0.85+0.15*fabs(ystarZ);										// MCFM NLO/LO NEW
 //double mjjWeight = (1.02289) + (-9.81406e-05)*mjj;									// MCFM NLO/madGraph gen
-  double mjjWeight = (1.04886e+00) + (-1.67724e-04)*mjj;								// MCFM NLO/LO
+//  double mjjWeight = (1.04886e+00) + (-1.67724e-04)*mjj;								// MCFM NLO/LO
+  double mjjWeight = 0.39+0.12*log(mjj)-0.00025*mjj;									// MCFM NLO/LO NEW
   histos->multiplyEventWeight(ystarZWeight*mjjWeight);
 }

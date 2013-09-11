@@ -147,8 +147,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
 
 
 ewkvAnalyzer::~ewkvAnalyzer(){
-  delete tree, tmvaTree, tmvaFile;
-  delete vGenPart, vLeptons, vMET, vJets, vSoftTrackJets;
+  delete tree, tmvaTree, tmvaFile, tmvaReader, skimTree, skimFile;
+  delete vGenPart, vLeptons, vMET, vMETCorr, vMETCorrNoV, vJets, vSoftTrackJets;
   delete histos;
 }
 

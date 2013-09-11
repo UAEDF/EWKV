@@ -38,11 +38,13 @@ class plotHistos{
   void next(TString type);
 };
 
-int main(){
+int main(int argc, char *argv[]){
+  std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
+  if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
+  if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
-  myPlotHistos->loop("ZMUMU");
-  myPlotHistos->loop("ZEE");
+  for(TString type : types) myPlotHistos->loop(type);
   delete myPlotHistos;
   return 0;
 }
