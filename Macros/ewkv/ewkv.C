@@ -128,7 +128,6 @@ void ewkvAnalyzer::analyze_Zjets(){
 
   histos->fillHist1D("nPriVtxs", 	nPriVtxs);
   histos->fillHist1D("nPileUp", 	nPileUp);
-  if(nPriVtxs > 35) return;
 
   histos->fillHist1D("lepton_pt", 	l1.Pt());
   histos->fillHist1D("lepton_eta", 	l1.Eta());
