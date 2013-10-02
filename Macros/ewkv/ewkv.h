@@ -26,6 +26,8 @@
 #include <TProfile.h>
 #include <TMVA/Reader.h>
 
+#include "../muScleFit/MuScleFitCorrector.h"
+
 // Our header-files
 #include "../samples/sample.h"
 #include "../histos/histos.h"
@@ -72,6 +74,7 @@ class ewkvAnalyzer{
     TString outputTag;
     TMVA::Reader *tmvaReader;
 
+    MuScleFitCorrector *muScleFitCorrector, *muScleFitCorrectorD;
 
   public:
     ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag);
@@ -143,6 +146,15 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
   tree->SetBranchAddress("HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL", &Ele17T_Ele8T);
 
   std::cout << std::endl << "ewkvAnalyzer:\t\t\tTree initialized for " << mySample->getName() << std::endl;
+
+  if(mySample->isData()){
+    muScleFitCorrector = new MuScleFitCorrector("../muScleFit/MuScleFit_2012ABC_DATA_ReReco_53X.txt");
+    muScleFitCorrectorD = new MuScleFitCorrector("../muScleFit/MuScleFit_2012D_DATA_ReReco_53X.txt");
+  } else {
+    muScleFitCorrector = new MuScleFitCorrector("../muScleFit/MuScleFit_2012_MC_53X_smearReReco.txt");
+    muScleFitCorrectorD = muScleFitCorrector;
+  }
+
 }
 
 

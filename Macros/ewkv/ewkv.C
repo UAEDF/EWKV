@@ -30,6 +30,7 @@
 #include <TProfile.h>
 #include <TMVA/Reader.h>
 
+
 // Our header-files
 #include "../samples/sampleList.h"
 #include "../samples/sample.h"
@@ -53,7 +54,7 @@
 #define TMVATAG "20130910_InclusiveForTMVA_BDT_50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20130910_Fast"
+#define OUTPUTTAG "20130927_Full"
 
 
 /*****************
@@ -78,10 +79,10 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
-      (*it)->useSkim(type, "20130910_Full");								//Use skimmed files to go faster
+//      (*it)->useSkim(type, "20130927_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -117,25 +118,50 @@ void ewkvAnalyzer::analyze_Zjets(){
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson
   TLorentzVector l1 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 0 : 1));
   TLorentzVector l2 	= *((TLorentzVector*) vLeptons->At(leptonCharge[0] == 1? 1 : 0));
-  TLorentzVector Z 	= TLorentzVector(l1 + l2);
-  TVector3 leptonPlane 	= l1.Vect().Cross(l2.Vect());
 
-  //Get weight (lumi + pileUp) and muon efficiencies (ISO+ID, trigger not yet available)
+  // Get weight (lumi + pileUp) and muon efficiencies (ISO+ID, trigger not yet available)
   double weight;
   if(vType == ZMUMU) weight = mySample->getWeight(nPileUp)*mySample->muonEfficiency(&l1)*mySample->muonEfficiency(&l2);
   if(vType == ZEE) weight = mySample->getWeight(nPileUp);
   histos->setEventWeight(weight); cutflow->setEventWeight(weight);
 
+  // Apply muScleFit corrections
+  if(vType == ZMUMU){
+    if(mySample->isData() && nRun > 203776){
+      muScleFitCorrectorD->applyPtCorrection(l1,1);
+      muScleFitCorrectorD->applyPtCorrection(l2,-1);
+    } else {
+      muScleFitCorrector->applyPtCorrection(l1,1);
+      muScleFitCorrector->applyPtCorrection(l2,-1);
+      if(!mySample->isData()){
+        muScleFitCorrector->applyPtSmearing(l1,1,false);
+        muScleFitCorrector->applyPtSmearing(l2,-1,false);
+      }
+    }
+  }
+
+  // Construct Z
+  TLorentzVector Z 	= TLorentzVector(l1 + l2);
+  TVector3 leptonPlane 	= l1.Vect().Cross(l2.Vect());
+
   histos->fillHist1D("nPriVtxs", 	nPriVtxs);
   histos->fillHist1D("nPileUp", 	nPileUp);
+
+  if(l1.Pt() < 20 || l2.Pt() < 20) return;
 
   histos->fillHist1D("lepton_pt", 	l1.Pt());
   histos->fillHist1D("lepton_eta", 	l1.Eta());
   histos->fillHist1D("lepton_phi", 	l1.Phi());
+  histos->fillHist1D("lepton+_pt", 	l1.Pt());
+  histos->fillHist1D("lepton+_eta", 	l1.Eta());
+  histos->fillHist1D("lepton+_phi", 	l1.Phi());
 
   histos->fillHist1D("lepton_pt", 	l2.Pt());
   histos->fillHist1D("lepton_eta",	l2.Eta());
   histos->fillHist1D("lepton_phi",	l2.Phi());
+  histos->fillHist1D("lepton-_pt", 	l2.Pt());
+  histos->fillHist1D("lepton-_eta",	l2.Eta());
+  histos->fillHist1D("lepton-_phi",	l2.Phi());
 
   // Select Z bosons
   if(fabs(Z.M() - ZMASS) > 40) return;
@@ -190,6 +216,10 @@ void ewkvAnalyzer::analyze_Zjets(){
     cutflow->track("2 jets"); 
     fillSkimTree();
 
+    histos->fillHist1D("dilepton_pt_JS", 	Z.Pt());
+    histos->fillHist1D("dilepton_eta_JS", 	Z.Eta());
+    histos->fillHist1D("dilepton_phi_JS", 	Z.Phi());
+
     histos->fillHist1D("jet1_phi", 		j1.Phi());
     histos->fillHist1D("jet1_eta", 		j1.Eta());
     histos->fillHist1D("qgMLP_j1", 		jetQGvariables["qgMLP"]->at(jetOrder.at(0)));
@@ -230,11 +260,14 @@ void ewkvAnalyzer::analyze_Zjets(){
     if(branch = "") fillTMVAtree();
 
     double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
-    histos->fillHist1D(TMVATYPE, 		mvaValue);
 
+    histos->fillHist1D("dijet_mass_NR", 	jj.M());
     histos->fillHist1D("dijet_dphi_NR", 	fabs(j1.DeltaPhi(j2)));
+    histos->fillHist1D("ystar_Z_NR", 		fabs(ystarZ));
+    histos->fillHist1D(TString(TMVATYPE)+"_NR", mvaValue);
     // From here on fill histograms with MCFM reweighted values
     mcfmReweighting(jj.M(), ystarZ);
+    histos->fillHist1D(TMVATYPE, 		mvaValue);
 
     histos->fillHist1D("dijet_mass", 		jj.M());
     histos->fillHist1D("dijet_pt", 		jj.Pt());
@@ -244,6 +277,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     if(jj.M() > 100){
       histos->fillHist1D("dijet_dphi_100",      fabs(j1.DeltaPhi(j2)));
       histos->fillHist1D("ystar_Z_100", 	fabs(ystarZ));
+      histos->fillHist1D(TString(TMVATYPE)+"_100", 	mvaValue);
     }
 
     histos->fillHist1D("ystar_Z", 		fabs(ystarZ));
@@ -320,9 +354,9 @@ void ewkvAnalyzer::initTMVAreader(TString type){
 }
 
 
-/******************************
- * Raddiation pattern section *
- ******************************/
+/*****************************
+ * Radiation pattern section *
+ *****************************/
 void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
   int nJets = 0; double HT = 0, dEta = 0, cosDPhi = 0, mjj = 0, ystarZ = 0;
   std::vector<int> passedJets;
