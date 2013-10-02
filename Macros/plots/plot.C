@@ -117,29 +117,40 @@ void plotHistos::loop(TString type){
 
 
 void plotHistos::next(TString type){
-  setTDRStyle();
+  bool putEvents = true;
+  bool bottomLegend = true;
+  setTDRStyle(bottomLegend);
 
   //Set up histos
   std::map<TString, TH1D*> hists;
-  for(TString h : mcs) 							 hists[h] = new TH1D(h, h, bins, min, max);
-  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-"}) hists[h] = new TH1D(h, h, bins, min, max);
-  hists["signal only"] = new TH1D("signal only" ,"signal only" , bins, min, max);
+  for(TString h : mcs) 							 					hists[h] = new TH1D(h, h, bins, min, max);
+  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-","signal only","thisLegendItem"}) 	hists[h] = new TH1D(h, h, bins, min, max);
   if(logX){
     for(auto h = hists.begin(); h != hists.end(); ++h) binLogX(h->second);
   }
 
+
+  double horizontalSplit = 0.275;
+  double leftMargin = .12;
+  double rightMargin = .005;
+  double topMargin = 0.06;
+  double bottomMargin = 0.25;
+  double bottomPad = 0;
+
+  if(bottomLegend) horizontalSplit = (200.+horizontalSplit*600.)/800.;
+  if(bottomLegend) bottomPad = 200./800.;
+
   //Set up Canvas and TPads
   TCanvas *c = new TCanvas("Canvas", "Canvas", 1);
-  double horizontalSplit = 0.30;
-  TPad *padUP = new TPad("padUP","up",   0.02, horizontalSplit, 1., 1.,   0);
-  TPad *padDN = new TPad("padDN","down", 0.02, 0.02, 1., horizontalSplit, 0);
-  padUP->Draw(); padDN->Draw();
-  padUP->SetLogy();
-  padDN->SetGridy();
-  padUP->SetLeftMargin(.12);   padDN->SetLeftMargin(.12);
-  padUP->SetRightMargin(.005); padDN->SetRightMargin(.005);
-  padUP->SetTopMargin(0.02);   padDN->SetTopMargin(0.);
-  padUP->SetBottomMargin(0.);  padDN->SetBottomMargin(.30);
+  TPad *padUP = new TPad("padUP","up",   0, horizontalSplit, 1., 1.,   0);
+  TPad *padDN = new TPad("padDN","down", 0, bottomPad, 1., horizontalSplit, 0);
+  TPad *padLegend = new TPad("padLegend","downLegend", 0, 0, 1., bottomPad, 0);
+  padUP->Draw(); padDN->Draw(); padLegend->Draw();
+  padUP->SetLogy();			padDN->SetGridy();
+  padUP->SetLeftMargin(leftMargin);   	padDN->SetLeftMargin(leftMargin);
+  padUP->SetRightMargin(rightMargin); 	padDN->SetRightMargin(rightMargin);
+  padUP->SetTopMargin(topMargin);   	padDN->SetTopMargin(0.);
+  padUP->SetBottomMargin(0.);  		padDN->SetBottomMargin(bottomMargin);
   if(logX){ padUP->SetLogx(); padDN->SetLogx();};
 
 
@@ -166,7 +177,7 @@ void plotHistos::next(TString type){
 
   frameRatio->GetXaxis()->SetTitle(xtitle);
   frameRatio->GetXaxis()->SetTitleSize(.12);
-  frameRatio->GetXaxis()->SetTitleOffset(1.2);
+  frameRatio->GetXaxis()->SetTitleOffset(1.);
 
   if(plotSignificance) frameRatio->GetYaxis()->SetTitle("S");
 //  if(plotSignificance) frameRatio->GetYaxis()->SetTitle("purity");
@@ -180,14 +191,22 @@ void plotHistos::next(TString type){
 
 
   //Set up legend
-  bool putEvents = false;
   TLegend *leg;
-  if(putEvents){
-    leg = new TLegend(0.70, 0.64, 0.95, 0.94);
+  if(bottomLegend){
+    leg = new TLegend(leftMargin, 0, 1.-rightMargin, 1.);
+    leg->SetTextSize(0.1);
+    leg->SetNColumns(4);
+    leg->AddEntry((TObject*)0, "","");
+    leg->AddEntry((TObject*)0, "events","");
+    leg->AddEntry((TObject*)0, "mean","");
+    leg->AddEntry((TObject*)0, "RMS","");
+  }
+  else if(putEvents){
+    leg = new TLegend(0.70, 0.61, 0.95, 0.91);
     leg->SetTextSize(0.04);
     leg->SetNColumns(2);
   } else {
-    leg = new TLegend(0.78, 0.64, 0.95, 0.94);
+    leg = new TLegend(0.78, 0.61, 0.95, 0.91);
     leg->SetTextSize(0.045);
   }
   leg->SetBorderSize(0);
@@ -209,25 +228,49 @@ void plotHistos::next(TString type){
 
   //Draw the histograms
   padUP->cd();
-  double lastEvents = 0;
+  bool firstLegendItem = true;
   for(TString mc : mcs){
     hists[mc]->SetLineWidth(1.);
     hists[mc]->SetLineColor(color[mc]);
     hists[mc]->SetFillColor(color[mc]);
     hists[mc]->Draw("same hist");
     if(useLegend[mc]){
-      if(putEvents){
-        double events = lastEvents - hists[mc]->Integral();
-        if(lastEvents != 0) leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
-        lastEvents = hists[mc]->Integral();
+      if(putEvents || bottomLegend){
+        hists["thisLegendItem"]->Add(hists[mc], -1);
+        double events = hists["thisLegendItem"]->Integral();
+        double RMS = hists["thisLegendItem"]->GetRMS();
+        double mean = hists["thisLegendItem"]->GetMean();
+        if(!firstLegendItem){
+          leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+          if(bottomLegend){
+            leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
+            leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
+          }
+        }
+        firstLegendItem = false;
       }
       leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
+      hists["thisLegendItem"] = (TH1D*) hists[mc]->Clone(name + mc + "clone");
     }
   }
   if(putEvents){
-    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(lastEvents+.5)),"");
-    leg->AddEntry((TObject*)0, "Total MC","");
-    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(hists[mcs.front()]->Integral()+.5)),"");
+    double events = hists["thisLegendItem"]->Integral();
+    double RMS = hists["thisLegendItem"]->GetRMS();
+    double mean = hists["thisLegendItem"]->GetMean();
+    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+    if(bottomLegend){
+      leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
+      leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
+    }
+    leg->AddEntry((TObject*)0, " Total MC","");
+    events = hists[mcs.front()]->Integral();
+    RMS = hists[mcs.front()]->GetRMS();
+    mean = hists[mcs.front()]->GetMean();
+    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+    if(bottomLegend){
+      leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
+      leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
+    }
   }
 
 /*
@@ -240,10 +283,20 @@ void plotHistos::next(TString type){
   hists["data"]->SetLineWidth(2.);
   hists["data"]->Draw("same e");
   leg->AddEntry(hists["data"], " Data ", "P");
-  if(putEvents) leg->AddEntry((TObject*)0, TString::Format("%d", (int)(hists["data"]->Integral()+.5)),"");
-  leg->Draw();
+  if(putEvents){
+    double events = hists["data"]->Integral();
+    double RMS = hists["data"]->GetRMS();
+    double mean = hists["data"]->GetMean();
+    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+    if(bottomLegend){
+      leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
+      leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
+    }
+  }
   drawText(type);
   fixOverlay();
+  if(bottomLegend) padLegend->cd();
+  leg->Draw();
 
   //Draw the ratio histograms (and calculate errors)
   padDN->cd();
@@ -319,7 +372,7 @@ void plotHistos::next(TString type){
     double kolmogorov = hists["data"]->KolmogorovTest(hists[mcs.front()]);
     TText *kstext = new TText();
     kstext->SetTextSize(0.1);
-//    kstext->DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
+    kstext->DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
 
 
 
@@ -345,7 +398,7 @@ void plotHistos::next(TString type){
       TLegend *JESleg = new TLegend(.15, .76, .35, .96);
       JESleg->AddEntry(hists["ratio+"], "JES up", "l");
       JESleg->AddEntry(hists["ratio-"], "JES down", "l");
-      JESleg->Draw();
+   //   JESleg->Draw();
 
       hists["ratio+"]->SetLineWidth(2.);
       hists["ratio+"]->SetLineColor(kRed);

@@ -11,7 +11,7 @@ void fixOverlay() {
   gPad->RedrawAxis();
 }
 
-void setTDRStyle() {
+void setTDRStyle(bool bottomLegend) {
   TStyle *tdrStyle = new TStyle("tdrStyle","Style for P-TDR");
 
 // For the canvas:
@@ -19,6 +19,7 @@ void setTDRStyle() {
   tdrStyle->SetCanvasColor(kWhite);
   tdrStyle->SetCanvasDefH(600); //Height of canvas
   tdrStyle->SetCanvasDefW(600); //Width of canvas
+  if(bottomLegend) tdrStyle->SetCanvasDefH(800);
   tdrStyle->SetCanvasDefX(0);   //POsition on screen
   tdrStyle->SetCanvasDefY(0);
 
