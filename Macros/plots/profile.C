@@ -6,15 +6,14 @@
 #include <TFile.h>
 #include <TCanvas.h>
 #include <TLegend.h>
+#include <TLatex.h>
 #include <TString.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <TProfile.h>
 
-#include "text.h"
 #include "log.h"
-#include "tdrstyle.h"
 #include "../environment.h"
 #include "color.h"
 
@@ -50,6 +49,7 @@ int main(){
   delete myPlotHistos;
   return 0;
 }
+
 
 bool plotProfile::configureStack(){
   std::ifstream readFile;
@@ -281,7 +281,7 @@ void plotProfile::ratioStyle(){
 
   frameRatio->GetXaxis()->SetTitle(xtitle);
   frameRatio->GetXaxis()->SetTitleSize(.12);
-  frameRatio->GetXaxis()->SetTitleOffset(1.2);
+  frameRatio->GetXaxis()->SetTitleOffset(1);
 
   frameRatio->GetYaxis()->SetTitle("data/MC");
   frameRatio->GetYaxis()->SetNdivisions(10);
