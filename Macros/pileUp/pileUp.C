@@ -14,7 +14,9 @@ std::ofstream writeFile;
 
 int main(int argc, char *argv[]){
   bool force = false;
+  TString minBiasXsec = "70300";
   if(argc > 1 && ((TString)argv[1]) == "-f") force = true;
+  if(argc > 2) minBiasXsec = (TString) argv[2];
 
   for(TString type : {"ZEE","ZMUMU"}){
 
@@ -32,11 +34,11 @@ int main(int argc, char *argv[]){
 
     //Get pile-up distribution for data
     TString mergedJSON = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/lumiSummary" + mergeString + ".json";
-    TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + ".root";
+    TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + "_" + minBiasXsec + ".root";
     if(!exists(mergedROOT) || force){
-      std::cout << "pileUp.C:\t\t\tPile-up calculation of the data: this will take some time..." << std::endl;
+      std::cout << "pileUp.C:\t\t\tPile-up calculation of the data (minBiasXsec = " << minBiasXsec << "): this will take some time..." << std::endl;
       system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
-      system("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_corr.txt --calcMode observed --minBiasXsec 70300 --maxPileupBin 100 --numPileupBins 100 temp.root"); 
+      system(("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt --calcMode observed --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 temp.root").Data()); 
       system(("mv temp.json " + mergedJSON).Data());
       system(("mv temp.root " + mergedROOT).Data());
     } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << ".root file, use -f to recreate this file" << std::endl;}
@@ -44,7 +46,7 @@ int main(int argc, char *argv[]){
     TH1D *pileUpData = (TH1D*) file_data->Get("pileup");
 
     //Calculate the weights
-    writeFile.open((getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + mergeString + ".txt").Data());
+    writeFile.open((getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + mergeString + "_" + minBiasXsec + ".txt").Data());
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){
       if((*it)->isData()) continue;
       mcSample *mc = (mcSample*) (*it);
