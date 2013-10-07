@@ -15,10 +15,13 @@ std::ofstream writeFile;
 int main(int argc, char *argv[]){
   bool force = false;
   TString minBiasXsec = "70300";
-  if(argc > 1 && ((TString)argv[1]) == "-f") force = true;
+  std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
+  if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
+  if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
   if(argc > 2) minBiasXsec = (TString) argv[2];
+  if(argc > 3 && ((TString) argv[3]) == "-f") force = true;
 
-  for(TString type : {"ZEE","ZMUMU"}){
+  for(TString type : types){
 
     //Check data configuration
     sampleList *samples = new sampleList();
@@ -41,7 +44,7 @@ int main(int argc, char *argv[]){
       system(("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt --calcMode observed --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 temp.root").Data()); 
       system(("mv temp.json " + mergedJSON).Data());
       system(("mv temp.root " + mergedROOT).Data());
-    } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << ".root file, use -f to recreate this file" << std::endl;}
+    } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << "_" << minBiasXsec << ".root file, use -f to recreate this file" << std::endl;}
     TFile *file_data = new TFile(mergedROOT);
     TH1D *pileUpData = (TH1D*) file_data->Get("pileup");
 
