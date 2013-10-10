@@ -18,8 +18,8 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20130910_InclusiveForTMVA";
-TString option = "_BDT_50k";
+TString tag = "20131010_InclusiveDY";
+TString option = "_BDT_50k_zstar";
 TString DYtype = "inclusive";
    
 int main(int argc, char *argv[]){
@@ -43,7 +43,8 @@ int main(int argc, char *argv[]){
     factory->AddVariable( "dPhi_j1", 'F' );
     factory->AddVariable( "dPhi_j2", 'F' );
     factory->AddVariable( "dPhi_jj", 'F' );
-    factory->AddVariable( "dEta_jj", 'F' );
+//    factory->AddVariable( "dEta_jj", 'F' );
+    factory->AddVariable( "zstarZ", 'F' );
     factory->AddVariable( "avEta_jj", 'F' );
     factory->AddVariable( "qgHIG13011_j1", 'F' );
     factory->AddVariable( "qgHIG13011_j2", 'F' );
