@@ -57,6 +57,7 @@ class histoCollection{
   void setEventWeight(double weight){		eventWeight = weight; fillWeight = weight;};
   void restoreEventWeight(){			fillWeight = eventWeight;};
   void multiplyEventWeight(double weight){	fillWeight *= weight;};
+  double getWeight(){				return fillWeight;};
   void setBranch(TString branch_ = ""){branch = branch_;};
 
   void binLogX(TH1* h);
