@@ -51,10 +51,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k" 
+#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k_NoQG" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20130927_Full"
+#define OUTPUTTAG "20131010_Full"
 
 
 /*****************
@@ -69,6 +69,7 @@ int main(int argc, char *argv[]){
   for(TString type : types){
     TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";					//Set up list of samples
     TString mcConfig = samplesDir + (DYTYPE == "inclusive"? "mcInclusive.config" : "mc.config");
+    if(DYTYPE == "powheg") mcConfig = samplesDir + "mcPowheg.config";
     TString dataConfig = samplesDir + "data_" + type + "_pixel.config";
     sampleList* samples = new sampleList();
     if(!samples->init(dataConfig, mcConfig)) return 1;
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]){
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
 //      (*it)->useSkim(type, "20130927_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
       myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
@@ -148,6 +149,9 @@ void ewkvAnalyzer::analyze_Zjets(){
   histos->fillHist1D("nPileUp", 	nPileUp);
 
   if(l1.Pt() < 20 || l2.Pt() < 20) return;
+
+//  ptReweighting(Z.Pt());
+//  etaReweighting(Z.Eta());
 
   histos->fillHist1D("lepton_pt", 	l1.Pt());
   histos->fillHist1D("lepton_eta", 	l1.Eta());
@@ -222,21 +226,46 @@ void ewkvAnalyzer::analyze_Zjets(){
 
     histos->fillHist1D("jet1_phi", 		j1.Phi());
     histos->fillHist1D("jet1_eta", 		j1.Eta());
-    histos->fillHist1D("qgMLP_j1", 		jetQGvariables["qgMLP"]->at(jetOrder.at(0)));
-    histos->fillHist1D("qgLikelihood_j1",	jetQGvariables["qgLikelihood"]->at(jetOrder.at(0)));
-    histos->fillHist1D("qgHIG13011_j1", 	jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)));
 
     histos->fillHist1D("jet2_phi", 		j2.Phi());
     histos->fillHist1D("jet2_eta", 		j2.Eta());
-    histos->fillHist1D("qgMLP_j2", 		jetQGvariables["qgMLP"]->at(jetOrder.at(1)));
-    histos->fillHist1D("qgLikelihood_j2", 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(1)));
-    histos->fillHist1D("qgHIG13011_j2", 	jetQGvariables["qgHIG13011"]->at(jetOrder.at(1)));
+
+    TString app;
+    for(TString product : {"qg","axis1","axis2","mult","ptD"}){
+      app = (j1.Eta() < 2.5 ? "_c" : "_f");
+      histos->fillHist1D(product + "MLP_j1", jetQGvariables[product + "MLP"]->at(jetOrder.at(0)));
+      histos->fillHist1D(product + "MLP_j1" + app, jetQGvariables[product + "MLP"]->at(jetOrder.at(0)));
+      app = (j2.Eta() < 2.5 ? "_c" : "_f");
+      histos->fillHist1D(product + "MLP_j2", jetQGvariables[product + "MLP"]->at(jetOrder.at(1)));
+      histos->fillHist1D(product + "MLP_j2" + app, jetQGvariables[product + "MLP"]->at(jetOrder.at(1)));
+    }
+    for(TString product : {"qg","axis2","mult","ptD"}){
+      app = (j1.Eta() < 2.5 ? "_c" : "_f");
+      histos->fillHist1D(product + "Likelihood_j1", jetQGvariables[product + "Likelihood"]->at(jetOrder.at(0)));
+      histos->fillHist1D(product + "Likelihood_j1" + app, jetQGvariables[product + "Likelihood"]->at(jetOrder.at(0)));
+      app = (j2.Eta() < 2.5 ? "_c" : "_f");
+      histos->fillHist1D(product + "Likelihood_j2", jetQGvariables[product + "Likelihood"]->at(jetOrder.at(1)));
+      histos->fillHist1D(product + "Likelihood_j2" + app, jetQGvariables[product + "Likelihood"]->at(jetOrder.at(1)));
+    }
+    for(TString product : {"qg","axis1","axis2","mult","R","pull"}){
+      if(j1.Eta() < 2) app = "_c";
+      else if(j1.Eta() < 3) app = "_t";
+      else app = "_f";
+      histos->fillHist1D(product + "HIG13011_j1", jetQGvariables[product + "HIG13011"]->at(jetOrder.at(0)));
+      histos->fillHist1D(product + "HIG13011_j1" + app, jetQGvariables[product + "HIG13011"]->at(jetOrder.at(0)));
+      if(j2.Eta() < 2) app = "_c";
+      else if(j2.Eta() < 3) app = "_t";
+      else app = "_f";
+      histos->fillHist1D(product + "HIG13011_j2", jetQGvariables[product + "HIG13011"]->at(jetOrder.at(1)));
+      histos->fillHist1D(product + "HIG13011_j2" + app, jetQGvariables[product + "HIG13011"]->at(jetOrder.at(1)));
+    }
 
 
     TLorentzVector jj = TLorentzVector(j1 + j2);
     TLorentzVector all = TLorentzVector(l1 + l2 + j1 + j2);
-    double ystarZ = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
     double dy = j1.Rapidity() - j2.Rapidity();
+    double ystarZ = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
+    double zstarZ = ystarZ/dy;
 
     // TMVA tree variables (variables for training tree, for the actually used variables, see the TMVA init function)
     tmvaVariables["pT_Z"] = 			Z.Pt();
@@ -256,23 +285,29 @@ void ewkvAnalyzer::analyze_Zjets(){
     tmvaVariables["qgHIG13011_j2"] = 		jetQGvariables["qgHIG13011"]->at(jetOrder.at(1));
     tmvaVariables["M_jj"] = 			jj.M();
     tmvaVariables["ystarZ"] = 			fabs(ystarZ);
+    tmvaVariables["zstarZ"] = 			fabs(zstarZ);
     tmvaVariables["weight"] = 			weight;
     if(branch = "") fillTMVAtree();
 
     double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
 
-    histos->fillHist1D("dijet_mass_NR", 	jj.M());
-    histos->fillHist1D("dijet_dphi_NR", 	fabs(j1.DeltaPhi(j2)));
-    histos->fillHist1D("ystar_Z_NR", 		fabs(ystarZ));
-    histos->fillHist1D(TString(TMVATYPE)+"_NR", mvaValue);
+//    histos->fillHist1D("dijet_mass_NR", 	jj.M());
+//    histos->fillHist1D("dijet_dphi_NR", 	fabs(j1.DeltaPhi(j2)));
+//    histos->fillHist1D("ystar_Z_NR", 		fabs(ystarZ));
+//    histos->fillHist1D(TString(TMVATYPE)+"_NR", mvaValue);
     // From here on fill histograms with MCFM reweighted values
-    mcfmReweighting(jj.M(), ystarZ);
+//    mcfmReweighting(jj.M(), ystarZ);
     histos->fillHist1D(TMVATYPE, 		mvaValue);
 
     histos->fillHist1D("dijet_mass", 		jj.M());
     histos->fillHist1D("dijet_pt", 		jj.Pt());
     histos->fillHist1D("dijet_dphi", 		fabs(j1.DeltaPhi(j2)));
     histos->fillHist1D("dijet_deta", 		fabs(j1.Eta() - j2.Eta()));
+    histos->fillHist1D("dijet_av_eta", 		fabs((j1.Eta() + j2.Eta())/2));
+
+    histos->fillHist1D("jet1_Z_dphi", 		fabs(Z.DeltaPhi(j2)));
+    histos->fillHist1D("jet2_Z_dphi", 		fabs(Z.DeltaPhi(j2)));
+
 
     if(jj.M() > 100){
       histos->fillHist1D("dijet_dphi_100",      fabs(j1.DeltaPhi(j2)));
@@ -281,7 +316,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     }
 
     histos->fillHist1D("ystar_Z", 		fabs(ystarZ));
-    histos->fillHist1D("zstar_Z", 		fabs(ystarZ/fabs(dy)));
+    histos->fillHist1D("zstar_Z", 		fabs(zstarZ));
 
     // Zeppenfeld variables for the 3rd jet
     if(jetOrder.size() > 2){
@@ -347,7 +382,8 @@ void ewkvAnalyzer::analyze_Zjets(){
 void ewkvAnalyzer::initTMVAreader(TString type){
   tmvaReader = new TMVA::Reader("Silent");
 
-  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
   tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
@@ -392,6 +428,7 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
  * MCFM NLO/LO reweighting *
  ***************************/
 void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
+  return; //OFF
   std::vector<TString> needReweighting = {"DY","DY2","DY3","DY4"};							// Only selected samples need reweighting
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
 //double ystarZWeight = (8.76856e-01) + (1.15122e-01)*ystarZ; 	 							// MCFM NLO/madGraph gen
@@ -401,4 +438,61 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
 //  double mjjWeight = (1.04886e+00) + (-1.67724e-04)*mjj;								// MCFM NLO/LO
   double mjjWeight = 0.39+0.12*log(mjj)-0.00025*mjj;									// MCFM NLO/LO NEW
   histos->multiplyEventWeight(ystarZWeight*mjjWeight);
+}
+
+/*****************
+ * Z reweighting *
+ *****************/
+void ewkvAnalyzer::readEtaWeights(TString type){
+  std::ifstream readFile;
+  readFile.open("../reweightingZ/etaWeigths_" + type + ".txt");
+  readFile.ignore(unsigned(-1), '\n');
+  double min, max, ratio;
+  while(readFile >> min >> max >> ratio){
+    etaWeights.push_back(ratio);
+    etaBins.push_back(min);
+  }
+  etaBins.push_back(max);
+  readFile.close();
+}
+
+void ewkvAnalyzer::etaReweighting(double eta){
+  if(etaBins.size() == 0 || eta < etaBins.front() || eta > etaBins.back()){ 
+    histos->multiplyEventWeight(0.);
+    histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
+    return;
+  }
+  std::vector<TString> needReweighting = {"DY","DY0","DY1","DY2","DY3","DY4"};						// Only selected samples need reweighting
+  if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
+  int i = 0;
+  while((eta > etaBins[i+1])) ++i;
+  histos->multiplyEventWeight(etaWeights[i]);
+  histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
+}
+
+void ewkvAnalyzer::readPtWeights(TString type){
+  std::ifstream readFile;
+  readFile.open("../reweightingZ/ptWeigths_" + type + ".txt");
+  readFile.ignore(unsigned(-1), '\n');
+  double min, max, ratio;
+  while(readFile >> min >> max >> ratio){
+    ptWeights.push_back(ratio);
+    ptBins.push_back(min);
+  }
+  ptBins.push_back(max);
+  readFile.close();
+}
+
+void ewkvAnalyzer::ptReweighting(double pt){
+  if(ptBins.size() == 0 || pt < ptBins.front() || pt > ptBins.back()){ 
+    histos->multiplyEventWeight(0.);
+    histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
+    return;
+  }
+  std::vector<TString> needReweighting = {"DY","DY0","DY1","DY2","DY3","DY4"};						// Only selected samples need reweighting
+  if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
+  int i = 0;
+  while((pt > ptBins[i+1])) ++i;
+  histos->multiplyEventWeight(ptWeights[i]);
+  histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
 }

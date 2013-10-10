@@ -43,6 +43,10 @@ class ewkvAnalyzer{
     void initTMVAreader(TString type);
     void checkRadiationPattern(double zRapidity);
     void mcfmReweighting(double mjj, double ystar);
+    void etaReweighting(double rapidity);
+    void readEtaWeights(TString type);
+    void ptReweighting(double rapidity);
+    void readPtWeights(TString type);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
@@ -75,6 +79,8 @@ class ewkvAnalyzer{
     TMVA::Reader *tmvaReader;
 
     MuScleFitCorrector *muScleFitCorrector, *muScleFitCorrectorD;
+    std::vector<double> etaWeights, etaBins;
+    std::vector<double> ptWeights, ptBins;
 
   public:
     ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag);
@@ -154,7 +160,6 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
     muScleFitCorrector = new MuScleFitCorrector("../muScleFit/MuScleFit_2012_MC_53X_smearReReco.txt");
     muScleFitCorrectorD = muScleFitCorrector;
   }
-
 }
 
 
@@ -178,6 +183,8 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
     return;
   }
   initTMVAreader(type);
+  readEtaWeights(type);
+  readPtWeights(type);
 
   std::cout << "ewkvAnalyzer:\t\t\tLoop over " << mySample->getName() << " tree (" << type << " mode)" << std::endl;
   int nEntries = tree->GetEntries();
