@@ -31,17 +31,17 @@
 
 using namespace std;
 
-TString plot = "BDTD_MCFMreweighted";
+TString plot = "BDT";
 //TString plot = "BDTD";
 //TString tag = "CorrectZZlumi";
 //TString tag = "20130627";
-TString tag = "20130628";
+TString tag = "20131010_NoQG";
 
 int main(){
   gROOT->SetBatch();
 
   for(TString type : {"ZEE","ZMUMU"}){
-    TFile *file = new TFile(getTreeLocation + "outputs/rootfiles/" + type + "/" + tag + ".root");
+    TFile *file = new TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root");
     for(TString jes : {"","JES+","JES-"}){
       std::cout << std::endl << type << "\t" << jes << std::endl;
       std::map<TString, TH1D*> histos;
@@ -69,7 +69,7 @@ int main(){
       lumi["WZ"] = 301123;
       lumi["ZZ"] = 555110;
 
-      histos["data"] 				= (TH1D*) file->Get(plot + "_data");
+      histos["data"] 				= (TH1D*) file->Get(plot + "_data")->Clone();
       histos["ZVBF"] 				= (TH1D*) file->Get(plot + jes + "_ZVBF")->Clone();
       histos["DY"] 				= (TH1D*) file->Get(plot + jes + "_DY1")->Clone();
       for(TString i : {"DY2","DY3","DY4"}){  
