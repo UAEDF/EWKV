@@ -23,6 +23,7 @@
 #include "DataFormats/METReco/interface/PFMET.h"
 
 #include "TH1.h"
+#include "TTree.h"
 #include "TFile.h"
 
 
@@ -62,12 +63,10 @@ class PFCandidatesNoV : public edm::EDFilter{
     const reco::PFCandidate *lepton1, *lepton2;
 
     TFile *f_pileUp; 
-    TH1I *h_pileUp;
-    TH1I *h_pileUp5;
-    TH1I *h_pileUp6;
-    TH1I *h_pileUp7;
-    TH1I *h_pileUp8;
-    TH1I *h_pileUp9;
+    TTree *t_pileUp;
+    std::map<TString, TH1I*> h_pileUp;
+    int nPileUp, nParticleEntries;
+    float nTrue;
 
     edm::InputTag               pfCandidatesInputTag;
     edm::InputTag               metInputTag;

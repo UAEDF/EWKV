@@ -163,58 +163,52 @@ bool PFCandidatesNoV::TryZ(const reco::PFCandidate *lepton, std::vector<const re
 
 
 void PFCandidatesNoV::fillPU(edm::Event& iEvent){
-  int nPileUp = -1;
+  nPileUp = -1;
+  nTrue = -1;
+  nParticleEntries = -1;
+
   edm::Handle<std::vector<PileupSummaryInfo>>  PupInfo;
   iEvent.getByLabel("addPileupInfo", PupInfo);
   if(PupInfo.isValid()){
     for(std::vector<PileupSummaryInfo>::const_iterator PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI){
       if(PVI->getBunchCrossing() == 0){ 
 	nPileUp = PVI->getPU_NumInteractions();
+	nTrue = PVI->getTrueNumInteractions();
 	continue;
       }
     }  
   }
-
-  h_pileUp->Fill(nPileUp);
+  h_pileUp["pileUp"]->Fill(nPileUp);
 
   edm::Handle<LHEEventProduct> lheH; 
   iEvent.getByType(lheH);
   if(lheH.isValid()){
-    int nParticleEntries = lheH->hepeup().NUP; 
-    if(nParticleEntries == 5) h_pileUp5->Fill(nPileUp);
-    if(nParticleEntries == 6) h_pileUp6->Fill(nPileUp);
-    if(nParticleEntries == 7) h_pileUp7->Fill(nPileUp);
-    if(nParticleEntries == 8) h_pileUp8->Fill(nPileUp);
-    if(nParticleEntries == 9) h_pileUp9->Fill(nPileUp);
+    nParticleEntries = lheH->hepeup().NUP;
+    if(nParticleEntries > 4 && nParticleEntries < 10) h_pileUp["pileUp"+TString::Format("%d", nParticleEntries)]->Fill(nPileUp);
   }
+  t_pileUp->Fill();
 }
 
 
 void PFCandidatesNoV::beginJob(){
   f_pileUp = new TFile(fileName,"RECREATE");
-  h_pileUp = new TH1I("pileUp", "pileUp", 51, -.5, 50.5);
-  h_pileUp5 = new TH1I("pileUp5", "pileUp5", 51, -.5, 50.5);
-  h_pileUp6 = new TH1I("pileUp6", "pileUp6", 51, -.5, 50.5);
-  h_pileUp7 = new TH1I("pileUp7", "pileUp7", 51, -.5, 50.5);
-  h_pileUp8 = new TH1I("pileUp8", "pileUp8", 51, -.5, 50.5);
-  h_pileUp9 = new TH1I("pileUp9", "pileUp9", 51, -.5, 50.5);
+  t_pileUp = new TTree("pileUp","pileUp tree");
+
+  t_pileUp->Branch("nPileUp",		&nPileUp,		"nPileUp/I");
+  t_pileUp->Branch("nTrue",		&nTrue,			"nTrue/F");
+  t_pileUp->Branch("nParticleEntries",	&nParticleEntries,	"nParticleEntries/I");
+
+  for(TString i : {"","5","6","7","8","9"}) h_pileUp["pileUp"+i] = new TH1I("pileUp"+i, "pileUp"+i, 101, -.5, 100.5);
 }
 
 
-void PFCandidatesNoV::endJob() {
-  f_pileUp->WriteTObject(h_pileUp);
-  f_pileUp->WriteTObject(h_pileUp5);
-  f_pileUp->WriteTObject(h_pileUp6);
-  f_pileUp->WriteTObject(h_pileUp7);
-  f_pileUp->WriteTObject(h_pileUp8);
-  f_pileUp->WriteTObject(h_pileUp9);
+void PFCandidatesNoV::endJob(){
+  for(auto hist = h_pileUp.begin(); hist != h_pileUp.end(); ++hist) f_pileUp->WriteTObject(hist->second);
+  f_pileUp->WriteTObject(t_pileUp);
   f_pileUp->Close();
-  delete h_pileUp;
-  delete h_pileUp5;
-  delete h_pileUp6;
-  delete h_pileUp7;
-  delete h_pileUp8;
-  delete h_pileUp9;
+
+  for(auto hist = h_pileUp.begin(); hist != h_pileUp.end(); ++hist) delete hist->second;
+  delete t_pileUp;
   delete f_pileUp;
 }
 
