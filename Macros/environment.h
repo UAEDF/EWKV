@@ -18,18 +18,17 @@ TString getProduction(){
 }
 
 TString getCMSSWBASE(){
-  if(!exists(".myCMSSW_BASE.txt"))system("echo $CMSSW_BASE > .myCMSSW_BASE.txt");
+  while(!exists(".myCMSSW_BASE.txt")) system("echo $CMSSW_BASE > .myCMSSW_BASE.txt");
   std::ifstream readFile;
   readFile.open(".myCMSSW_BASE.txt");
   TString base;
   readFile >> base;
   readFile.close();
-  system("rm .myCMSSW_BASE.txt");
   return base;
 }
 
 TString getHost(){
-  if(!exists(".myHOST.txt")) system("echo $HOSTNAME > .myHOST.txt");
+  while(!exists(".myHOST.txt")) system("echo $HOSTNAME > .myHOST.txt");
   std::ifstream readFile;
   readFile.open(".myHOST.txt");
   TString host;
