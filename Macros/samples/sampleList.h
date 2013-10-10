@@ -48,7 +48,7 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
 
   //pile-up weights
   dataSample *data = (dataSample*) get("data");
-  TString puWeightsFile = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + data->getMergeString() + ".txt";
+  TString puWeightsFile = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + data->getMergeString() + "_70300_old.txt";
   if(!exists(puWeightsFile)) std::cout << "sampleList:\t\t!!!\t" + puWeightsFile + " not found, run pileUp.C first" << std::endl;
   else {
     for(iterator it = samples.begin(); it != samples.end(); ++it){
