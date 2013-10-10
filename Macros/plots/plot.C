@@ -20,7 +20,7 @@
 class plotHistos{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
-  TString xtitle, ytitle, fileName, name;
+  TString xtitle, ytitle, tag, fileName, name;
   bool logX;
   bool JES;
   int removeJESbinLeft, removeJESbinRight;
@@ -53,7 +53,7 @@ bool plotHistos::configureStack(){
   std::ifstream readFile;
   readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/plots/stack.config")); 
   if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/stack.config not found!" << std::endl;
+    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/plots/stack.config not found!" << std::endl;
     return false;
   }
   while(!readFile.eof()){
@@ -105,10 +105,10 @@ void plotHistos::loop(TString type){
     }
     if(useLine == "2") plotSignificance = true;
     else plotSignificance = false;
-    readFile >> fileName >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
+    readFile >> tag >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
-    fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + fileName + ".root";
+    fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root";
     next(type);
   }
   readFile.close();
@@ -215,9 +215,20 @@ void plotHistos::next(TString type){
 
   //Get the histograms (and immidiatly stack the MC histograms)
   TFile *file = new TFile(fileName);
+  std::map<TString, double> events, RMS, mean;
+  bool newLegendItem = true;
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
     hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
+    if(newLegendItem) hists["temp"] =  (TH1D*) file->Get(name + "_" + *mc)->Clone();
+    else hists["temp"]->Add((TH1D*) file->Get(name + "_" + *mc));
+    newLegendItem = false;
+    if(useLegend[*mc]){
+      events[*mc] = hists["temp"]->Integral();
+      RMS[*mc] = hists["temp"]->GetRMS();
+      mean[*mc] = hists["temp"]->GetMean();
+      newLegendItem = true;
+    }
     if(file->FindKey(name + "JES+_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JES+_" + *mc));
     if(file->FindKey(name + "JES-_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JES-_" + *mc));
     if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
@@ -225,6 +236,7 @@ void plotHistos::next(TString type){
   }
   hists["data"]->Add(hists["data"], (TH1D*) file->Get(name + "_data"));
 
+  
 
   //Draw the histograms
   padUP->cd();
@@ -235,37 +247,21 @@ void plotHistos::next(TString type){
     hists[mc]->SetFillColor(color[mc]);
     hists[mc]->Draw("same hist");
     if(useLegend[mc]){
-      if(putEvents || bottomLegend){
-        hists["thisLegendItem"]->Add(hists[mc], -1);
-        double events = hists["thisLegendItem"]->Integral();
-        double RMS = hists["thisLegendItem"]->GetRMS();
-        double mean = hists["thisLegendItem"]->GetMean();
-        if(!firstLegendItem){
-          leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
-          if(bottomLegend){
-            leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
-            leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
-          }
-        }
-        firstLegendItem = false;
-      }
       leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
-      hists["thisLegendItem"] = (TH1D*) hists[mc]->Clone(name + mc + "clone");
+      if(putEvents || bottomLegend){
+        leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events[mc]+.5)),"");
+        if(bottomLegend){
+          leg->AddEntry((TObject*)0, TString::Format("%.2f", mean[mc]),"");
+          leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS[mc]),"");
+        }
+      }
     }
   }
   if(putEvents){
-    double events = hists["thisLegendItem"]->Integral();
-    double RMS = hists["thisLegendItem"]->GetRMS();
-    double mean = hists["thisLegendItem"]->GetMean();
-    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
-    if(bottomLegend){
-      leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
-      leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
-    }
     leg->AddEntry((TObject*)0, " Total MC","");
-    events = hists[mcs.front()]->Integral();
-    RMS = hists[mcs.front()]->GetRMS();
-    mean = hists[mcs.front()]->GetMean();
+    double events = hists[mcs.front()]->Integral();
+    double RMS = hists[mcs.front()]->GetRMS();
+    double mean = hists[mcs.front()]->GetMean();
     leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
     if(bottomLegend){
       leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
@@ -412,6 +408,11 @@ void plotHistos::next(TString type){
   if(!exists(getTreeLocation() + "outputs/pdf/" + type + "/")) system("mkdir -p " + getTreeLocation() + "/outputs/pdf/" + type + "/");
   c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + name + ".pdf");  
   delete c;
+
+  //Set related cutflow as default
+  system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
+  system("diff " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
+
   return;
 }
 
