@@ -13,13 +13,20 @@ void pileUpWeights(TH1D *pileUpData, TH1I *pileUpMC, TString sampleName);
 std::ofstream writeFile;
 
 int main(int argc, char *argv[]){
+  TString puType = "true";
   bool force = false;
+  bool old = false;
   TString minBiasXsec = "70300";
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
   if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
   if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
   if(argc > 2) minBiasXsec = (TString) argv[2];
   if(argc > 3 && ((TString) argv[3]) == "-f") force = true;
+  if(argc > 3 && ((TString) argv[3]) == "-o"){ old = true; force = true;}
+
+  TString option = "";
+  if(old) option += "_old";
+  if(puType == "true") option += "_true";
 
   for(TString type : types){
 
@@ -37,19 +44,22 @@ int main(int argc, char *argv[]){
 
     //Get pile-up distribution for data
     TString mergedJSON = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/lumiSummary" + mergeString + ".json";
-    TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + "_" + minBiasXsec + ".root";
+    TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + "_" + minBiasXsec + option + ".root";
     if(!exists(mergedROOT) || force){
       std::cout << "pileUp.C:\t\t\tPile-up calculation of the data (minBiasXsec = " << minBiasXsec << "): this will take some time..." << std::endl;
       system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
-      system(("pileupCalc.py -i temp.json --inputLumiJSON pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt --calcMode observed --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 temp.root").Data()); 
+      TString puJSON = "pileup_JSON_DCSONLY_190389-208686_corr.txt";
+      if(old) puJSON = "pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt";
+      TString command = "pileupCalc.py -i temp.json --inputLumiJSON " + puJSON + " --calcMode " + puType + " --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 temp.root";
+      system(command); 
       system(("mv temp.json " + mergedJSON).Data());
       system(("mv temp.root " + mergedROOT).Data());
-    } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << "_" << minBiasXsec << ".root file, use -f to recreate this file" << std::endl;}
+    } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << "_" << minBiasXsec << option << ".root file, use -f to recreate this file" << std::endl;}
     TFile *file_data = new TFile(mergedROOT);
     TH1D *pileUpData = (TH1D*) file_data->Get("pileup");
 
     //Calculate the weights
-    writeFile.open((getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + mergeString + "_" + minBiasXsec + ".txt").Data());
+    writeFile.open((getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + mergeString + "_" + minBiasXsec + option + ".txt").Data());
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){
       if((*it)->isData()) continue;
       mcSample *mc = (mcSample*) (*it);
