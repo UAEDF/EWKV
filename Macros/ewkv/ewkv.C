@@ -38,6 +38,7 @@
 #include "../environment.h"
 #include "../cutFlow/cutFlow.h"
 #include "../cutFlow/cutFlowHandler.h"
+#include "../QGtagging/HIG13011.h"
 #include "ewkv.h"
 
 // Constants
@@ -51,10 +52,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131010_InclusiveDY_BDT_50k_zstar" 
+#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k" 
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131010_Fast"
+#define OUTPUTTAG "20131011_Fast"
 
 
 /*****************
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]){
   gROOT->SetBatch();
 
   for(TString type : types){
-    TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";					//Set up list of samples
+    TString samplesDir = getCMSSWBASE() + "src/EWKV/Macros/samples/";					//Set up list of samples
     TString mcConfig = samplesDir + (DYTYPE == "inclusive"? "mcInclusive.config" : "mc.config");
     if(DYTYPE == "powheg") mcConfig = samplesDir + "mcPowheg.config";
     TString dataConfig = samplesDir + "data_" + type + "_pixel.config";
@@ -230,6 +231,33 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("jet2_phi", 		j2.Phi());
     histos->fillHist1D("jet2_eta", 		j2.Eta());
 
+
+    //Redo QG tagging (only HIG13011 at the moment)
+    if(mySample->isData()){
+      if(fabs(j1.Eta()) < 2) 		jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) += 0.5;
+      else if(fabs(j1.Eta()) < 3)	jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) += 1.0;
+      else				jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) -= 0.5;
+      if(fabs(j2.Eta()) < 2) 		jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) += 0.5;
+      else if(fabs(j2.Eta()) < 3)	jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) += 1.0;
+      else				jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) -= 0.5;
+    }
+
+    std::map<TString, float> mvaVariables;
+    mvaVariables["axis1"] = jetQGvariables["axis1HIG13011"]->at(jetOrder.at(0));
+    mvaVariables["axis2"] = jetQGvariables["axis2HIG13011"]->at(jetOrder.at(0));
+    mvaVariables["Mult"] = jetQGvariables["multHIG13011"]->at(jetOrder.at(0));
+    mvaVariables["JetPull"] = jetQGvariables["pullHIG13011"]->at(jetOrder.at(0));
+    mvaVariables["JetR"] = jetQGvariables["RHIG13011"]->at(jetOrder.at(0));
+    jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)) = qgTagger->getMVA(j1.Eta(), j1.Pt(), rho, mvaVariables);
+
+    mvaVariables["axis1"] = jetQGvariables["axis1HIG13011"]->at(jetOrder.at(1));
+    mvaVariables["axis2"] = jetQGvariables["axis2HIG13011"]->at(jetOrder.at(1));
+    mvaVariables["Mult"] = jetQGvariables["multHIG13011"]->at(jetOrder.at(1));
+    mvaVariables["JetPull"] = jetQGvariables["pullHIG13011"]->at(jetOrder.at(1));
+    mvaVariables["JetR"] = jetQGvariables["RHIG13011"]->at(jetOrder.at(1));
+    jetQGvariables["qgHIG13011"]->at(jetOrder.at(1)) = qgTagger->getMVA(j2.Eta(), j2.Pt(), rho, mvaVariables);
+
+
     TString app;
     for(TString product : {"qg","axis1","axis2","mult","ptD"}){
       app = (j1.Eta() < 2.5 ? "_c" : "_f");
@@ -382,8 +410,8 @@ void ewkvAnalyzer::analyze_Zjets(){
 void ewkvAnalyzer::initTMVAreader(TString type){
   tmvaReader = new TMVA::Reader("Silent");
 
-//std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
-  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
   tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );

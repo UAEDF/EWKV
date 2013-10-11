@@ -33,6 +33,7 @@
 #include "../histos/histos.h"
 #include "../cutFlow/cutFlow.h"
 #include "../environment.h"
+#include "../QGtagging/HIG13011.h"
 
 class ewkvAnalyzer{
   private:
@@ -81,6 +82,8 @@ class ewkvAnalyzer{
     MuScleFitCorrector *muScleFitCorrector, *muScleFitCorrectorD;
     std::vector<double> etaWeights, etaBins;
     std::vector<double> ptWeights, ptBins;
+
+    QGTaggerHIG13011 *qgTagger;
 
   public:
     ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag);
@@ -160,6 +163,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
     muScleFitCorrector = new MuScleFitCorrector("../muScleFit/MuScleFit_2012_MC_53X_smearReReco.txt");
     muScleFitCorrectorD = muScleFitCorrector;
   }
+
+  qgTagger = new QGTaggerHIG13011();
 }
 
 

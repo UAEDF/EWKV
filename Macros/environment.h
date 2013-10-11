@@ -24,7 +24,7 @@ TString getCMSSWBASE(){
   TString base;
   readFile >> base;
   readFile.close();
-  return base;
+  return base + "/";
 }
 
 TString getHost(){
