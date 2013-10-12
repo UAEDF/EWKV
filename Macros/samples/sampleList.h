@@ -48,7 +48,7 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
 
   //pile-up weights
   dataSample *data = (dataSample*) get("data");
-  TString puWeightsFile = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + data->getMergeString() + "_70300_old.txt";
+  TString puWeightsFile = getCMSSWBASE() + "src/EWKV/Macros/pileUp/weights" + data->getMergeString() + "_70300_old.txt";
   if(!exists(puWeightsFile)) std::cout << "sampleList:\t\t!!!\t" + puWeightsFile + " not found, run pileUp.C first" << std::endl;
   else {
     for(iterator it = samples.begin(); it != samples.end(); ++it){
@@ -106,8 +106,8 @@ sample* sampleList::get(TString name){
 
 
 bool sampleList::readLeptonEfficiencies(){
-  TFile *iso_file = new TFile(getCMSSWBASE() + "/src/EWKV/Macros/samples/efficiencies/MuonEfficiencies_ISO_Run_2012ReReco_53X.root");
-  TFile *id_file = new TFile(getCMSSWBASE() + "/src/EWKV/Macros/samples/efficiencies/MuonEfficiencies_ID_Run_2012ReReco_53X.root");
+  TFile *iso_file = new TFile(getCMSSWBASE() + "src/EWKV/Macros/samples/efficiencies/MuonEfficiencies_ISO_Run_2012ReReco_53X.root");
+  TFile *id_file = new TFile(getCMSSWBASE() + "src/EWKV/Macros/samples/efficiencies/MuonEfficiencies_ID_Run_2012ReReco_53X.root");
   if(iso_file->IsZombie() || id_file->IsZombie()) return false;
   TString isolationKey = "tkRelIso_Tight";
   TString idKey = "Tight";

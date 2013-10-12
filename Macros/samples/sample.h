@@ -70,7 +70,7 @@ class dataRun : public sample{
 dataRun::dataRun(TString name_, double lumi_){
   name 		= name_; 
   lumi 		= lumi_;
-  JSON		= getCMSSWBASE() + "/src/EWKV/Crab/JSON/lumiSummary_" + name + ".json";
+  JSON		= getCMSSWBASE() + "src/EWKV/Crab/JSON/lumiSummary_" + name + ".json";
   skimmed	= false;
   type		= "";
   tag		= "";

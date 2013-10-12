@@ -51,9 +51,9 @@ int main(int argc, char *argv[]){
 
 bool plotHistos::configureStack(){
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/plots/stack.config")); 
+  readFile.open((getCMSSWBASE() + "src/EWKV/Macros/plots/stack.config"));
   if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/plots/stack.config not found!" << std::endl;
+    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "src/EWKV/Macros/plots/stack.config not found!" << std::endl;
     return false;
   }
   while(!readFile.eof()){
@@ -85,9 +85,9 @@ bool plotHistos::configureStack(){
 void plotHistos::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config")); 
+  readFile.open((getCMSSWBASE() + "src/EWKV/Macros/histos/1D.config"));
   if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config not found!" << std::endl;
+    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "src/EWKV/Macros/histos/1D.config not found!" << std::endl;
     return;
   }
   while(!readFile.eof()){
@@ -110,6 +110,12 @@ void plotHistos::loop(TString type){
     ytitle.ReplaceAll("__"," ");
     fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root";
     next(type);
+
+    if(xtitle == "nPriVtxs"){
+      //Set related cutflow as default
+      system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
+      system("diff " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
+    }
   }
   readFile.close();
   return;
@@ -190,16 +196,16 @@ void plotHistos::next(TString type){
   padDN->cd(); frameRatio->Draw();
 
 
-  //Set up legend
+  //Set up legnd
   TLegend *leg;
   if(bottomLegend){
     leg = new TLegend(leftMargin, 0, 1.-rightMargin, 1.);
     leg->SetTextSize(0.1);
     leg->SetNColumns(4);
-    leg->AddEntry((TObject*)0, "","");
-    leg->AddEntry((TObject*)0, "events","");
-    leg->AddEntry((TObject*)0, "mean","");
-    leg->AddEntry((TObject*)0, "RMS","");
+    leg->AddEntry("", "","");
+    leg->AddEntry("", "events","");
+    leg->AddEntry("", "mean","");
+    leg->AddEntry("", "RMS","");
   }
   else if(putEvents){
     leg = new TLegend(0.70, 0.61, 0.95, 0.91);
@@ -249,23 +255,23 @@ void plotHistos::next(TString type){
     if(useLegend[mc]){
       leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
       if(putEvents || bottomLegend){
-        leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events[mc]+.5)),"");
+        leg->AddEntry("", TString::Format("%d", (int)(events[mc]+.5)),"");
         if(bottomLegend){
-          leg->AddEntry((TObject*)0, TString::Format("%.2f", mean[mc]),"");
-          leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS[mc]),"");
+          leg->AddEntry("", TString::Format("%.5f", mean[mc]),"");
+          leg->AddEntry("", TString::Format("%.5f", RMS[mc]),"");
         }
       }
     }
   }
   if(putEvents){
-    leg->AddEntry((TObject*)0, " Total MC","");
+    leg->AddEntry("", " Total MC","");
     double events = hists[mcs.front()]->Integral();
     double RMS = hists[mcs.front()]->GetRMS();
     double mean = hists[mcs.front()]->GetMean();
-    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+    leg->AddEntry("", TString::Format("%d", (int)(events+.5)),"");
     if(bottomLegend){
-      leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
-      leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
+      leg->AddEntry("", TString::Format("%.5f", mean),"");
+      leg->AddEntry("", TString::Format("%.5f", RMS),"");
     }
   }
 
@@ -283,10 +289,10 @@ void plotHistos::next(TString type){
     double events = hists["data"]->Integral();
     double RMS = hists["data"]->GetRMS();
     double mean = hists["data"]->GetMean();
-    leg->AddEntry((TObject*)0, TString::Format("%d", (int)(events+.5)),"");
+    leg->AddEntry("", TString::Format("%d", (int)(events+.5)),"");
     if(bottomLegend){
-      leg->AddEntry((TObject*)0, TString::Format("%.2f", mean),"");
-      leg->AddEntry((TObject*)0, TString::Format("%.2f", RMS),"");
+      leg->AddEntry("", TString::Format("%.5f", mean),"");
+      leg->AddEntry("", TString::Format("%.5f", RMS),"");
     }
   }
   drawText(type);
@@ -366,9 +372,9 @@ void plotHistos::next(TString type){
     hists["ratio"]->Draw("same e");
 
     double kolmogorov = hists["data"]->KolmogorovTest(hists[mcs.front()]);
-    TText *kstext = new TText();
-    kstext->SetTextSize(0.1);
-    kstext->DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
+    TText kstext = TText();
+    kstext.SetTextSize(0.1);
+    kstext.DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
 
 
 
@@ -407,11 +413,9 @@ void plotHistos::next(TString type){
 
   if(!exists(getTreeLocation() + "outputs/pdf/" + type + "/")) system("mkdir -p " + getTreeLocation() + "/outputs/pdf/" + type + "/");
   c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + name + ".pdf");  
-  delete c;
+  delete c, padUP, padDN, padLegend, frame, frameRatio, file;
 
-  //Set related cutflow as default
-  system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
-  system("diff " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
+  for(auto hist = hists.begin(); hist != hists.end(); ++hist) delete hist->second;
 
   return;
 }

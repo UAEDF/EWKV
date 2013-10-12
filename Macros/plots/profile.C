@@ -53,9 +53,9 @@ int main(){
 
 bool plotProfile::configureStack(){
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/plots/stack.config")); 
+  readFile.open((getCMSSWBASE() + "src/EWKV/Macros/plots/stack.config")); 
   if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/stack.config not found!" << std::endl;
+    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "src/EWKV/Macros/histos/stack.config not found!" << std::endl;
     return false;
   }
   while(!readFile.eof()){
@@ -86,9 +86,9 @@ bool plotProfile::configureStack(){
 void plotProfile::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config")); 
+  readFile.open((getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config")); 
   if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config not found!" << std::endl;
+    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config not found!" << std::endl;
     return;
   }
   while(!readFile.eof()){

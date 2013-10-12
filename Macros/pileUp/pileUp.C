@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
 
     //Check data configuration
     sampleList *samples = new sampleList();
-    TString samplesDir = getCMSSWBASE() + "/src/EWKV/Macros/samples/";
+    TString samplesDir = getCMSSWBASE() + "src/EWKV/Macros/samples/";
     if(!samples->init(samplesDir + "data_" + type + "_pixel.config", samplesDir + "mc.config", "pileUp")) return 1;
     TString mergeString = "";
     TString listJSON = "";
@@ -43,8 +43,8 @@ int main(int argc, char *argv[]){
     }
 
     //Get pile-up distribution for data
-    TString mergedJSON = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/lumiSummary" + mergeString + ".json";
-    TString mergedROOT = getCMSSWBASE() + "/src/EWKV/Macros/pileUp/pileUp" + mergeString + "_" + minBiasXsec + option + ".root";
+    TString mergedJSON = getCMSSWBASE() + "src/EWKV/Macros/pileUp/lumiSummary" + mergeString + ".json";
+    TString mergedROOT = getCMSSWBASE() + "src/EWKV/Macros/pileUp/pileUp" + mergeString + "_" + minBiasXsec + option + ".root";
     if(!exists(mergedROOT) || force){
       std::cout << "pileUp.C:\t\t\tPile-up calculation of the data (minBiasXsec = " << minBiasXsec << "): this will take some time..." << std::endl;
       system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
     TH1D *pileUpData = (TH1D*) file_data->Get("pileup");
 
     //Calculate the weights
-    writeFile.open((getCMSSWBASE() + "/src/EWKV/Macros/pileUp/weights" + mergeString + "_" + minBiasXsec + option + ".txt").Data());
+    writeFile.open((getCMSSWBASE() + "src/EWKV/Macros/pileUp/weights" + mergeString + "_" + minBiasXsec + option + ".txt").Data());
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){
       if((*it)->isData()) continue;
       mcSample *mc = (mcSample*) (*it);
