@@ -10,6 +10,6 @@ void binLogX(TH1* h){
   for(int i = 0; i <= bins; i++) new_bins[i] = TMath::Power(10, logMin + i*logWidth);
   axis->Set(bins, new_bins);
   axis->SetMoreLogLabels(); axis->SetNoExponent();
-  delete new_bins;
+  delete[] new_bins;
 }
 
