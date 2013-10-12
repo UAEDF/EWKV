@@ -48,8 +48,8 @@ class ewkvAnalyzer{
     void readEtaWeights();
     void ptReweighting(double rapidity);
     void readPtWeights();
-    void initMultiplicityCorrection();
-    float multiplicityCorrection(TString identifier, float mult);
+    void initQGCorrections();
+    void QGCorrections(TString jet, TLorentzVector *j, std::vector<int> jetOrder);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
@@ -194,7 +194,7 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   initTMVAreader();
   readEtaWeights();
   readPtWeights();
-  initMultiplicityCorrection();
+  initQGCorrections();
 
   std::cout << "ewkvAnalyzer:\t\t\tLoop over " << mySample->getName() << " tree (" << type << " mode)" << std::endl;
   int nEntries = tree->GetEntries();
