@@ -57,7 +57,7 @@
 #define TMVATAG "20130910_InclusiveForTMVA_BDT_50k"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131012_Fast2"
+#define OUTPUTTAG "20131012_Fast3"
 
 /*****************
  * Main function *
@@ -236,10 +236,10 @@ void ewkvAnalyzer::analyze_Zjets(){
 
 
     //Redo QG tagging (only HIG13011 at the moment)
-/*    if(mySample->isData()){
+    if(mySample->isData()){
       QGCorrections("j1", &j1, jetOrder);
       QGCorrections("j2", &j2, jetOrder);
-    }*/
+    }
 
     TString app;
     for(TString product : {"qg","axis1","axis2","mult","ptD"}){
