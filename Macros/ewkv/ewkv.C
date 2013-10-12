@@ -52,11 +52,11 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k" 
+//#define TMVATAG "20131010_InclusiveDY_BDT_50k_NoDPhiZ" 
+#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131011_Fast"
-
+#define OUTPUTTAG "20131012_Fast"
 
 /*****************
  * Main function *
@@ -182,6 +182,8 @@ void ewkvAnalyzer::analyze_Zjets(){
 
   // Set up parallel branches in the histograms/cutflow for JES
   for(TString branch : {"JES-", "", "JES+"}){
+    if(mySample->isData() && branch == "JES-") continue;
+    if(mySample->isData() && branch == "JES+") continue;
     histos->restoreEventWeight();											// Go back to normal event weight
     histos->setBranch(branch); cutflow->setBranch(branch);
 
@@ -234,29 +236,55 @@ void ewkvAnalyzer::analyze_Zjets(){
 
     //Redo QG tagging (only HIG13011 at the moment)
     if(mySample->isData()){
-      if(fabs(j1.Eta()) < 2) 		jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) += 0.5;
-      else if(fabs(j1.Eta()) < 3)	jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) += 1.0;
-      else				jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) -= 0.5;
-      if(fabs(j2.Eta()) < 2) 		jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) += 0.5;
-      else if(fabs(j2.Eta()) < 3)	jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) += 1.0;
-      else				jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) -= 0.5;
+      TString identifier = "ZMUMUj1";
+      if(fabs(j1.Eta()) < 2) identifier += "central";
+      else if(fabs(j1.Eta()) < 3) identifier += "transition";
+      else identifier += "forward";
+      jetQGvariables["multHIG13011"]->at(jetOrder.at(0)) = multiplicityCorrection(identifier, jetQGvariables["multHIG13011"]->at(jetOrder.at(0)));
+
+      identifier = "ZMUMUj2";
+      if(fabs(j2.Eta()) < 2) identifier += "central";
+      else if(fabs(j2.Eta()) < 3) identifier += "transition";
+      else identifier += "forward";
+      jetQGvariables["multHIG13011"]->at(jetOrder.at(1)) = multiplicityCorrection(identifier, jetQGvariables["multHIG13011"]->at(jetOrder.at(1)));
+
+      std::map<TString, float> mvaVariables;
+      mvaVariables["axis1"] = jetQGvariables["axis1HIG13011"]->at(jetOrder.at(0));
+      mvaVariables["axis2"] = jetQGvariables["axis2HIG13011"]->at(jetOrder.at(0));
+      mvaVariables["JetPull"] = jetQGvariables["pullHIG13011"]->at(jetOrder.at(0));
+      mvaVariables["JetR"] = jetQGvariables["RHIG13011"]->at(jetOrder.at(0));
+      if(fabs(j1.Eta()) < 2){
+        float mult = jetQGvariables["multHIG13011"]->at(jetOrder.at(0));
+	float multLow = floor(mult);
+        float multHigh = ceil(mult);
+        mvaVariables["Mult"] = multLow;
+        float low = qgTagger->getMVA(j1.Eta(), j1.Pt(), rho, mvaVariables);
+        mvaVariables["Mult"] = multHigh;
+        float high = qgTagger->getMVA(j1.Eta(), j1.Pt(), rho, mvaVariables);
+        jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)) = (high-low)/(multHigh-multLow)*(mult-multLow)+low;
+      } else {
+        mvaVariables["Mult"] = jetQGvariables["multHIG13011"]->at(jetOrder.at(0));
+        jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)) = qgTagger->getMVA(j1.Eta(), j1.Pt(), rho, mvaVariables);
+      }
+
+      mvaVariables["axis1"] = jetQGvariables["axis1HIG13011"]->at(jetOrder.at(1));
+      mvaVariables["axis2"] = jetQGvariables["axis2HIG13011"]->at(jetOrder.at(1));
+      mvaVariables["JetPull"] = jetQGvariables["pullHIG13011"]->at(jetOrder.at(1));
+      mvaVariables["JetR"] = jetQGvariables["RHIG13011"]->at(jetOrder.at(1));
+      if(fabs(j2.Eta()) < 2){
+        float mult = jetQGvariables["multHIG13011"]->at(jetOrder.at(1));
+	float multLow = floor(mult);
+        float multHigh = ceil(mult);
+        mvaVariables["Mult"] = multLow;
+        float low = qgTagger->getMVA(j2.Eta(), j2.Pt(), rho, mvaVariables);
+        mvaVariables["Mult"] = multHigh;
+        float high = qgTagger->getMVA(j2.Eta(), j2.Pt(), rho, mvaVariables);
+        jetQGvariables["qgHIG13011"]->at(jetOrder.at(1)) = (high-low)/(multHigh-multLow)*(mult-multLow)+low;
+      } else {
+        mvaVariables["Mult"] = jetQGvariables["multHIG13011"]->at(jetOrder.at(1));
+        jetQGvariables["qgHIG13011"]->at(jetOrder.at(1)) = qgTagger->getMVA(j2.Eta(), j2.Pt(), rho, mvaVariables);
+      }
     }
-
-    std::map<TString, float> mvaVariables;
-    mvaVariables["axis1"] = jetQGvariables["axis1HIG13011"]->at(jetOrder.at(0));
-    mvaVariables["axis2"] = jetQGvariables["axis2HIG13011"]->at(jetOrder.at(0));
-    mvaVariables["Mult"] = jetQGvariables["multHIG13011"]->at(jetOrder.at(0));
-    mvaVariables["JetPull"] = jetQGvariables["pullHIG13011"]->at(jetOrder.at(0));
-    mvaVariables["JetR"] = jetQGvariables["RHIG13011"]->at(jetOrder.at(0));
-    jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)) = qgTagger->getMVA(j1.Eta(), j1.Pt(), rho, mvaVariables);
-
-    mvaVariables["axis1"] = jetQGvariables["axis1HIG13011"]->at(jetOrder.at(1));
-    mvaVariables["axis2"] = jetQGvariables["axis2HIG13011"]->at(jetOrder.at(1));
-    mvaVariables["Mult"] = jetQGvariables["multHIG13011"]->at(jetOrder.at(1));
-    mvaVariables["JetPull"] = jetQGvariables["pullHIG13011"]->at(jetOrder.at(1));
-    mvaVariables["JetR"] = jetQGvariables["RHIG13011"]->at(jetOrder.at(1));
-    jetQGvariables["qgHIG13011"]->at(jetOrder.at(1)) = qgTagger->getMVA(j2.Eta(), j2.Pt(), rho, mvaVariables);
-
 
     TString app;
     for(TString product : {"qg","axis1","axis2","mult","ptD"}){
@@ -407,11 +435,11 @@ void ewkvAnalyzer::analyze_Zjets(){
 /*************************************
  * Initialization of the TMVA reader *
  *************************************/
-void ewkvAnalyzer::initTMVAreader(TString type){
+void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
 
   std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
-//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
   tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
@@ -471,7 +499,7 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
 /*****************
  * Z reweighting *
  *****************/
-void ewkvAnalyzer::readEtaWeights(TString type){
+void ewkvAnalyzer::readEtaWeights(){
   std::ifstream readFile;
   readFile.open("../reweightingZ/etaWeigths_" + type + ".txt");
   readFile.ignore(unsigned(-1), '\n');
@@ -498,7 +526,7 @@ void ewkvAnalyzer::etaReweighting(double eta){
   histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
 }
 
-void ewkvAnalyzer::readPtWeights(TString type){
+void ewkvAnalyzer::readPtWeights(){
   std::ifstream readFile;
   readFile.open("../reweightingZ/ptWeigths_" + type + ".txt");
   readFile.ignore(unsigned(-1), '\n');
@@ -523,4 +551,43 @@ void ewkvAnalyzer::ptReweighting(double pt){
   while((pt > ptBins[i+1])) ++i;
   histos->multiplyEventWeight(ptWeights[i]);
   histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
+}
+
+/***************************
+ * Multiplicity correction *
+ ***************************/
+void ewkvAnalyzer::initMultiplicityCorrection(){
+  meanData["ZMUMUj1central"] = 		9.023;
+  meanMC["ZMUMUj1central"] = 		9.484;
+  sigmaData["ZMUMUj1central"] = 	4.367;
+  sigmaMC["ZMUMUj1central"] = 		4.484;
+
+  meanData["ZMUMUj2central"] = 		7.764;
+  meanMC["ZMUMUj2central"] = 		8.279;
+  sigmaData["ZMUMUj2central"] = 	3.752;
+  sigmaMC["ZMUMUj2central"] = 		3.893;
+
+  meanData["ZMUMUj1transition"] = 	12.044;
+  meanMC["ZMUMUj1transition"] = 	13.254;
+  sigmaData["ZMUMUj1transition"] = 	5.114;
+  sigmaMC["ZMUMUj1transition"] = 	5.471;
+
+  meanData["ZMUMUj2transition"] = 	10.149;
+  meanMC["ZMUMUj2transition"] = 	11.544;
+  sigmaData["ZMUMUj2transition"] = 	4.104;
+  sigmaMC["ZMUMUj2transition"] = 	4.411;
+
+  meanData["ZMUMUj1forward"] = 		9.622;
+  meanMC["ZMUMUj1forward"] = 		9.024;
+  sigmaData["ZMUMUj1forward"] = 	2.875;
+  sigmaMC["ZMUMUj1forward"] = 		2.821;
+
+  meanData["ZMUMUj2forward"] = 		8.668;
+  meanMC["ZMUMUj2forward"] = 		8.426;
+  sigmaData["ZMUMUj2forward"] = 	2.737;
+  sigmaMC["ZMUMUj2forward"] = 		2.716;
+}
+
+float ewkvAnalyzer::multiplicityCorrection(TString identifier, float mult){
+  return ((mult - meanData[identifier])*sigmaMC[identifier]/sigmaData[identifier] + meanMC[identifier]);
 }

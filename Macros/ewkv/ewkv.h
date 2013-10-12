@@ -41,13 +41,15 @@ class ewkvAnalyzer{
     void analyze_Wjets(){std::cout << "ewkvAnalyzer:\t\t\tanalyze_WType() is not implemented yet" << std::endl;}
     void fillTMVAtree();
     void fillSkimTree();
-    void initTMVAreader(TString type);
+    void initTMVAreader();
     void checkRadiationPattern(double zRapidity);
     void mcfmReweighting(double mjj, double ystar);
     void etaReweighting(double rapidity);
-    void readEtaWeights(TString type);
+    void readEtaWeights();
     void ptReweighting(double rapidity);
-    void readPtWeights(TString type);
+    void readPtWeights();
+    void initMultiplicityCorrection();
+    float multiplicityCorrection(TString identifier, float mult);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
@@ -82,6 +84,8 @@ class ewkvAnalyzer{
     MuScleFitCorrector *muScleFitCorrector, *muScleFitCorrectorD;
     std::vector<double> etaWeights, etaBins;
     std::vector<double> ptWeights, ptBins;
+
+    std::map<TString, float> sigmaData, sigmaMC, meanData, meanMC;
 
     QGTaggerHIG13011 *qgTagger;
 
@@ -187,9 +191,10 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
     std::cout << "ewkvAnalyzer:\t\tERROR\tType unknown" << std::endl;
     return;
   }
-  initTMVAreader(type);
-  readEtaWeights(type);
-  readPtWeights(type);
+  initTMVAreader();
+  readEtaWeights();
+  readPtWeights();
+  initMultiplicityCorrection();
 
   std::cout << "ewkvAnalyzer:\t\t\tLoop over " << mySample->getName() << " tree (" << type << " mode)" << std::endl;
   int nEntries = tree->GetEntries();
