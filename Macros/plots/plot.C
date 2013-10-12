@@ -50,7 +50,7 @@ int main(int argc, char *argv[]){
   if(retrieveMeanAndRMS){
     writeFile.open((getCMSSWBASE() + "src/EWKV/Macros/ewkv/meanAndRMS.h").Data());
     writeFile << "#include \"ewkv.h\"" << std::endl << std::endl;
-    writeFile << "void ewkvAnalyzer::initMultiplicityCorrection(){" << std::endl;
+    writeFile << "void ewkvAnalyzer::initQGCorrections(){" << std::endl;
   }
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
@@ -289,6 +289,7 @@ void plotHistos::next(TString type){
     }
     if(retrieveMeanAndRMS){
       if(name.Contains("HIG13011")){
+        writeFile << "  // Mean and RMS for " << name << " (" << type << ", tag " << tag << ")" << std::endl;
         writeFile << "  meanMC[\"" << type << name << "\"] = " << TString::Format("%.5f", mean) << ";" << std::endl;
         writeFile << "  sigmaMC[\"" << type << name << "\"] = " << TString::Format("%.5f", RMS) << ";" << std::endl;
       }
@@ -317,7 +318,7 @@ void plotHistos::next(TString type){
     if(retrieveMeanAndRMS){
       if(name.Contains("HIG13011")){
         writeFile << "  meanData[\"" << type << name << "\"] = " << TString::Format("%.5f", mean) << ";" << std::endl;
-        writeFile << "  sigmaData[\"" << type << name << "\"] = " << TString::Format("%.5f", RMS) << ";" << std::endl;
+        writeFile << "  sigmaData[\"" << type << name << "\"] = " << TString::Format("%.5f", RMS) << ";" << std::endl << std::endl;
       }
     }
   }
