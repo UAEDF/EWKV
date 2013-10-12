@@ -17,6 +17,9 @@
 #include "../environment.h"
 #include "color.h"
 
+bool retrieveMeanAndRMS;
+std::ofstream writeFile;
+
 class plotHistos{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
@@ -42,9 +45,20 @@ int main(int argc, char *argv[]){
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
   if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
   if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
+  if(argc > 1 && (((TString) argv[1]) == "-r")) retrieveMeanAndRMS = true;
+  else retrieveMeanAndRMS = false;
+  if(retrieveMeanAndRMS){
+    writeFile.open((getCMSSWBASE() + "src/EWKV/Macros/ewkv/meanAndRMS.h").Data());
+    writeFile << "#include \"ewkv.h\"" << std::endl << std::endl;
+    writeFile << "void ewkvAnalyzer::initMultiplicityCorrection(){" << std::endl;
+  }
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
   for(TString type : types) myPlotHistos->loop(type);
+  if(retrieveMeanAndRMS){
+    writeFile << "}" << std::endl;
+    writeFile.close();
+  }
   delete myPlotHistos;
   return 0;
 }
@@ -111,7 +125,7 @@ void plotHistos::loop(TString type){
     fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root";
     next(type);
 
-    if(xtitle == "nPriVtxs"){
+    if(xtitle == "BDT"){
       //Set related cutflow as default
       system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
       system("diff " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
@@ -273,6 +287,12 @@ void plotHistos::next(TString type){
       leg->AddEntry("", TString::Format("%.5f", mean),"");
       leg->AddEntry("", TString::Format("%.5f", RMS),"");
     }
+    if(retrieveMeanAndRMS){
+      if(name.Contains("HIG13011")){
+        writeFile << "  meanMC[\"" << type << name << "\"] = " << TString::Format("%.5f", mean) << ";" << std::endl;
+        writeFile << "  sigmaMC[\"" << type << name << "\"] = " << TString::Format("%.5f", RMS) << ";" << std::endl;
+      }
+    }
   }
 
 /*
@@ -293,6 +313,12 @@ void plotHistos::next(TString type){
     if(bottomLegend){
       leg->AddEntry("", TString::Format("%.5f", mean),"");
       leg->AddEntry("", TString::Format("%.5f", RMS),"");
+    }
+    if(retrieveMeanAndRMS){
+      if(name.Contains("HIG13011")){
+        writeFile << "  meanData[\"" << type << name << "\"] = " << TString::Format("%.5f", mean) << ";" << std::endl;
+        writeFile << "  sigmaData[\"" << type << name << "\"] = " << TString::Format("%.5f", RMS) << ";" << std::endl;
+      }
     }
   }
   drawText(type);
