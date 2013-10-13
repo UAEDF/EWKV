@@ -53,11 +53,12 @@
 #define JETETA 4.7
 
 // Options
-//#define TMVATAG "20131010_InclusiveDY_BDT_50k_NoDPhiZ" 
-#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k"
+//#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k"
+//#define TMVATAG "20131010_InclusiveDY_BDT_50k_zstar_NoDPhiZ"
+#define TMVATAG "20131010_InclusiveDY_BDT_data"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131012_Fast3"
+#define OUTPUTTAG "20131013_Fast3"
 
 /*****************
  * Main function *
@@ -314,9 +315,10 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dijet_pt", 		jj.Pt());
     histos->fillHist1D("dijet_dphi", 		fabs(j1.DeltaPhi(j2)));
     histos->fillHist1D("dijet_deta", 		fabs(j1.Eta() - j2.Eta()));
-    histos->fillHist1D("dijet_av_eta", 		fabs((j1.Eta() + j2.Eta())/2));
+    histos->fillHist1D("dijet_av_eta", 		(j1.Eta() + j2.Eta())/2);
+    histos->fillHist1D("dijet_sum_pt", 		(j1.Pt() + j2.Pt()));
 
-    histos->fillHist1D("jet1_Z_dphi", 		fabs(Z.DeltaPhi(j2)));
+    histos->fillHist1D("jet1_Z_dphi", 		fabs(Z.DeltaPhi(j1)));
     histos->fillHist1D("jet2_Z_dphi", 		fabs(Z.DeltaPhi(j2)));
 
 
@@ -324,6 +326,11 @@ void ewkvAnalyzer::analyze_Zjets(){
       histos->fillHist1D("dijet_dphi_100",      fabs(j1.DeltaPhi(j2)));
       histos->fillHist1D("ystar_Z_100", 	fabs(ystarZ));
       histos->fillHist1D(TString(TMVATYPE)+"_100", 	mvaValue);
+    }
+    if(jj.M() > 200){
+      histos->fillHist1D("dijet_dphi_200",      fabs(j1.DeltaPhi(j2)));
+      histos->fillHist1D("ystar_Z_200", 	fabs(ystarZ));
+      histos->fillHist1D(TString(TMVATYPE)+"_200", 	mvaValue);
     }
 
     histos->fillHist1D("ystar_Z", 		fabs(ystarZ));
@@ -394,7 +401,8 @@ void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
 
   std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
-//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_jj", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
   tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
