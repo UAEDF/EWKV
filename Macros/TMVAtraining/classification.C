@@ -19,8 +19,9 @@
 #include "../environment.h"
 
 TString tag = "20131010_InclusiveDY";
-TString option = "_BDT_50k_zstar";
-TString DYtype = "inclusive";
+TString option = "_BDT_data";
+TString DYtype = "data";
+TString nTrain = "0";
    
 int main(int argc, char *argv[]){
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
@@ -43,8 +44,8 @@ int main(int argc, char *argv[]){
     factory->AddVariable( "dPhi_j1", 'F' );
     factory->AddVariable( "dPhi_j2", 'F' );
     factory->AddVariable( "dPhi_jj", 'F' );
-//    factory->AddVariable( "dEta_jj", 'F' );
-    factory->AddVariable( "zstarZ", 'F' );
+    factory->AddVariable( "dEta_jj", 'F' );
+//    factory->AddVariable( "zstarZ", 'F' );
     factory->AddVariable( "avEta_jj", 'F' );
     factory->AddVariable( "qgHIG13011_j1", 'F' );
     factory->AddVariable( "qgHIG13011_j2", 'F' );
@@ -57,21 +58,24 @@ int main(int argc, char *argv[]){
     if(DYtype == "powheg"){
       if(type == "ZEE") files["DY"] = new TFile(treeDir + "DYEE-powheg.root");
       if(type == "ZMUMU") files["DY"] = new TFile(treeDir + "DYMUMU-powheg.root");
+    } else if(DYtype == "inclusive"){
+      files["DY"] = new TFile(treeDir + "DY.root");
+    } else if(DYtype == "data"){
+      files["DY"] = new TFile(treeDir + "data.root");
     } else {
-      if(DYtype == "inclusive") files["DY"] = new TFile(treeDir + "DY.root");
-      else for(TString i : {"2","3","4"}) files["DY" + i] = new TFile(treeDir + "DY" + i + ".root");
+      for(TString i : {"2","3","4"}) files["DY" + i] = new TFile(treeDir + "DY" + i + ".root");
     }
 
     for(auto file = files.begin(); file != files.end(); ++file) trees[file->first] = (TTree*) file->second->Get("ewkv-TMVA-input");
 
     factory->AddSignalTree(trees["signal"]);
-    if(DYtype == "powheg" || DYtype  == "inclusive") factory->AddBackgroundTree(trees["DY"]);
+    if(DYtype == "powheg" || DYtype  == "inclusive" || DYtype == "data") factory->AddBackgroundTree(trees["DY"]);
     else for(TString i : {"2","3","4"}) factory->AddBackgroundTree(trees["DY" + i]);
    
     factory->SetSignalWeightExpression("weight");
     factory->SetBackgroundWeightExpression("weight");
 
-    factory->PrepareTrainingAndTestTree( "", "", "nTrain_Signal=50000:nTrain_Background=50000:SplitMode=Random:!V" );
+    factory->PrepareTrainingAndTestTree( "", "", "nTrain_Signal=" + nTrain + ":nTrain_Background=" + nTrain + ":SplitMode=Random:!V" );
     factory->BookMethod( TMVA::Types::kBDT, "BDT", "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
    
 
