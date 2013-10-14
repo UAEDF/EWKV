@@ -55,10 +55,10 @@
 // Options
 //#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k"
 //#define TMVATAG "20131010_InclusiveDY_BDT_50k_zstar_NoDPhiZ"
-#define TMVATAG "20131010_InclusiveDY_BDT_zstar_noDPhis"
+#define TMVATAG "20131014_InclusiveDY_BDT_zstar_noDPhis_ptjj"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131014_Fast3"
+#define OUTPUTTAG "20131014_Fast5"
 
 /*****************
  * Main function *
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
       (*it)->useSkim(type, "20131010_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -153,7 +153,7 @@ void ewkvAnalyzer::analyze_Zjets(){
 
   if(l1.Pt() < 20 || l2.Pt() < 20) return;
 
-//  ptReweighting(Z.Pt());
+  ptReweighting(Z.Pt());
 //  etaReweighting(Z.Eta());
 
   histos->fillHist1D("lepton_pt", 	l1.Pt());
@@ -402,7 +402,7 @@ void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
 
 //  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
-  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+  std::vector<TString> variables = {"pT_Z", "pT_jj", "eta_Z", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
   tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
