@@ -19,9 +19,9 @@
 #include "../environment.h"
 
 TString tag = "20131010_InclusiveDY";
-TString option = "_BDT_data";
-TString DYtype = "data";
-TString nTrain = "0";
+TString option = "_BDT_zstar_noDPhis";
+TString DYtype = "inclusive";
+TString nTrain = "50000";
    
 int main(int argc, char *argv[]){
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
@@ -40,12 +40,13 @@ int main(int argc, char *argv[]){
     factory->AddVariable( "pT_Z", 'F' );
     factory->AddVariable( "pT_j1", 'F' );
     factory->AddVariable( "pT_j2", 'F' );
+    factory->AddVariable( "pT_jj", 'F' );
     factory->AddVariable( "eta_Z", 'F' );
-    factory->AddVariable( "dPhi_j1", 'F' );
-    factory->AddVariable( "dPhi_j2", 'F' );
-    factory->AddVariable( "dPhi_jj", 'F' );
-    factory->AddVariable( "dEta_jj", 'F' );
-//    factory->AddVariable( "zstarZ", 'F' );
+//    factory->AddVariable( "dPhi_j1", 'F' );
+//    factory->AddVariable( "dPhi_j2", 'F' );
+//    factory->AddVariable( "dPhi_jj", 'F' );
+//    factory->AddVariable( "dEta_jj", 'F' );
+    factory->AddVariable( "zstarZ", 'F' );
     factory->AddVariable( "avEta_jj", 'F' );
     factory->AddVariable( "qgHIG13011_j1", 'F' );
     factory->AddVariable( "qgHIG13011_j2", 'F' );
