@@ -18,10 +18,12 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20131010_InclusiveDY";
+TString tag = "20131014_InclusiveDY";
 TString option = "_BDT_zstar_noDPhis";
 TString DYtype = "inclusive";
 TString nTrain = "50000";
+//TCut mjjCut = "mjj>200";
+TCut mjjCut = "";
    
 int main(int argc, char *argv[]){
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
@@ -76,7 +78,7 @@ int main(int argc, char *argv[]){
     factory->SetSignalWeightExpression("weight");
     factory->SetBackgroundWeightExpression("weight");
 
-    factory->PrepareTrainingAndTestTree( "", "", "nTrain_Signal=" + nTrain + ":nTrain_Background=" + nTrain + ":SplitMode=Random:!V" );
+    factory->PrepareTrainingAndTestTree( mjjCut, mjjCut, "nTrain_Signal=" + nTrain + ":nTrain_Background=" + nTrain + ":SplitMode=Random:!V" );
     factory->BookMethod( TMVA::Types::kBDT, "BDT", "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
    
 
