@@ -31,7 +31,7 @@ samples = {
 	   'DoubleElectronD' : 	['data',	'/DoubleElectron/Run2012D-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
 
 	   # Signal
-	   'signal' :		['MC',		'/DYJJ01JetsToLL_M-50_MJJ-200_TuneZ2Star_8TeV-madgraph_tauola/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
+	   'ZVBF' :		['MC',		'/ZVBF_Mqq-120_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V19-v1/AODSIM'],
 
            # DY backgrounds
 	   'DY' :		['MC',		'/DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
