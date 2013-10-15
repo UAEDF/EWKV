@@ -55,7 +55,7 @@
 // Options
 #define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_zstar_ptj2"
 #define TMVATYPE "BDT"
-#define DYTYPE "inclusive"
+#define DYTYPE "composed"
 #define OUTPUTTAG "20131015_Fast3"
 
 /*****************
