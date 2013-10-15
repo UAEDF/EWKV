@@ -53,10 +53,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_zstar_ptj2"
+#define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_AllEvents_zstar_ptj2"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131015_Fast3"
+#define OUTPUTTAG "20131015_Fast8"
 
 /*****************
  * Main function *
@@ -307,7 +307,7 @@ void ewkvAnalyzer::analyze_Zjets(){
 //    histos->fillHist1D("ystar_Z_NR", 		fabs(ystarZ));
 //    histos->fillHist1D(TString(TMVATYPE)+"_NR", mvaValue);
     // From here on fill histograms with MCFM reweighted values
- //   mcfmReweighting(jj.M(), ystarZ);
+    mcfmReweighting(jj.M(), ystarZ);
     histos->fillHist1D(TMVATYPE, 		mvaValue);
 
     histos->fillHist1D("dijet_mass", 		jj.M());
@@ -445,16 +445,13 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
  * MCFM NLO/LO reweighting *
  ***************************/
 void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
-  return; //OFF
   std::vector<TString> needReweighting = {"DY","DY2","DY3","DY4"};							// Only selected samples need reweighting
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
-//double ystarZWeight = (8.76856e-01) + (1.15122e-01)*ystarZ; 	 							// MCFM NLO/madGraph gen
-//  double ystarZWeight = (9.50782e-01) + (-5.23409e-03)*ystarZ + (3.01934e-02)*ystarZ*ystarZ;				// MCFM NLO/LO
   double ystarZWeight = 0.85+0.15*fabs(ystarZ);										// MCFM NLO/LO NEW
-//double mjjWeight = (1.02289) + (-9.81406e-05)*mjj;									// MCFM NLO/madGraph gen
-//  double mjjWeight = (1.04886e+00) + (-1.67724e-04)*mjj;								// MCFM NLO/LO
   double mjjWeight = 0.39+0.12*log(mjj)-0.00025*mjj;									// MCFM NLO/LO NEW
-  histos->multiplyEventWeight(ystarZWeight*mjjWeight);
+  if(mjj < 200) mjjWeight = 1.;
+//  histos->multiplyEventWeight(ystarZWeight*mjjWeight);
+//  histos->multiplyEventWeight(ystarZWeight);
 }
 
 /*****************
