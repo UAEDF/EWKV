@@ -53,9 +53,7 @@
 #define JETETA 4.7
 
 // Options
-//#define TMVATAG "20130910_InclusiveForTMVA_BDT_50k"
-//#define TMVATAG "20131010_InclusiveDY_BDT_50k_zstar_NoDPhiZ"
-#define TMVATAG "20131014_InclusiveDY_ptZrew_BDT_zstar_ptj2"
+#define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_zstar_ptj2"
 #define TMVATYPE "BDT"
 #define DYTYPE "inclusive"
 #define OUTPUTTAG "20131015_Fast3"
