@@ -1,0 +1,17 @@
+imax 1  number of channels
+jmax *  number of backgrounds
+kmax *  number of nuisance parameters (sources of systematical uncertainties)
+------------
+shapes * *  ewkZjj_8TeV.root $DIRECTORY/$PROCESS $DIRECTORY/$PROCESS_$SYSTEMATIC
+------------
+bin a
+observation $data
+------------
+bin          	 	a	a	a	a	a
+process        	 	ewkZjj	DY	top	VV	WJets
+process       	  	0     	1	2	3	4
+rate			$ewkZjj	$DY	$top	$VV	$WJets	
+------------
+lumi    lnN    		1.026   1.026	1.026	1.026	1.026
+eff	lnN		1.030	1.030	1.030	1.030	1.030
+JES	shapeN2		1.000	1.000	1.000	1.000	1.000
