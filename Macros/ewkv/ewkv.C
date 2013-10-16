@@ -53,10 +53,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_AllEvents_zstar_ptj2"
+#define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_MoreEvents_zstar_ptj2"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131015_Fast8"
+#define OUTPUTTAG "20131016_AllMuTrigger"
 
 /*****************
  * Main function *
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]){
       (*it)->useSkim(type, "20131010_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]){
  *******************************************/
 void ewkvAnalyzer::analyze_Zjets(){
   // Trigger 
-  if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
+  if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8 || IsoMu24_eta2p1)) return;
   if((vType == ZEE) && !Ele17T_Ele8T) return;
 
   // Get lorentzvectors (l+ in l1 and l- in l2) + construct Z boson

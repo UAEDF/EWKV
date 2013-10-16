@@ -65,7 +65,7 @@ class ewkvAnalyzer{
     int idGenPart[10], ncJets[15], leptonCharge[2];
     double jetUncertainty[15];
     float jetSmearedPt[15], genJetPt[15];
-    bool Mu17_Mu8, Mu17_TkMu8, Ele17T_Ele8T;
+    bool Mu17_Mu8, Mu17_TkMu8, isoMu24_eta2p1, Ele17T_Ele8T;
 
     std::map<TString, std::vector<float>*> jetQGvariables;
 
@@ -156,6 +156,7 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
 
   tree->SetBranchAddress("HLT_Mu17_Mu8", 	&Mu17_Mu8);
   tree->SetBranchAddress("HLT_Mu17_TkMu8", 	&Mu17_TkMu8);
+  tree->SetBranchAddress("HLT_IsoMu24_eta2p1", 	&IsoMu24_eta2p1);
   tree->SetBranchAddress("HLT_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL", &Ele17T_Ele8T);
 
   std::cout << std::endl << "ewkvAnalyzer:\t\t\tTree initialized for " << mySample->getName() << std::endl;
