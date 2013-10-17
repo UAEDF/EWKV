@@ -47,7 +47,7 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   if(mode == "pileUp") return true;
 
   TString minBiasXsec = "70300";
-  if(mode == "78315") minBiasXsec = mode;
+  if(mode == "73815") minBiasXsec = mode;
   if(mode == "66785") minBiasXsec = mode;
 
   //pile-up weights
