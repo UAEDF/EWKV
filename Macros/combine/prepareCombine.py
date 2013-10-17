@@ -3,6 +3,14 @@ from ROOT import TFile, TH1
  
 base = "BDT"
 tag = "20131015_Fast3"
+puUpTag = "20131017_66785_Fast"
+puDownTag = "20131017_73815_Fast"
+
+mcGroups = {'DY': ["DY0","DY1","DY2","DY3","DY4"],
+            'TTJets': ["TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"],
+            'T-s': ["T-s","Tbar-s"], 'T-W': ["T-W","Tbar-W"], 'T-t': ["T-t","Tbar-t"],
+            'WW': ["WW"], 'WZ': ["WZ"], 'ZZ': ["ZZ"], 'WJets': ["WJets"],
+            'ewkZjj': ["ZVBF"]}
 
 def getTreeLocation():
   return "/user/tomc/public/merged/EWKV/2013-06-JetIDfix/"
@@ -18,6 +26,8 @@ combineFile = TFile("ewkZjj_8TeV.root","RECREATE")
 for type in ["ZMUMU","ZEE"]: 
   print "prepare " + type
   sourceFile = TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root")
+  puUpFile = TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + puUpTag + ".root")
+  puDownFile = TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + puDownTag + ".root")
   for category in ["","_100","_200"]:
     dir = combineFile.mkdir(type + category)
     dir.cd()
@@ -25,31 +35,27 @@ for type in ["ZMUMU","ZEE"]:
     data = sourceFile.Get(base + category + "_data")
     data.Write("data_obs")
 
-    for systematic in ["","_JESUp","_JESDown"]:
+    for systematic in ["","_JESUp","_JESDown","_PUUp","_PUDown"]:
+      file = sourceFile
+      if systematic == "_PUUp": file = puUpFile
+      if systematic == "_PUDown": file = puDownFile
+
       plot = base + category
       if systematic == "_JESUp": plot += "JES+"
       if systematic == "_JESDown": plot += "JES-"
 
-      DY = merge(sourceFile, plot, ["DY0","DY1","DY2","DY3","DY4"])
-      DY.Write("DY" + systematic)
-      
-
-      top = merge(sourceFile, plot, ["TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic","T-W","Tbar-W","T-s","Tbar-s","T-t","Tbar-t"])
-      top.Write("top" + systematic)
-
-      VV = merge(sourceFile, plot, ["WW","WZ","ZZ"])
-      VV.Write("VV" + systematic)
-
-      WJets = sourceFile.Get(plot + "_WJets")
-      WJets.Write("WJets" + systematic)
-
-      EWKZjj = sourceFile.Get(plot + "_ZVBF")
-      EWKZjj.Write("ewkZjj" + systematic)
-
+      expected = {}
+      for name, mcs in mcGroups.iteritems():
+        thisGroup = merge(file, plot, mcs)
+        thisGroup.Write(name + systematic)
+        expected[name] = ('%.3f' % thisGroup.Integral())
+       
       if systematic == "":
         with open("ewkZjj_8TeV"+category+"_" + type + ".dat", "wt") as card:
           with open("ewkZjj_template.dat", "rt") as template:
             for line in template:
-              card.write(line.replace('$DIRECTORY', type + category).replace('$data', '%d'%round(data.Integral())).replace('$ewkZjj', '%d'%round(EWKZjj.Integral())).replace('$DY', '%d'%round(DY.Integral())).replace('$VV', '%d'%round(VV.Integral())).replace('$top', '%d'%round(top.Integral())).replace('$WJets', '%d'%round(WJets.Integral())))
+              line = line.replace('$DIRECTORY', type + category).replace('$data', '%d'%data.Integral())
+              for name, n in expected.iteritems(): line = line.replace(('$'+name).ljust(16), n.ljust(16))
+              card.write(line)
 
 exit()
