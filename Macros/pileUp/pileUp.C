@@ -13,19 +13,19 @@ void pileUpWeights(TH1D *pileUpData, TH1I *pileUpMC, TString sampleName);
 std::ofstream writeFile;
 
 int main(int argc, char *argv[]){
-  TString puType = "true";
+  TString puType = "observed";
   bool force = false;
-  bool old = false;
+  bool pixel = false;
   TString minBiasXsec = "70300";
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
   if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
   if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
   if(argc > 2) minBiasXsec = (TString) argv[2];
   if(argc > 3 && ((TString) argv[3]) == "-f") force = true;
-  if(argc > 3 && ((TString) argv[3]) == "-o"){ old = true; force = true;}
+  if(argc > 3 && ((TString) argv[3]) == "-p"){ pixel = true; force = true;}
 
   TString option = "";
-  if(old) option += "_old";
+  if(pixel) option += "_pixel";
   if(puType == "true") option += "_true";
 
   for(TString type : types){
@@ -47,13 +47,11 @@ int main(int argc, char *argv[]){
     TString mergedROOT = getCMSSWBASE() + "src/EWKV/Macros/pileUp/pileUp" + mergeString + "_" + minBiasXsec + option + ".root";
     if(!exists(mergedROOT) || force){
       std::cout << "pileUp.C:\t\t\tPile-up calculation of the data (minBiasXsec = " << minBiasXsec << "): this will take some time..." << std::endl;
-      system(("mergeJSON.py" + listJSON + " --output=temp.json").Data());
+      system(("mergeJSON.py" + listJSON + " --output="+mergedJSON).Data());
       TString puJSON = "pileup_JSON_DCSONLY_190389-208686_corr.txt";
-      if(old) puJSON = "pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt";
-      TString command = "pileupCalc.py -i temp.json --inputLumiJSON " + puJSON + " --calcMode " + puType + " --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 temp.root";
+      if(pixel) puJSON = "pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt";
+      TString command = "pileupCalc.py -i "+mergedJSON+" --inputLumiJSON " + puJSON + " --calcMode " + puType + " --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 " + mergedROOT;
       system(command); 
-      system(("mv temp.json " + mergedJSON).Data());
-      system(("mv temp.root " + mergedROOT).Data());
     } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << "_" << minBiasXsec << option << ".root file, use -f to recreate this file" << std::endl;}
     TFile *file_data = new TFile(mergedROOT);
     TH1D *pileUpData = (TH1D*) file_data->Get("pileup");
