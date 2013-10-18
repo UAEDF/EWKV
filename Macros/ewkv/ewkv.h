@@ -65,7 +65,7 @@ class ewkvAnalyzer{
     int idGenPart[10], ncJets[15], leptonCharge[2];
     double jetUncertainty[15];
     float jetSmearedPt[15], genJetPt[15];
-    bool Mu17_Mu8, Mu17_TkMu8, isoMu24_eta2p1, Ele17T_Ele8T;
+    bool Mu17_Mu8, Mu17_TkMu8, IsoMu24_eta2p1, Ele17T_Ele8T;
 
     std::map<TString, std::vector<float>*> jetQGvariables;
 

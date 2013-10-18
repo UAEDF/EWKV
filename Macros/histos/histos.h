@@ -238,19 +238,21 @@ void histoCollection::binLogX(TH1* h){
 
 void histoCollection::toFile(std::vector<TString> selectedHists){
   outputFile->cd();
+  TDirectory *dir = outputFile->mkdir(mySample->getName());
+  dir->cd();
   for(auto hid = hist1DList.begin(); hid != hist1DList.end(); ++hid){
     if(!selectedHists.empty() && std::find(selectedHists.begin(), selectedHists.end(), hid->first) == selectedHists.end()) continue;
-    hid->second->SetName(hid->first + "_" + mySample->getName());
+    hid->second->SetName(hid->first);
     hid->second->Write();
   }
   for(auto hid = hist2DList.begin(); hid != hist2DList.end(); ++hid){
     if(!selectedHists.empty() && std::find(selectedHists.begin(), selectedHists.end(), hid->first) == selectedHists.end()) continue;
-    hid->second->SetName(hid->first + "_" + mySample->getName());
+    hid->second->SetName(hid->first);
     hid->second->Write();
   }
   for(auto hid = profileList.begin(); hid != profileList.end(); ++hid){
     if(!selectedHists.empty() && std::find(selectedHists.begin(), selectedHists.end(), hid->first) == selectedHists.end()) continue;
-    hid->second->SetName(hid->first + "_" + mySample->getName());
+    hid->second->SetName(hid->first);
     hid->second->Write();
   }
   std::cout << "HistoCollection:\t\tHistos from " << mySample->getName() << " saved in " << outputFile->GetName() << std::endl;

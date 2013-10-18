@@ -23,8 +23,8 @@ class sample{
   public:
     virtual TTree* getTree();
     virtual bool isData() = 0;
-    virtual double getPileUpWeight(int nPileUp) = 0;
-    virtual double getWeight(int nPileUp) = 0;
+    virtual double getPileUpWeight(int nPileUp, TString puMode) = 0;
+    virtual double getWeight(int nPileUp, TString puMode) = 0;
     virtual double muonEfficiency(TLorentzVector *l) = 0;
 
     TString getName(){		return name;};
@@ -60,11 +60,11 @@ class dataRun : public sample{
 
   public:
     dataRun(TString name_, double lumi_);
-    bool isData(){ 				return true;};
-    double getPileUpWeight(int nPileUp){ 	return 1.;};
-    double getWeight(int nPileUp){ 		return 1.;};
-    double muonEfficiency(TLorentzVector *l){	return 1.;};
-    TString getJSON(){ 				return JSON;};
+    bool isData(){ 						return true;};
+    double getPileUpWeight(int nPileUp, TString puMode){ 	return 1.;};
+    double getWeight(int nPileUp, TString puMode){ 		return 1.;};
+    double muonEfficiency(TLorentzVector *l){			return 1.;};
+    TString getJSON(){ 						return JSON;};
 };
 
 dataRun::dataRun(TString name_, double lumi_){
@@ -128,7 +128,7 @@ TTree* dataSample::getTree(){
  ******************/
 class mcSample : public sample{
   private:
-    std::vector<double> weights;
+    std::map<TString, std::vector<double>> weights;
     std::map<TString, TGraphAsymmErrors*> efficiencies;
     double crossSection;
     int nEvents;
@@ -137,13 +137,13 @@ class mcSample : public sample{
 
   public:
     mcSample(TString name_, double crossSection_, int nEvents_, std::map<TString, TGraphAsymmErrors*> efficiencies_);
-    bool setPileUpWeights(TString pileUpWeightsFile);
+    bool setPileUpWeights(TString pileUpWeightsFile, TString puMode);
     TH1I* getPileUpHisto();
  
     bool isData(){ return false;};
-    double getPileUpWeight(int nPileUp){ return (nPileUp < 51 && nPileUp >= 0) ? weights.at(nPileUp) : 0;};
+    double getPileUpWeight(int nPileUp, TString puMode){ return (nPileUp < 51 && nPileUp >= 0) ? weights[(puMode == "" ? "*" : puMode)].at(nPileUp) : 0;};
     double muonEfficiency(TLorentzVector *l);
-    double getWeight(int nPileUp){ return getPileUpWeight(nPileUp)*lumiWeight;};
+    double getWeight(int nPileUp, TString puMode){ return getPileUpWeight(nPileUp, puMode)*lumiWeight;};
 };
 
 mcSample::mcSample(TString name_, double crossSection_, int nEvents_, std::map<TString, TGraphAsymmErrors*> efficiencies_){
@@ -169,8 +169,8 @@ TH1I* mcSample::getPileUpHisto(){
   return hist;
 }
 
-bool mcSample::setPileUpWeights(TString pileUpWeightsFile){
-  weights = std::vector<double>(51, 1); 
+bool mcSample::setPileUpWeights(TString pileUpWeightsFile, TString puMode){
+  weights[puMode] = std::vector<double>(51, 1); 
   std::ifstream readFile;
   readFile.open(pileUpWeightsFile.Data());
   if(!readFile.is_open()) return false;
@@ -178,11 +178,11 @@ bool mcSample::setPileUpWeights(TString pileUpWeightsFile){
     TString name_;
     readFile >> name_;
     if(name_ == name){
-      weights.clear();
+      weights[puMode].clear();
       for(int j=0; j < 51; ++j){
         double weight = 1.;
         readFile >> weight;
-        weights.push_back(weight);
+        weights[puMode].push_back(weight);
       }
       readFile.close();
       return true;

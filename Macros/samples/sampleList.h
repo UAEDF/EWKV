@@ -46,19 +46,20 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   if(!(readInitFile(dataFile, "data", mode == "pileUp") && readInitFile(mcFile, "mc", mode == "pileUp"))) return false;
   if(mode == "pileUp") return true;
 
-  TString minBiasXsec = "70300";
-  if(mode == "73815") minBiasXsec = mode;
-  if(mode == "66785") minBiasXsec = mode;
-
   //pile-up weights
   dataSample *data = (dataSample*) get("data");
-  TString puWeightsFile = getCMSSWBASE() + "src/EWKV/Macros/pileUp/weights" + data->getMergeString() + "_" + minBiasXsec + ".txt";
-  if(!exists(puWeightsFile)) std::cout << "sampleList:\t\t!!!\t" + puWeightsFile + " not found, run pileUp.C first" << std::endl;
-  else {
-    for(iterator it = samples.begin(); it != samples.end(); ++it){
-      if((*it)->isData()) continue;
-      mcSample* mc = (mcSample*) (*it);
-      if(!mc->setPileUpWeights(puWeightsFile)) std::cout << "sampleList:\t\t!!!\tNo pile-up reweighting for " << mc->getName() << std::endl;
+  for(TString puMode : {"*","PUUp","PUDown"}){
+    TString minBiasXsec = "70300";
+    if(puMode == "PUDown") minBiasXsec = "66785";
+    if(puMode == "PUUp") minBiasXsec = "73815";
+    TString puWeightsFile = getCMSSWBASE() + "src/EWKV/Macros/pileUp/weights" + data->getMergeString() + "_" + minBiasXsec + ".txt";
+    if(!exists(puWeightsFile)) std::cout << "sampleList:\t\t!!!\t" + puWeightsFile + " not found, run pileUp.C first" << std::endl;
+    else {
+      for(iterator it = samples.begin(); it != samples.end(); ++it){
+        if((*it)->isData()) continue;
+        mcSample* mc = (mcSample*) (*it);
+        if(!mc->setPileUpWeights(puWeightsFile, puMode)) std::cout << "sampleList:\t\t!!!\tNo pile-up reweighting for " << mc->getName() << " " << puMode << std::endl;
+      }
     }
   }
 
