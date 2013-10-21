@@ -55,8 +55,8 @@
 // Options
 #define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_ptj2"
 #define TMVATYPE "BDT"
-#define DYTYPE "composed"
-#define OUTPUTTAG "20131021_Fast"
+#define DYTYPE "inclusive"
+#define OUTPUTTAG "20131021_InclusiveDY_ptZrew"
 
 /*****************
  * Main function *
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]){
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
       (*it)->useSkim(type, "20131010_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -270,7 +270,8 @@ void ewkvAnalyzer::analyze_Zjets(){
       // Add systematic branches for MCFM reweightig
       for(TString mcfmSyst : {"", "mjjUp", "ystarUp", "mcfmUp"}){
         if((mySample->isData() || branch != "") && mcfmSyst != "") continue;
-        histos->setBranch(branch + mcfmSyst); cutflow->setBranch(branch + mcfmSyst);
+        branch = puMode + subBranch + mcfmSyst;
+        histos->setBranch(branch); cutflow->setBranch(branch);
         histos->restoreEventWeight();										// Go back to normal event weight before next reweighting
         if(mcfmSyst == "mjjUp") 	mcfmReweighting(jj.M(), -1);
         if(mcfmSyst == "ystarUp")	mcfmReweighting(-1, ystarZ);
@@ -278,8 +279,9 @@ void ewkvAnalyzer::analyze_Zjets(){
   
         // Add systematic branch for QG smearing
         for(TString qgSyst : {"","QGUp"}){
-          if((mySample->isData() || (branch + mcfmSyst) != "") && qgSyst != "") continue;
-          histos->setBranch(branch + mcfmSyst + qgSyst); cutflow->setBranch(branch + mcfmSyst + qgSyst);
+          if((mySample->isData() || branch != "") && qgSyst != "") continue;
+          branch = puMode + subBranch + mcfmSyst + qgSyst;
+          histos->setBranch(branch); cutflow->setBranch(branch);
   
           float HIG13011_j1 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)); 
           float HIG13011_j2 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(1));
@@ -289,7 +291,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           }
           histos->fillHist1D("qgHIG13011_j1", HIG13011_j1);
           histos->fillHist1D("qgHIG13011_j2", HIG13011_j2);
-      
+ 
           // TMVA tree variables (variables for training tree, for the actually used variables, see the TMVA init function)
           tmvaVariables["pT_Z"] = 		Z.Pt();
           tmvaVariables["pT_j1"] = 		j1.Pt();
@@ -311,14 +313,15 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["ystarZ"] = 		fabs(ystarZ);
           tmvaVariables["zstarZ"] = 		fabs(zstarZ);
           tmvaVariables["weight"] = 		weight;
-          if(branch = "") fillTMVAtree();
+          if(branch == "") fillTMVAtree();
       
           double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
     
-          histos->fillHist1D(TMVATYPE, 					mvaValue);
+          histos->fillHist1D(TMVATYPE, 						mvaValue);
           if(jj.M() > 100) histos->fillHist1D(TString(TMVATYPE)+"_100", 	mvaValue);
           if(jj.M() > 200) histos->fillHist1D(TString(TMVATYPE)+"_200", 	mvaValue);
         }  
+        branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
   
         histos->fillHist1D("dijet_mass", 		jj.M());
@@ -339,9 +342,11 @@ void ewkvAnalyzer::analyze_Zjets(){
           TLorentzVector j3 = *((TLorentzVector*) vJets->At(jetOrder.at(2)));
           j3 *= (1+JESsign*jetUncertainty[jetOrder.at(2)]);
           j3 *= (1+JERsign*(jetSmearedPt[jetOrder.at(2)]-j3.Pt())/j3.Pt());
-          double ystar3 = j3.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
-          histos->fillHist1D("ystar_3", 		fabs(ystar3));
-          histos->fillHist1D("zstar_3", 		fabs(ystar3/fabs(dy)));
+          if(j3.Pt() > JET3PT){
+            double ystar3 = j3.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
+            histos->fillHist1D("ystar_3", 		fabs(ystar3));
+            histos->fillHist1D("zstar_3", 		fabs(ystar3/fabs(dy)));
+          }
         }
     
         // Central activity with soft track jets
@@ -370,10 +375,10 @@ void ewkvAnalyzer::analyze_Zjets(){
         for(int j=0; j < vJets->GetEntries(); ++j){
           if(j == jetOrder.at(0) || j == jetOrder.at(1)) continue;
           TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
+          if(jet.Pt() < JET3PT) continue;
           if((fabs(jet.Eta()) > etamax) || (fabs(jet.Eta()) < etamin)) continue;
           jet *= (1+JESsign*jetUncertainty[j]);
           jet *= (1+JERsign*(jetSmearedPt[j]-jet.Pt())/jet.Pt());
-          if(jet.Pt() < JET3PT) continue;
           if(nCentralJets == 0) histos->fillHist1D("centralJet1_pt", jet.Pt());
           centralHT += jet.Pt();
           ++nCentralJets;
