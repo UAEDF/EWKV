@@ -39,7 +39,7 @@ void cutFlowHandler::toLatex(TString fileName){
   double totalMC, totalMCplus, totalMCmin;
   auto trackPoints = cutflowsMap["ZVBF"]->getTrackPoints();
   for(auto trackPoint = trackPoints.begin(); trackPoint != trackPoints.end(); ++trackPoint){
-    bool errors = ((*(cutflows.begin()))->exist(*trackPoint, "JES+"));
+    bool errors = ((*(cutflows.begin()))->exist(*trackPoint, "JESUp"));
     texstream << "  " << *trackPoint;
 
     int i = 0;
@@ -48,8 +48,8 @@ void cutFlowHandler::toLatex(TString fileName){
     double signal, signalPlus, signalMin, data;
     for(auto cutflow : cutflows){
       double counts = cutflow->get(*trackPoint, "");
-      double countsJESplus = cutflow->get(*trackPoint, "JES+");
-      double countsJESmin = cutflow->get(*trackPoint, "JES-");
+      double countsJESplus = cutflow->get(*trackPoint, "JESUp");
+      double countsJESmin = cutflow->get(*trackPoint, "JESDown");
 
       if(cutflow->getName() == "data"){
         texstream << " & " << (counts);
