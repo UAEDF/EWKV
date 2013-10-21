@@ -53,10 +53,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131015_InclusiveDY_ptZrew_BDT_ptj2"
+#define TMVATAG "20131021_InclusiveDY_ptZrew_BDT"
 #define TMVATYPE "BDT"
-#define DYTYPE "inclusive"
-#define OUTPUTTAG "20131021_InclusiveDY_ptZrew"
+#define DYTYPE "composed"
+#define OUTPUTTAG "20131022_Fast"
 
 /*****************
  * Main function *
@@ -83,8 +83,8 @@ int main(int argc, char *argv[]){
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
       (*it)->useSkim(type, "20131010_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -153,7 +153,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("nPriVtxs", 	nPriVtxs);
     histos->fillHist1D("nPileUp", 	nPileUp);
   
-    if(l1.Pt() < 20 || l2.Pt() < 20) continue;
+    if(l1.Pt() < 20 || l2.Pt() < 20 || Z.Pt() <= 0) continue;
   
     ptReweighting(Z.Pt());
   //  etaReweighting(Z.Eta());
@@ -201,9 +201,9 @@ void ewkvAnalyzer::analyze_Zjets(){
       std::vector<double> jetPt;
       for(int j=0; j < vJets->GetEntries(); ++j){
         TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
-        if(fabs(jet.Eta()) > JETETA) continue;
         jet *= (1+JESsign*jetUncertainty[j]);
         jet *= (1+JERsign*(jetSmearedPt[j]-jet.Pt())/jet.Pt());
+        if(jet.Pt() <= 0 || fabs(jet.Eta()) > JETETA) continue;
         int k = 0;
         while(k < jetOrder.size() && (jet.Pt() < jetPt.at(k))) ++k;
         jetOrder.insert(jetOrder.begin() + k, j);
