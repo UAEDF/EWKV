@@ -50,6 +50,7 @@ class ewkvAnalyzer{
     void readPtWeights();
     void initQGCorrections();
     void QGCorrections(TString jet, TLorentzVector *j, std::vector<int> jetOrder);
+    float QGsmearing(TLorentzVector *j, float input);
 
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
