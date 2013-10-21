@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <TProfile.h>
+#include <TStyle.h>
 
 #include "log.h"
 #include "../environment.h"
@@ -134,7 +135,12 @@ void plotProfile::defaultStyle(TString type){
   TFile *file = new TFile(fileName);
 
   //data
-  TH1 *data = (TH1*) file->Get(name + "_data");
+  TDirectory *dir = file->GetDirectory("data");
+  TH1 *data; 
+  if(dir){
+    dir->cd();
+    data = (TH1*) file->Get(name);
+  } else data = (TH1*) file->Get(name + "_data");
   data->SetMarkerStyle(20);
   data->SetStats(0);
   data->SetTitle("");
@@ -148,7 +154,11 @@ void plotProfile::defaultStyle(TString type){
   
 
   for(auto mc = mcs.begin(); mc != mcs.end(); ++mc){
-    profileHists[*mc] = (TProfile*) file->Get(name + "_" + *mc);
+    TDirectory *dir = file->GetDirectory(*mc);
+    if(dir){
+      dir->cd();
+      profileHists[*mc] = (TProfile*) file->Get(name);
+    } else profileHists[*mc] = (TProfile*) file->Get(name + "_" + *mc);
   }
 
   profileHists["DY"] = (TProfile*) profileHists["DY0"]->Clone();

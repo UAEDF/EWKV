@@ -239,9 +239,19 @@ void plotHistos::next(TString type){
   bool newLegendItem = true;
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
-    hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
-    if(newLegendItem) hists["temp"] =  (TH1D*) file->Get(name + "_" + *mc)->Clone();
-    else hists["temp"]->Add((TH1D*) file->Get(name + "_" + *mc));
+    TDirectory *dir = file->GetDirectory(*mc);
+    if(dir){
+      dir->cd();
+      hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name));
+      if(newLegendItem) hists["temp"] =  (TH1D*) file->Get(name)->Clone();
+      else hists["temp"]->Add((TH1D*) file->Get(name));
+      if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name);
+    } else {
+      hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
+      if(newLegendItem) hists["temp"] =  (TH1D*) file->Get(name + "_" + *mc)->Clone();
+      else hists["temp"]->Add((TH1D*) file->Get(name + "_" + *mc));
+      if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
+    }
     newLegendItem = false;
     if(useLegend[*mc]){
       events[*mc] = hists["temp"]->Integral();
@@ -249,12 +259,17 @@ void plotHistos::next(TString type){
       mean[*mc] = hists["temp"]->GetMean();
       newLegendItem = true;
     }
-    if(file->FindKey(name + "JES+_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JES+_" + *mc));
-    if(file->FindKey(name + "JES-_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JES-_" + *mc));
-    if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
+    if(file->FindKey(name + "JES+_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JES+_" + *mc));	// Old files ( < 21/10/2013)
+    else if(file->FindKey(name + "JESUp_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JESUp"));	// New files
+    if(file->FindKey(name + "JES-_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JES-_" + *mc));	// Old files ( < 21/10/2013)
+    else if(file->FindKey(name + "JESDown_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JESDown"));// New files
     mcbefore = mc;
   }
-  hists["data"]->Add(hists["data"], (TH1D*) file->Get(name + "_data"));
+  TDirectory *dir = file->GetDirectory("data");
+  if(dir){
+    dir->cd();
+    hists["data"]->Add(hists["data"], (TH1D*) file->Get(name));
+  } else hists["data"]->Add(hists["data"], (TH1D*) file->Get(name + "_data"));
 
   
 
