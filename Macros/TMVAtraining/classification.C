@@ -18,11 +18,11 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20131014_InclusiveDY";
-TString option = "_BDT_zstar_noDPhis";
+TString tag = "20131021_InclusiveDY_ptZrew";
+TString option = "_BDT";
 TString DYtype = "inclusive";
 TString nTrain = "50000";
-//TCut mjjCut = "mjj>200";
+//TCut mjjCut = "M_jj>100";
 TCut mjjCut = "";
    
 int main(int argc, char *argv[]){
@@ -40,9 +40,9 @@ int main(int argc, char *argv[]){
 
     TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile, "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D" );
     factory->AddVariable( "pT_Z", 'F' );
-    factory->AddVariable( "pT_j1", 'F' );
+//    factory->AddVariable( "pT_j1", 'F' );
     factory->AddVariable( "pT_j2", 'F' );
-    factory->AddVariable( "pT_jj", 'F' );
+//    factory->AddVariable( "pT_jj", 'F' );
     factory->AddVariable( "eta_Z", 'F' );
 //    factory->AddVariable( "dPhi_j1", 'F' );
 //    factory->AddVariable( "dPhi_j2", 'F' );
