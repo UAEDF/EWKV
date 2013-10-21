@@ -32,18 +32,15 @@
 using namespace std;
 
 TString plot = "BDT";
-//TString plot = "BDTD";
-//TString tag = "CorrectZZlumi";
-//TString tag = "20130627";
-TString tag = "20131010_NoQG";
+TString tag = "20131021_Fast";
 
 int main(){
   gROOT->SetBatch();
 
   for(TString type : {"ZEE","ZMUMU"}){
     TFile *file = new TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root");
-    for(TString jes : {"","JES+","JES-"}){
-      std::cout << std::endl << type << "\t" << jes << std::endl;
+    for(TString syst : {"","JESUp","JESDown","JERUp","JERDown","PUUp","PUDown","QGUp","ystarUp","mjjUp","mcfmUp"}){
+      std::cout << std::endl << type << "\t\t" << syst << std::endl;
       std::map<TString, TH1D*> histos;
       std::map<TString, double> lumi;
       std::map<TString, double> expected;
@@ -69,22 +66,17 @@ int main(){
       lumi["WZ"] = 301123;
       lumi["ZZ"] = 555110;
 
-      histos["data"] 				= (TH1D*) file->Get(plot + "_data")->Clone();
-      histos["ZVBF"] 				= (TH1D*) file->Get(plot + jes + "_ZVBF")->Clone();
-      histos["DY"] 				= (TH1D*) file->Get(plot + jes + "_DY1")->Clone();
-      for(TString i : {"DY2","DY3","DY4"}){  
-        histos["DY"]->Add((TH1D*) file->Get(plot + jes + "_" + i));
-      }
-      histos["other"] 				= (TH1D*) file->Get(plot + jes + "_TTJetsSemiLept")->Clone();
+      histos["data"] 				= getPlot(file, "data", plot);
+      histos["ZVBF"] 				= getPlot(file, "ZVBF", plot + syst);
+      histos["DY"] 				= getPlot(file, "DY1", plot + syst);
+      for(TString i : {"DY2","DY3","DY4"}) 	histos["DY"]->Add(getPlot(file, i, plot + syst));
+      histos["other"] 				= getPlot(file, "TTJetsSemiLept", plot + syst);
       for(TString i : {"TTJetsFullLept","TTJetsHadronic","WW","WZ","ZZ","WJets","T-W","Tbar-W","T-s","Tbar-s","T-t","Tbar-t","DY0"}){  
-        if(!file->GetListOfKeys()->Contains(plot + jes + "_" + i)) continue;
-        histos["other"]->Add((TH1D*) file->Get(plot + jes + "_" + i));
+        safeAdd(histos["other"], getPlot(file, i, plot + syst, true));
       }
       histos["data"]->Add(histos["other"], -1);
 
-      for(auto hist = histos.begin(); hist != histos.end(); ++hist){
-        expected[hist->first] = hist->second->Integral();
-      }
+      for(auto hist = histos.begin(); hist != histos.end(); ++hist) expected[hist->first] = hist->second->Integral();
 
       //Scale back to number of generated events for TFractionFitter (take DY1 for DY)
       histos["ZVBF"]->Scale(lumi["ZVBF"]/lumi["data"]);
@@ -125,6 +117,7 @@ int main(){
         std::cout << std::endl;
       } else {std::cout << "Error in fit" << std::endl;}
     }
+    std::cout << std::endl << std::endl;
   }
 
   return 0; 

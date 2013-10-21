@@ -20,6 +20,7 @@
 bool retrieveMeanAndRMS;
 std::ofstream writeFile;
 
+
 class plotHistos{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
@@ -239,19 +240,10 @@ void plotHistos::next(TString type){
   bool newLegendItem = true;
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
-    TDirectory *dir = file->GetDirectory(*mc);
-    if(dir){
-      dir->cd();
-      hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name));
-      if(newLegendItem) hists["temp"] =  (TH1D*) file->Get(name)->Clone();
-      else hists["temp"]->Add((TH1D*) file->Get(name));
-      if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name);
-    } else {
-      hists[*mc]->Add(hists[*mcbefore], (TH1D*) file->Get(name + "_" + *mc));
-      if(newLegendItem) hists["temp"] =  (TH1D*) file->Get(name + "_" + *mc)->Clone();
-      else hists["temp"]->Add((TH1D*) file->Get(name + "_" + *mc));
-      if(*mc == "ZVBF") hists["signal only"] = (TH1D*) file->Get(name + "_" + *mc);
-    }
+    safeAdd(hists[*mcbefore], getPlot(file, *mc, name), hists[*mc]);
+    if(newLegendItem) hists["temp"] =  getPlot(file, *mc, name);
+    else safeAdd(hists["temp"], getPlot(file, *mc, name));
+    if(*mc == "ZVBF") hists["signal only"] = getPlot(file, *mc, name);
     newLegendItem = false;
     if(useLegend[*mc]){
       events[*mc] = hists["temp"]->Integral();
@@ -259,18 +251,13 @@ void plotHistos::next(TString type){
       mean[*mc] = hists["temp"]->GetMean();
       newLegendItem = true;
     }
-    if(file->FindKey(name + "JES+_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JES+_" + *mc));	// Old files ( < 21/10/2013)
-    else if(file->FindKey(name + "JESUp_" + *mc) != 0) hists["JES+"]->Add(hists["JES+"], (TH1D*) file->Get(name + "JESUp"));	// New files
-    if(file->FindKey(name + "JES-_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JES-_" + *mc));	// Old files ( < 21/10/2013)
-    else if(file->FindKey(name + "JESDown_" + *mc) != 0) hists["JES-"]->Add(hists["JES-"], (TH1D*) file->Get(name + "JESDown"));// New files
+    safeAdd(hists["JES+"], getPlot(file, *mc, name + "JES+", true));			// Old files ( < 21/10/2013)
+    safeAdd(hists["JES-"], getPlot(file, *mc, name + "JES-", true));			// Old files ( < 21/10/2013)
+    safeAdd(hists["JES+"], getPlot(file, *mc, name + "JESUp", true));			// New files 
+    safeAdd(hists["JES-"], getPlot(file, *mc, name + "JESDown", true));			// New files
     mcbefore = mc;
   }
-  TDirectory *dir = file->GetDirectory("data");
-  if(dir){
-    dir->cd();
-    hists["data"]->Add(hists["data"], (TH1D*) file->Get(name));
-  } else hists["data"]->Add(hists["data"], (TH1D*) file->Get(name + "_data"));
-
+  safeAdd(hists["data"], getPlot(file, "data", name));
   
 
   //Draw the histograms

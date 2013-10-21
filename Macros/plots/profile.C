@@ -201,8 +201,8 @@ void plotProfile::combinedStyle(){
   file["ZMUMU"] = new TFile(fileNameZMUMU);
 
   for(TString j : {"ZEE","ZMUMU"}){
-    profileHists["data" + j] = (TProfile*) file[j]->Get(name + "_data");
-    for(auto mc = mcs.begin(); mc != mcs.end(); ++mc) profileHists[*mc + j] = (TProfile*) file[j]->Get(name + "_" + *mc);
+    profileHists["data" + j] = getProfile(file[j], "data", name);
+    for(auto mc = mcs.begin(); mc != mcs.end(); ++mc) profileHists[*mc + j] = getProfile(file[j], *mc, name);
     profileHists["DY" + j] = (TProfile*) profileHists["DY0" + j]->Clone();
     for(TString i : {"1","2","3","4"}) profileHists["DY" + j]->Add(profileHists["DY"+i + j]);
   }

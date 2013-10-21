@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <fstream>
 #include <sys/stat.h>
+#include <TH1D.h>
+#include <TProfile.h>
 
 bool exists(TString path){ struct stat buffer; return (stat (path.Data(), &buffer) == 0);};
 
@@ -50,4 +52,28 @@ TString getTreeLocation(){
   return location;
 }
 
+TH1D* getPlot(TFile *file, TString sample, TString plot, bool ignoreNonExist = false){
+  if(TH1D *hist = (TH1D*) file->Get(sample + "/" + plot)) return (TH1D*) hist->Clone();
+  if(TH1D *hist = (TH1D*) file->Get(plot + "_" + sample)) return (TH1D*) hist->Clone();
+  if(!ignoreNonExist){
+    std::cout << sample << "/" << plot << " not found!" << std::endl;
+    exit(1);
+  } else return NULL;
+}
+
+TProfile* getProfile(TFile *file, TString sample, TString plot, bool ignoreNonExist = false){
+  if(TProfile *hist = (TProfile*) file->Get(sample + "/" + plot)) return (TProfile*) hist->Clone();
+  if(TProfile *hist = (TProfile*) file->Get(plot + "_" + sample)) return (TProfile*) hist->Clone();
+  if(!ignoreNonExist){
+    std::cout << sample << "/" << plot << " not found!" << std::endl;
+    exit(1);
+  } else return NULL;
+}
+
+void safeAdd(TH1D *first, TH1D *second, TH1D *merged = NULL){
+  if(!merged) merged = first;
+  if(!second){ merged = first; return;}
+  if(!first){ merged = second; return;}
+  merged->Add(first, second);
+}
 #endif

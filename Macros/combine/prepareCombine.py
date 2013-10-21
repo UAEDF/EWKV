@@ -14,15 +14,23 @@ def getTreeLocation():
   return "/user/tomc/public/merged/EWKV/2013-06-JetIDfix/"
 
 def getPlot(sourceFile, sample, plot, ignoreNonExist = False):
-  if sourceFile.FindKey(sample + "/" + plot): return sourceFile.Get(sample + "/" + plot).Clone()
-  if sourceFile.FindKey(plot + "_" + sample): return sourceFile.Get(plot + "_" + sample).Clone()
+  hist = sourceFile.Get(sample + "/" + plot)
+  if hist: return hist.Clone()
+  hist = sourceFile.Get(plot + "_" + sample)
+  if hist: return hist.Clone()
   if not ignoreNonExist: 
     print sample + "/" + plot + " not found!"
     exit(1)
 
+def safeAdd(first, second):
+  if first is None: return second
+  if second is None: return first
+  first.Add(second)
+  return first
+
 def merge(sourceFile, plot, histList):
   histMerged = getPlot(sourceFile, histList[0], plot)
-  for hist in histList[1:]: histMerged.Add(getPlot(sourceFile, hist, plot, True))
+  for hist in histList[1:]: histMerged = safeAdd(histMerged, getPlot(sourceFile, hist, plot, True))
   return histMerged
 
 combineFile = TFile("ewkZjj_8TeV.root","RECREATE")
@@ -33,7 +41,8 @@ for type in ["ZMUMU","ZEE"]:
     dir = combineFile.mkdir(type + category)
     dir.cd()
 
-    getPlot(sourceFile, "data", base + category).Write("data_obs")
+    data = getPlot(sourceFile, "data", base + category)
+    data.Write("data_obs")
 
     for systematic in ["","JESUp","JESDown","JERUp","JERDown","PUUp","PUDown","QGUp","QGDown","mcfmUp","mcfmDown"]:
       plot = base + category + systematic
