@@ -153,7 +153,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("nPriVtxs", 	nPriVtxs);
     histos->fillHist1D("nPileUp", 	nPileUp);
   
-    if(l1.Pt() < 20 || l2.Pt() < 20) return;
+    if(l1.Pt() < 20 || l2.Pt() < 20) continue;
   
     ptReweighting(Z.Pt());
   //  etaReweighting(Z.Eta());
@@ -173,9 +173,9 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("lepton-_phi",	l2.Phi());
   
     // Select Z bosons
-    if(fabs(Z.M() - ZMASS) > 40) return;
+    if(fabs(Z.M() - ZMASS) > 40) continue;
     histos->fillHist1D("dilepton_mass", 	Z.M());
-    if(fabs(Z.M() - ZMASS) > 20) return;
+    if(fabs(Z.M() - ZMASS) > 20) continue;
     cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
   
     histos->fillHist1D("dilepton_pt", 	Z.Pt());
