@@ -56,7 +56,7 @@
 #define TMVATAG "20131021_InclusiveDY_ptZrew_BDT"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131022_Fast"
+#define OUTPUTTAG "20131022_Fast2"
 
 /*****************
  * Main function *
@@ -269,7 +269,7 @@ void ewkvAnalyzer::analyze_Zjets(){
 
       // Add systematic branches for MCFM reweightig
       for(TString mcfmSyst : {"", "mjjUp", "ystarUp", "mcfmUp"}){
-        if((mySample->isData() || branch != "") && mcfmSyst != "") continue;
+        if((mySample->isData() || (puMode + subBranch) != "") && mcfmSyst != "") continue;
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
         histos->restoreEventWeight();										// Go back to normal event weight before next reweighting
@@ -279,7 +279,7 @@ void ewkvAnalyzer::analyze_Zjets(){
   
         // Add systematic branch for QG smearing
         for(TString qgSyst : {"","QGUp"}){
-          if((mySample->isData() || branch != "") && qgSyst != "") continue;
+          if((mySample->isData() || (puMode + subBranch + mcfmSyst) != "") && qgSyst != "") continue;
           branch = puMode + subBranch + mcfmSyst + qgSyst;
           histos->setBranch(branch); cutflow->setBranch(branch);
   
@@ -314,7 +314,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["zstarZ"] = 		fabs(zstarZ);
           tmvaVariables["weight"] = 		weight;
           if(branch == "") fillTMVAtree();
-      
+     
           double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
     
           histos->fillHist1D(TMVATYPE, 						mvaValue);
