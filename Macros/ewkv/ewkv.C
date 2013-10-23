@@ -53,10 +53,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131021_InclusiveDY_ptZrew_BDT"
+#define TMVATAG "20131021_InclusiveDY_ptZrew_BDT_var7TeV_a"
 #define TMVATYPE "BDT"
-#define DYTYPE "composed"
-#define OUTPUTTAG "20131022_Fast2"
+#define DYTYPE "inclusive"
+#define OUTPUTTAG "20131022_InclusiveDY_ptZrew"
 
 /*****************
  * Main function *
@@ -81,9 +81,9 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
-      (*it)->useSkim(type, "20131010_Full");								//Use skimmed files to go faster
+      (*it)->useSkim(type, "20131022_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
@@ -312,7 +312,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["M_jj"] = 		jj.M();
           tmvaVariables["ystarZ"] = 		fabs(ystarZ);
           tmvaVariables["zstarZ"] = 		fabs(zstarZ);
-          tmvaVariables["weight"] = 		weight;
+          tmvaVariables["weight"] = 		histos->getWeight();
           if(branch == "") fillTMVAtree();
      
           double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
@@ -404,8 +404,8 @@ void ewkvAnalyzer::analyze_Zjets(){
 void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
 
-//  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
-  std::vector<TString> variables = {"pT_Z", "pT_j2", "eta_Z", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "eta_Z", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
+//  std::vector<TString> variables = {"pT_Z", "pT_j2", "eta_Z", "zstarZ", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
   for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
 
   tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
