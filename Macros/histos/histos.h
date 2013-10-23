@@ -29,7 +29,7 @@ class histoCollection{
   std::map<TString, TH1D*> hist1DList;
   std::map<TString, TH2D*> hist2DList;
   std::map<TString, TProfile*> profileList;
-  double fillWeight, eventWeight;
+  double fillWeight;
   TString branch;
   TFile* outputFile;
   sample* mySample;
@@ -54,11 +54,8 @@ class histoCollection{
 
   void toFile(std::vector<TString> selectedHists = std::vector<TString>(0)); 
 
-  void setEventWeight(double weight){		eventWeight = weight; fillWeight = weight;};
-  void restoreEventWeight(){			fillWeight = eventWeight;};
-  void multiplyEventWeight(double weight){	fillWeight *= weight;};
-  double getWeight(){				return fillWeight;};
-  void setBranch(TString branch_ = ""){branch = branch_;};
+  void setWeight(double weight){		fillWeight = weight;};
+  void setBranch(TString branch_ = ""){		branch = branch_;};
 
   void binLogX(TH1* h);
 };

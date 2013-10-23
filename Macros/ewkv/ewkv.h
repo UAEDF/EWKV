@@ -52,6 +52,12 @@ class ewkvAnalyzer{
     void QGCorrections(TString jet, TLorentzVector *j, std::vector<int> jetOrder);
     float QGsmearing(TLorentzVector *j, float input);
 
+    void setWeight(double weight_){  		eventWeight = weight_; histos->setWeight(weight_); cutflow->setWeight(weight_);};
+    void saveWeight(){				savedWeight = eventWeight;};
+    void restoreWeight(){			setWeight(savedWeight);};
+    void multiplyWeight(double weight_){	setWeight(eventWeight*weight_);};
+    double getWeight(){				return eventWeight;};
+
     enum VType { WMUNU, WENU, ZMUMU, ZEE, UNDEFINED};
 
     VType vType;
@@ -81,6 +87,7 @@ class ewkvAnalyzer{
     TTree *tmvaTree, *skimTree;
     TString outputTag;
     TMVA::Reader *tmvaReader;
+    double eventWeight, savedWeight;
 
     MuScleFitCorrector *muScleFitCorrector, *muScleFitCorrectorD;
     std::vector<double> etaWeights, etaBins;

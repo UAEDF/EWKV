@@ -127,10 +127,8 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->setBranch(puMode); cutflow->setBranch(puMode);
 
     // Get weight (lumi + pileUp) and muon efficiencies (ISO+ID, trigger not yet available)
-    double weight;
-    if(vType == ZMUMU) weight = mySample->getWeight(nPileUp, puMode)*mySample->muonEfficiency(&l1)*mySample->muonEfficiency(&l2);
-    if(vType == ZEE) weight = mySample->getWeight(nPileUp, puMode);
-    histos->setEventWeight(weight); cutflow->setEventWeight(weight);
+    if(vType == ZMUMU) setWeight(mySample->getWeight(nPileUp, puMode)*mySample->muonEfficiency(&l1)*mySample->muonEfficiency(&l2));
+    if(vType == ZEE)   setWeight(mySample->getWeight(nPileUp, puMode));
   
     // Apply muScleFit corrections
     if(vType == ZMUMU){
@@ -268,11 +266,12 @@ void ewkvAnalyzer::analyze_Zjets(){
       }
 
       // Add systematic branches for MCFM reweightig
+      saveWeight();
       for(TString mcfmSyst : {"", "mjjUp", "ystarUp", "mcfmUp"}){
         if((mySample->isData() || (puMode + subBranch) != "") && mcfmSyst != "") continue;
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
-        histos->restoreEventWeight();										// Go back to normal event weight before next reweighting
+        restoreWeight();										// Go back to normal event weight before next reweighting
         if(mcfmSyst == "mjjUp") 	mcfmReweighting(jj.M(), -1);
         if(mcfmSyst == "ystarUp")	mcfmReweighting(-1, ystarZ);
         if(mcfmSyst == "mcfmUp") 	mcfmReweighting(jj.M(), ystarZ);
@@ -312,7 +311,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["M_jj"] = 		jj.M();
           tmvaVariables["ystarZ"] = 		fabs(ystarZ);
           tmvaVariables["zstarZ"] = 		fabs(zstarZ);
-          tmvaVariables["weight"] = 		histos->getWeight();
+          tmvaVariables["weight"] = 		getWeight();
           if(branch == "") fillTMVAtree();
      
           double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
@@ -437,11 +436,12 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
   }
   if(nJets > 0) histos->fillProfileHist("nJets_vs_HT", 	HT, 	nJets);
   if(nJets > 1){
+    saveWeight();
     mcfmReweighting(mjj, ystarZ);											// Use MCFM reweighting
     histos->fillProfileHist("nJets_vs_detajj", 		dEta, 	nJets);
     histos->fillProfileHist("cosdPhi_vs_HT", 		HT, 	cosDPhi);
     histos->fillProfileHist("cosdPhi_vs_detajj", 	dEta, 	cosDPhi);
-    histos->restoreEventWeight();											// Go back to normal event weight
+    restoreWeight();												// Go back to normal event weight
   }
 }
 
@@ -456,7 +456,7 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
   double mjjWeight = 0.39+0.12*log(mjj)-0.00025*mjj;									// MCFM NLO/LO NEW
   if(mjj < 200 || mjj == -1) mjjWeight = 1.;
   if(ystarZ == -1) ystarZWeight = 1.;
-  histos->multiplyEventWeight(ystarZWeight*mjjWeight);
+  multiplyWeight(ystarZWeight*mjjWeight);
 }
 
 /*****************
@@ -476,17 +476,12 @@ void ewkvAnalyzer::readEtaWeights(){
 }
 
 void ewkvAnalyzer::etaReweighting(double eta){
-  if(etaBins.size() == 0 || eta < etaBins.front() || eta > etaBins.back()){ 
-    histos->multiplyEventWeight(0.);
-    histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
-    return;
-  }
+  if(etaBins.size() == 0 || eta < etaBins.front() || eta > etaBins.back()){ multiplyWeight(0.); return;}
   std::vector<TString> needReweighting = {"DY","DY0","DY1","DY2","DY3","DY4"};						// Only selected samples need reweighting
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
   int i = 0;
   while((eta > etaBins[i+1])) ++i;
-  histos->multiplyEventWeight(etaWeights[i]);
-  histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
+  multiplyWeight(etaWeights[i]);
 }
 
 void ewkvAnalyzer::readPtWeights(){
@@ -503,17 +498,12 @@ void ewkvAnalyzer::readPtWeights(){
 }
 
 void ewkvAnalyzer::ptReweighting(double pt){
-  if(ptBins.size() == 0 || pt < ptBins.front() || pt > ptBins.back()){ 
-    histos->multiplyEventWeight(0.);
-    histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
-    return;
-  }
+  if(ptBins.size() == 0 || pt < ptBins.front() || pt > ptBins.back()){ multiplyWeight(0.); return;}
   std::vector<TString> needReweighting = {"DY","DY0","DY1","DY2","DY3","DY4"};						// Only selected samples need reweighting
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
   int i = 0;
   while((pt > ptBins[i+1])) ++i;
-  histos->multiplyEventWeight(ptWeights[i]);
-  histos->setEventWeight(histos->getWeight()); cutflow->setEventWeight(histos->getWeight());
+  multiplyWeight(ptWeights[i]);
 }
 
 /******************

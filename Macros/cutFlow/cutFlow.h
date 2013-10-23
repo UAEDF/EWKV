@@ -7,7 +7,7 @@
 
 class cutFlow {
   private:
-  double fillWeight, eventWeight;
+  double fillWeight;
   TString branch;
   TString name;
   std::map<TString, std::map<TString, double>> counters;
@@ -15,9 +15,7 @@ class cutFlow {
 
   public:
   cutFlow(TString name_);
-  void setEventWeight(double weight){		eventWeight = weight; fillWeight = weight;};
-  void restoreEventWeight(){			fillWeight = eventWeight;};
-  void multiplyEventWeight(double weight){	fillWeight *= weight;};
+  void setWeight(double weight){		fillWeight = weight;};
   void setBranch(TString branch_ = ""){		branch = branch_;};
   std::vector<TString> getTrackPoints(){ 	return trackPointOrder;};
   TString getName(){ 				return name;};
