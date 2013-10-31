@@ -34,6 +34,9 @@ using namespace std;
 TString plot = "BDT";
 
 int main(int argc, char *argv[]){
+  TString rootVersion = gROOT->GetVersion();
+  if(((TString) rootVersion(0,4)).Atof() < 5.34) std::cout << "Warning: outdated ROOT version could lead to infinite loops, upgrade to 5.34" << std::endl;
+
   TString tag = ((TString) argv[1]);
   std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
   if(argc > 2 && ((TString) argv[2]) == "ZEE") types = {"ZEE"};
