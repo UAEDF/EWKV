@@ -12,13 +12,14 @@
 class cutFlowHandler{
   std::map<TString, cutFlow*> cutflowsMap;
   std::vector<cutFlow*> cutflows;
+  bool hasTotalMC;
 
   public:
-  cutFlowHandler(){};
+  cutFlowHandler(){ hasTotalMC = false;};
   void add(cutFlow* myCutFlow){ cutflows.push_back(myCutFlow); cutflowsMap[myCutFlow->getName()] = myCutFlow;};
 
   void toLatex(TString fileName);
-  bool merge(TString newName, std::vector<TString> mergeList);
+  bool merge(TString newName, std::vector<TString> mergeList, bool replace = true);
 };
 
 
@@ -29,65 +30,41 @@ void cutFlowHandler::toLatex(TString fileName){
   texstream.open(fileName);
   texstream << setprecision(0); double roundingUp = .5;
 
+  if(!hasTotalMC){
+    std::vector<TString> mcList;
+    for(auto cutflow : cutflows) if(cutflow->getName() != "data") mcList.push_back(cutflow->getName());
+    merge("Total MC", mcList, false);
+    hasTotalMC = true;
+  }
+
   //Header
   texstream << " \\begin{tabular}{| l |";
   for(auto cutflow : cutflows) texstream << " c ";
-  texstream << "| c |}" << endl << "  \\hline" << endl;
+  texstream << "|}" << endl << "  \\hline" << endl;
   for(auto cutflow : cutflows) texstream << " & " << cutflow->getName();
-  texstream << " & Total MC ($\\pm$ JES) \\\\" << endl << "  \\hline" << endl;
+  texstream << "\\\\" << endl << "  \\hline" << endl;
 
-  double totalMC, totalMCplus, totalMCmin;
   auto trackPoints = cutflowsMap["ZVBF"]->getTrackPoints();
   for(auto trackPoint = trackPoints.begin(); trackPoint != trackPoints.end(); ++trackPoint){
-    bool errors = ((*(cutflows.begin()))->exist(*trackPoint, "JESUp"));
     texstream << "  " << *trackPoint;
 
-    int i = 0;
-    totalMC = 0; totalMCplus = 0; totalMCmin = 0;
-
-    double signal, signalPlus, signalMin, data;
     for(auto cutflow : cutflows){
+      bool errors = (cutflow->exist(*trackPoint, "JESUp"));
       double counts = cutflow->get(*trackPoint, "");
       double countsJESplus = cutflow->get(*trackPoint, "JESUp");
       double countsJESmin = cutflow->get(*trackPoint, "JESDown");
 
-      if(cutflow->getName() == "data"){
-        texstream << " & " << (counts);
-        data = counts;
-      } else{
-        if(cutflow->getName() == "ZVBF"){
-          signal = counts;
-          signalPlus = countsJESplus;
-          signalMin = countsJESmin;
-        }
+      if(cutflow->getName() == "data") texstream << " & " << (counts);
+      else {
         if(counts < 10){ texstream << setprecision(1); roundingUp = 0.05;}
         texstream << " & " << counts; 
         if(errors && ((countsJESplus-counts) != 0 || (counts-countsJESmin) != 0)){
           texstream << "$^{ +" << (countsJESplus-counts+roundingUp) << "}_{ -" << (counts-countsJESmin+roundingUp) << "}$"; 
         }
         if(counts < 10){ texstream << setprecision(0); roundingUp = 0.5;}
-        totalMC += counts;
-        if(errors){
-          totalMCplus += countsJESplus;
-          totalMCmin += countsJESmin;
-        }
       }
     }
-    texstream << " & " << totalMC;
-    if(errors) texstream << "$^{ +" << (totalMCplus-totalMC+roundingUp) << "}_{ -" << (totalMC-totalMCmin+roundingUp) << "}$";
     texstream << "\\\\" << endl;
-/*
-    if(errors){
-      //Calculate K_s
-      double background = totalMC - signal;
-      double backgroundPlus = totalMCplus - signalPlus;
-      double backgroundMin = totalMCmin - signalMin;
-      double K_s = (data - background)/signal;
-      double K_s_statErr = sqrt(data)/signal;
-      double K_s_jesErrPlus = (data - backgroundPlus)/signalPlus - K_s;
-      double K_s_jesErrMin = K_s - (data - backgroundMin)/signalMin;
-      cout << *trackPoint << "\t" << K_s << "\\pm " << K_s_statErr << "^{ +" << K_s_jesErrPlus << "}_{ -" << K_s_jesErrMin << "}$ \\\\" << endl;
-    }*/
   }
 
   texstream << "  \\hline" << endl;
@@ -95,7 +72,7 @@ void cutFlowHandler::toLatex(TString fileName){
   texstream.close();
 }
 
-bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList){
+bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList, bool replace){
   cutflowsMap[newName] = new cutFlow(newName);
   auto trackPoints = cutflowsMap["ZVBF"];
   for(auto trackPoint = trackPoints->begin(); trackPoint != trackPoints->end(); ++trackPoint){
@@ -110,10 +87,12 @@ bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList){
   auto cutflow = cutflows.begin();
   while((cutflow != cutflows.end()) && (std::find(mergeList.begin(), mergeList.end(), (*cutflow)->getName()) == mergeList.end())) ++cutflow;
   if(cutflow != cutflows.end()) cutflows.insert(cutflow, cutflowsMap[newName]);
-  for(TString i : mergeList){
-    cutflow = cutflows.begin();
-    while((cutflow != cutflows.end()) && ((*cutflow)->getName() != i)) ++cutflow;
-    if(cutflow != cutflows.end()) cutflows.erase(cutflow);
+  if(replace){
+    for(TString i : mergeList){
+      cutflow = cutflows.begin();
+      while((cutflow != cutflows.end()) && ((*cutflow)->getName() != i)) ++cutflow;
+      if(cutflow != cutflows.end()) cutflows.erase(cutflow);
+    }
   }
 }
 #endif
