@@ -53,10 +53,10 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131022_InclusiveDY_ptZrew_BDT_STEP0"
+#define TMVATAG "20131022_InclusiveDY_ptZrew_BDT_100_STEP0"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131030_Fast_STEP0"
+#define OUTPUTTAG "20131103_Fast_STEP0"
 
 /*****************
  * Main function *
@@ -404,11 +404,22 @@ void ewkvAnalyzer::analyze_Zjets(){
  *************************************/
 void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
+  TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml";
 
-  std::vector<TString> variables = {"pT_Z", "pT_j1", "pT_j2", "abs(eta_Z)", "dPhi_j1", "dPhi_j2", "dPhi_jj", "dEta_jj", "avEta_jj", "qgHIG13011_j1", "qgHIG13011_j2", "M_jj"};
-  for(TString variable : variables) tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
+  ifstream xmlFile;
+  xmlFile.open(weightsFile.Data());
+  if(xmlFile.is_open()){
+    std::string line;
+    while(getline(xmlFile,line)){
+      std::string::size_type start = line.find("Expression=\"");
+      if(start != std::string::npos){
+        TString variable = TString(line.substr(start + 12, line.find("\" Label") - start - 12));
+        tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
+      }
+    }
+  } else std::cout << "ewkv.C:\t\t!!!\tTMVA XML file not found!" << std::endl;
 
-  tmvaReader->BookMVA( TMVATYPE, getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml" );
+  tmvaReader->BookMVA( TMVATYPE, weightsFile);
 }
 
 
