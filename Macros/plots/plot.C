@@ -126,7 +126,7 @@ void plotHistos::loop(TString type){
     fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root";
     next(type);
 
-    if(xtitle == "BDT"){
+    if(name == "BDT"){
       //Set related cutflow as default
       system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
       system("diff " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
@@ -149,7 +149,6 @@ void plotHistos::next(TString type){
   if(logX){
     for(auto h = hists.begin(); h != hists.end(); ++h) binLogX(h->second);
   }
-
 
   double horizontalSplit = 0.275;
   double leftMargin = .12;
@@ -241,7 +240,7 @@ void plotHistos::next(TString type){
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
     safeAdd(hists[*mcbefore], getPlot(file, *mc, name), hists[*mc]);
-    if(newLegendItem) hists["temp"] =  getPlot(file, *mc, name);
+    if(newLegendItem) hists["temp"] = getPlot(file, *mc, name);
     else safeAdd(hists["temp"], getPlot(file, *mc, name));
     if(*mc == "ZVBF") hists["signal only"] = getPlot(file, *mc, name);
     newLegendItem = false;
@@ -404,8 +403,11 @@ void plotHistos::next(TString type){
     TText kstext = TText();
     kstext.SetTextSize(0.1);
     kstext.DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
-
-
+    if(name.Contains("BDT")){
+      std::ofstream ksFile("ksValues.txt", std::ios_base::app | std::ios_base::out);
+      ksFile << tag << "\t" << name << "\t" << kolmogorov << std::endl;
+      ksFile.close();
+    }
 
     //Ratio for JES
     if(JES){
@@ -443,9 +445,7 @@ void plotHistos::next(TString type){
   if(!exists(getTreeLocation() + "outputs/pdf/" + type + "/")) system("mkdir -p " + getTreeLocation() + "/outputs/pdf/" + type + "/");
   c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + name + ".pdf");  
   delete c, padUP, padDN, padLegend, frame, frameRatio, file;
-
-  for(auto hist = hists.begin(); hist != hists.end(); ++hist) delete hist->second;
-
+  gDirectory->GetList()->Delete();
   return;
 }
 
