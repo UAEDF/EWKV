@@ -24,7 +24,7 @@ std::ofstream writeFile;
 class plotHistos{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
-  TString xtitle, ytitle, tag, fileName, name;
+  TString xtitle, ytitle, tag, fileName, name, nameData;
   bool logX;
   bool JES;
   int removeJESbinLeft, removeJESbinRight;
@@ -124,12 +124,18 @@ void plotHistos::loop(TString type){
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
     fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root";
+    nameData = name;
     next(type);
-
     if(name == "BDT"){
       //Set related cutflow as default
       system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
       system("diff " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
+    }
+
+
+    if(name.Contains("BDT") || name.Contains("dijet_mass") || name.Contains("star_Z")){
+      name += "mcfmUp";
+      next(type);
     }
   }
   readFile.close();
@@ -139,16 +145,13 @@ void plotHistos::loop(TString type){
 
 void plotHistos::next(TString type){
   bool putEvents = true;
-  bool bottomLegend = true;
+  bool bottomLegend = false;
   setTDRStyle(bottomLegend);
 
   //Set up histos
   std::map<TString, TH1D*> hists;
-  for(TString h : mcs) 							 					hists[h] = new TH1D(h, h, bins, min, max);
-  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-","signal only","thisLegendItem"}) 	hists[h] = new TH1D(h, h, bins, min, max);
-  if(logX){
-    for(auto h = hists.begin(); h != hists.end(); ++h) binLogX(h->second);
-  }
+  for(TString h : mcs) 							 					hists[h] = NULL;
+  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-","signal only","thisLegendItem"}) 	hists[h] = NULL;
 
   double horizontalSplit = 0.275;
   double leftMargin = .12;
@@ -239,24 +242,37 @@ void plotHistos::next(TString type){
   bool newLegendItem = true;
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
-    safeAdd(hists[*mcbefore], getPlot(file, *mc, name), hists[*mc]);
-    if(newLegendItem) hists["temp"] = getPlot(file, *mc, name);
-    else safeAdd(hists["temp"], getPlot(file, *mc, name));
+    hists[*mc] = safeAdd(hists[*mcbefore], getPlot(file, *mc, name, true));
+    if(newLegendItem) hists["temp"] = getPlot(file, *mc, name, true);
+    else hists["temp"] = safeAdd(hists["temp"], getPlot(file, *mc, name, true));
     if(*mc == "ZVBF") hists["signal only"] = getPlot(file, *mc, name);
     newLegendItem = false;
     if(useLegend[*mc]){
-      events[*mc] = hists["temp"]->Integral();
-      RMS[*mc] = hists["temp"]->GetRMS();
-      mean[*mc] = hists["temp"]->GetMean();
+      if(hists["temp"]){
+        events[*mc] = hists["temp"]->Integral();
+        RMS[*mc] = hists["temp"]->GetRMS();
+        mean[*mc] = hists["temp"]->GetMean();
+      } else {
+        events[*mc] = 0;
+        RMS[*mc] = 0;
+        mean[*mc] = 0;
+      }
+//      if(*mc == "DY0") std::cout << "DY:\t" << hists["temp"]->GetBinContent(1) << " ± " << hists["temp"]->GetBinError(1) << std::endl;
+//      if(*mc == "DY0") std::cout << "DY 100:\t" << hists["temp"]->GetBinContent(2) << " ± " << hists["temp"]->GetBinError(2) << std::endl;
+//      if(*mc == "DY0") std::cout << "DY 200:\t" << hists["temp"]->GetBinContent(3) << " ± " << hists["temp"]->GetBinError(3) << std::endl;
       newLegendItem = true;
     }
-    safeAdd(hists["JES+"], getPlot(file, *mc, name + "JES+", true));			// Old files ( < 21/10/2013)
-    safeAdd(hists["JES-"], getPlot(file, *mc, name + "JES-", true));			// Old files ( < 21/10/2013)
-    safeAdd(hists["JES+"], getPlot(file, *mc, name + "JESUp", true));			// New files 
-    safeAdd(hists["JES-"], getPlot(file, *mc, name + "JESDown", true));			// New files
+    hists["JES+"] = safeAdd(hists["JES+"], getPlot(file, *mc, name + "JES+", true));			// Old files ( < 21/10/2013)
+    hists["JES-"] = safeAdd(hists["JES-"], getPlot(file, *mc, name + "JES-", true));			// Old files ( < 21/10/2013)
+    hists["JES+"] = safeAdd(hists["JES+"], getPlot(file, *mc, name + "JESUp", true));			// New files 
+    hists["JES-"] = safeAdd(hists["JES-"], getPlot(file, *mc, name + "JESDown", true));			// New files
+    if(name.Contains("mcfmUp")){
+      hists["JES+"] = safeAdd(hists["JES+"], getPlot(file, *mc, nameData + "JESUpmcfmUp", true));		// New files 
+      hists["JES-"] = safeAdd(hists["JES-"], getPlot(file, *mc, nameData + "JESDownmcfmUp", true));	// New files
+    }
     mcbefore = mc;
   }
-  safeAdd(hists["data"], getPlot(file, "data", name));
+  hists["data"] = getPlot(file, "data", nameData);
   
 
   //Draw the histograms
@@ -283,6 +299,11 @@ void plotHistos::next(TString type){
     double events = hists[mcs.front()]->Integral();
     double RMS = hists[mcs.front()]->GetRMS();
     double mean = hists[mcs.front()]->GetMean();
+    if(name.Contains("BDT") && false){
+      std::ofstream ksFile("eventsMC.txt", std::ios_base::app | std::ios_base::out);
+      ksFile << tag << "\t" << type << "\t" << name << "\t" << events << std::endl;
+      ksFile.close();
+    }
     leg->AddEntry("", TString::Format("%d", (int)(events+.5)),"");
     if(bottomLegend){
       leg->AddEntry("", TString::Format("%.5f", mean),"");
@@ -296,7 +317,6 @@ void plotHistos::next(TString type){
       }
     }
   }
-
 /*
   //In case of line for the signal only
   hists["signal only"]->SetLineWidth(2.);
@@ -304,13 +324,22 @@ void plotHistos::next(TString type){
   hists["signal only"]->Draw("same");
   leg->AddEntry(hists["signal only"], " signal only ", "L");
 */
-  hists["data"]->SetLineWidth(2.);
+
+  hists["data"]->SetMarkerStyle(20);
+  hists["data"]->SetLineWidth(3.);
   hists["data"]->Draw("same e");
   leg->AddEntry(hists["data"], " Data ", "P");
   if(putEvents){
     double events = hists["data"]->Integral();
     double RMS = hists["data"]->GetRMS();
     double mean = hists["data"]->GetMean();
+
+    if(name.Contains("BDT") && false){
+      std::ofstream ksFile("eventsData.txt", std::ios_base::app | std::ios_base::out);
+      ksFile << tag << "\t" << type << "\t" << name << "\t" << events << std::endl;
+      ksFile.close();
+    }
+
     leg->AddEntry("", TString::Format("%d", (int)(events+.5)),"");
     if(bottomLegend){
       leg->AddEntry("", TString::Format("%.5f", mean),"");
@@ -345,8 +374,10 @@ void plotHistos::next(TString type){
 //      double mcfm = hMCFM->GetBinContent(i);
       double deltaB = 0.5*((bkg-plus)*(bkg-plus)+(bkg-min)*(bkg-min));
       if(sqrt(bkg+deltaB) != 0){
-        hObserved->SetBinContent(i, (data-bkg)/sqrt(bkg+deltaB));
-        hExpected->SetBinContent(i, signal/sqrt(bkg+deltaB));
+//        hObserved->SetBinContent(i, (data-bkg)/sqrt(bkg+deltaB));
+        hObserved->SetBinContent(i, (data-bkg)/sqrt(bkg));
+//        hExpected->SetBinContent(i, signal/sqrt(bkg+deltaB));
+        hExpected->SetBinContent(i, signal/sqrt(bkg));
 //        hExpected->SetBinContent(i, signal/(bkg+signal));
 //        hModeling->SetBinContent(i, (mcfm-bkg)/sqrt(bkg+deltaB));
       } else {
@@ -383,7 +414,8 @@ void plotHistos::next(TString type){
  //   legSignificance->AddEntry(hModeling, "bkg. modeling uncert.", "l");
     legSignificance->Draw();
   } else {
-    hists["ratio"]->Divide(hists["data"], hists[mcs.front()]);
+    hists["ratio"] = (TH1D*) hists["data"]->Clone();
+    hists["ratio"]->Divide(hists[mcs.front()]);
     for(int bin = 1; bin < bins+1; ++bin){ 
       double hMC     = hists[mcs.front()]->GetBinContent(bin);
       double hMC_er  = hists[mcs.front()]->GetBinError(bin);
@@ -403,16 +435,18 @@ void plotHistos::next(TString type){
     TText kstext = TText();
     kstext.SetTextSize(0.1);
     kstext.DrawTextNDC(0.18,0.01, TString::Format("KS=%e",kolmogorov));
-    if(name.Contains("BDT")){
+    if(name.Contains("BDT") && false){
       std::ofstream ksFile("ksValues.txt", std::ios_base::app | std::ios_base::out);
-      ksFile << tag << "\t" << name << "\t" << kolmogorov << std::endl;
+      ksFile << tag << "\t" << type << "\t" << name << "\t" << kolmogorov << std::endl;
       ksFile.close();
     }
 
     //Ratio for JES
-    if(JES){
-      hists["ratio+"]->Divide(hists["JES+"], hists[mcs.front()]);
-      hists["ratio-"]->Divide(hists["JES-"], hists[mcs.front()]);
+    if(JES && hists["JES+"] != NULL && hists["JES-"] != NULL){
+      hists["ratio+"] = (TH1D*) hists["JES+"]->Clone();
+      hists["ratio-"] = (TH1D*) hists["JES-"]->Clone();
+      hists["ratio+"]->Divide(hists[mcs.front()]);
+      hists["ratio-"]->Divide(hists[mcs.front()]);
 
       //To remove bins from the JES (when fluctuations are too high)
       if(removeJESbinRight != 0 || removeJESbinLeft != 0){
