@@ -19,7 +19,7 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20131022_InclusiveDY_ptZrew";		// Trees used for training
+TString tag = "20131220_InclusiveDY";			// Trees used for training
 TString DYtype = "inclusive";				// Inclusive or composed DY
 TString mva = "BDT";					// Choosen MVA
 //TCut mjjCut = "M_jj>100";				// Mjj cut
