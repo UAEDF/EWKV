@@ -112,10 +112,7 @@ void histoCollection::bookHistos(){
   while(!readFile2.eof()){
     TString useLine;
     readFile2 >> useLine;
-    if(useLine != "1"){
-      readFile2.ignore(unsigned(-1), '\n');
-      continue;
-    }
+    if(!useLine.IsDigit()){ readFile2.ignore(unsigned(-1), '\n'); continue;}
     TString name;
     int bins;
     double min, max;
