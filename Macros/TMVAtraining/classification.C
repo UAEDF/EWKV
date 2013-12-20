@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
 
     //Initialization
     TString nTrainS = "40000", nTrainB = (type == "ZEE"? "70000" : "110000");
-    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/TEST" + tag + "_" + mva + "_STEP" + TString::Format("%d", step) + "/";
+    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + "_" + mva + "_STEP" + TString::Format("%d", step) + "/";
     makeDirectory(outputDir);
     TFile *outputFile = new TFile(outputDir + "TMVA.root" , "RECREATE" );
     (TMVA::gConfig().GetIONames()).fWeightFileDir = outputDir + "/weights/";
