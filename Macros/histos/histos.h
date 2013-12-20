@@ -29,6 +29,7 @@ class histoCollection{
   std::map<TString, TH1D*> hist1DList;
   std::map<TString, TH2D*> hist2DList;
   std::map<TString, TProfile*> profileList;
+  std::vector<TString> onBlackList;
   double fillWeight;
   TString branch;
   TFile* outputFile;
@@ -90,10 +91,7 @@ void histoCollection::bookHistos(){
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
-    if((useLine != "1") && (useLine != "2")){
-      readFile.ignore(unsigned(-1), '\n');
-      continue;
-    }
+    if(!useLine.IsDigit()){ readFile.ignore(unsigned(-1), '\n'); continue;}
     TString name;
     int bins;
     double min, max;
@@ -175,7 +173,9 @@ void histoCollection::fillHist1D(TString hName, double Xvalue){
   if(hid == hist1DList.end()){
     auto hidMainBranch = hist1DList.find(hName);
     if(hidMainBranch == hist1DList.end()){
+      if(std::find(onBlackList.begin(), onBlackList.end(), hName) != onBlackList.end()) return;
       std::cout << "histoCollection:\t!!!\tTH1D " << hName << " was not booked" << std::endl;
+      onBlackList.push_back(hName);
       return;
     } else { 
       makeBranch1D(hidMainBranch->second);
@@ -191,7 +191,9 @@ void histoCollection::fillHist2D(TString hName, double Xvalue, double Yvalue){
   if(hid == hist2DList.end()){
     auto hidMainBranch = hist2DList.find(hName);
     if(hidMainBranch == hist2DList.end()){
+      if(std::find(onBlackList.begin(), onBlackList.end(), hName) != onBlackList.end()) return;
       std::cout << "histoCollection:\t!!!\tTH2D " << hName << " was not booked" << std::endl;
+      onBlackList.push_back(hName);
       return;
     } else {
       makeBranch2D(hidMainBranch->second);
@@ -207,7 +209,9 @@ void histoCollection::fillProfileHist(TString hName, double Xvalue, double Yvalu
   if(hid == profileList.end()){
     auto hidMainBranch = profileList.find(hName);
     if(hidMainBranch == profileList.end()){
+      if(std::find(onBlackList.begin(), onBlackList.end(), hName) != onBlackList.end()) return;
       std::cout << "histoCollection:\t!!!\tTProfile " << hName << " was not booked" << std::endl;
+      onBlackList.push_back(hName);
       return;
     } else {
       makeBranchProfile(hidMainBranch->second);
