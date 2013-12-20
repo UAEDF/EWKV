@@ -53,7 +53,7 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131022_InclusiveDY_ptZrew_BDT_STEP5"
+#define TMVATAG "20131220_InclusiveDY_BDT_STEP5"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
 #define OUTPUTTAG "20131220_Full"
@@ -325,7 +325,7 @@ void ewkvAnalyzer::analyze_Zjets(){
         histos->fillHist1D("dijet_pt", 			jj.Pt());
         histos->fillHist1D("dijet_dphi", 		fabs(j1.DeltaPhi(j2)));
         histos->fillHist1D("dijet_deta", 		fabs(j1.Eta() - j2.Eta()));
-        if(jj.M > 1250) histos->fillHist1D("dijet_deta_1250",	fabs(j1.Eta() - j2.Eta()));
+        if(jj.M() > 1250) histos->fillHist1D("dijet_deta_1250",	fabs(j1.Eta() - j2.Eta()));
         histos->fillHist1D("dijet_av_eta", 		(j1.Eta() + j2.Eta())/2);
         histos->fillHist1D("dijet_sum_pt", 		(j1.Pt() + j2.Pt()));
     
