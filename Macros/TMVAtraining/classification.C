@@ -1,3 +1,5 @@
+// argv[1]: type selection (ZEE,ZMUMU or ALL)
+// argv[2]: step number to choose configuration
 #include <cstdlib>
 #include <iostream> 
 #include <map>
@@ -11,77 +13,72 @@
 #include "TSystem.h"
 #include "TROOT.h"
 #include "TPluginManager.h"
-#include <map>
 
 #include <TMVA/Factory.h>
 #include <TMVA/Tools.h>
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20131021_InclusiveDY_ptZrew";
-TString option = "_BDT";
-TString DYtype = "inclusive";
-TString nTrain = "50000";
-//TCut mjjCut = "M_jj>100";
+TString tag = "20131022_InclusiveDY_ptZrew";		// Trees used for training
+TString DYtype = "inclusive";				// Inclusive or composed DY
+TString mva = "BDT";					// Choosen MVA
+//TCut mjjCut = "M_jj>100";				// Mjj cut
 TCut mjjCut = "";
    
 int main(int argc, char *argv[]){
-  std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
-  if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
-  if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
+  for(TString type : typeSelector(argc, argv)){
+    std::cout << "TMVA classification for " << (tag + "_" + mva) << " with " << type << std::endl;
+    if(argc < 2){ std::cout << "classification.C:\t!!!\tNeed step number for configuration" << std::endl; exit(1);}
+    int step = atoi(argv[2]);
 
-  for(TString type : types){
-    std::cout << "TMVA classification for " << tag << option << " with " << type << std::endl;
-         
-    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + option + "/";
+    //Initialization
+    TString nTrainS = "40000", nTrainB = (type == "ZEE"? "70000" : "110000");
+    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/TEST" + tag + "_" + mva + "_STEP" + TString::Format("%d", step) + "/";
     makeDirectory(outputDir);
     TFile *outputFile = new TFile(outputDir + "TMVA.root" , "RECREATE" );
     (TMVA::gConfig().GetIONames()).fWeightFileDir = outputDir + "/weights/";
-
     TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile, "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D" );
+
+    //Variable configuration
     factory->AddVariable( "pT_Z", 'F' );
-//    factory->AddVariable( "pT_j1", 'F' );
-    factory->AddVariable( "pT_j2", 'F' );
-//    factory->AddVariable( "pT_jj", 'F' );
-    factory->AddVariable( "eta_Z", 'F' );
-//    factory->AddVariable( "dPhi_j1", 'F' );
-//    factory->AddVariable( "dPhi_j2", 'F' );
-//    factory->AddVariable( "dPhi_jj", 'F' );
-//    factory->AddVariable( "dEta_jj", 'F' );
-    factory->AddVariable( "zstarZ", 'F' );
+    if(step < 4 || step == 6) factory->AddVariable( "pT_j1", 'F' );
+    if(step < 5) factory->AddVariable( "pT_j2", 'F' );
+    factory->AddVariable( "abs(eta_Z)", 'F' );
+    if(step < 2) factory->AddVariable( "dPhi_j1", 'F' );
+    if(step < 2) factory->AddVariable( "dPhi_j2", 'F' );
+    if(step < 3) factory->AddVariable( "dPhi_jj", 'F' );
+    if(step < 1) factory->AddVariable( "dEta_jj", 'F' );
+    if(step != 0) factory->AddVariable( "zstarZ", 'F' );
     factory->AddVariable( "avEta_jj", 'F' );
     factory->AddVariable( "qgHIG13011_j1", 'F' );
     factory->AddVariable( "qgHIG13011_j2", 'F' );
-    factory->AddVariable( "M_jj", 'F' );
+//    factory->AddVariable( "qgLikelihood_j1", 'F' );
+//    factory->AddVariable( "qgLikelihood_j2", 'F' );
+    if(step != 7) factory->AddVariable( "M_jj", 'F' );
 
+    // Init trees
     TString treeDir = getTreeLocation() + "tmva-input/" + type + "/" + tag + "/";
     std::map<TString, TFile*> files;
     std::map<TString, TTree*> trees;
     files["signal"] = new TFile(treeDir + "ZVBF.root");
-    if(DYtype == "powheg"){
-      if(type == "ZEE") files["DY"] = new TFile(treeDir + "DYEE-powheg.root");
-      if(type == "ZMUMU") files["DY"] = new TFile(treeDir + "DYMUMU-powheg.root");
-    } else if(DYtype == "inclusive"){
-      files["DY"] = new TFile(treeDir + "DY.root");
-    } else if(DYtype == "data"){
-      files["DY"] = new TFile(treeDir + "data.root");
-    } else {
-      for(TString i : {"2","3","4"}) files["DY" + i] = new TFile(treeDir + "DY" + i + ".root");
-    }
+    if(DYtype == "inclusive") 	files["DY"] = new TFile(treeDir + "DY.root");
+    else if(DYtype == "data")   files["DY"] = new TFile(treeDir + "data.root");
+    else for(TString i : {"2","3","4"}) files["DY" + i] = new TFile(treeDir + "DY" + i + ".root");
 
     for(auto file = files.begin(); file != files.end(); ++file) trees[file->first] = (TTree*) file->second->Get("ewkv-TMVA-input");
 
     factory->AddSignalTree(trees["signal"]);
-    if(DYtype == "powheg" || DYtype  == "inclusive" || DYtype == "data") factory->AddBackgroundTree(trees["DY"]);
+    if(DYtype != "composed") factory->AddBackgroundTree(trees["DY"]);
     else for(TString i : {"2","3","4"}) factory->AddBackgroundTree(trees["DY" + i]);
    
     factory->SetSignalWeightExpression("weight");
     factory->SetBackgroundWeightExpression("weight");
 
-    factory->PrepareTrainingAndTestTree( mjjCut, mjjCut, "nTrain_Signal=" + nTrain + ":nTrain_Background=" + nTrain + ":SplitMode=Random:!V" );
-    factory->BookMethod( TMVA::Types::kBDT, "BDT", "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
-   
+    factory->PrepareTrainingAndTestTree( mjjCut, mjjCut, "nTrain_Signal=" + nTrainS + ":nTrain_Background=" + nTrainB + ":SplitMode=Random:!V" );
 
+    if(mva == "BDT") factory->BookMethod( TMVA::Types::kBDT, "BDT", "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
+    else{ std::cout << "classification.C:\t!!!\tNo method specified for " << mva << std::endl; exit(1);}
+   
     factory->TrainAllMethods();
     factory->TestAllMethods();
     factory->EvaluateAllMethods();    

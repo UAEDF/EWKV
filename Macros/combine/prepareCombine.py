@@ -2,7 +2,7 @@
 from ROOT import TFile, TH1
  
 base = "BDT"
-tag = "20131021_Fast"
+tag = "20131030_Fast_STEP5"
 
 mcGroups = {'DY': ["DY0","DY1","DY2","DY3","DY4"],
             'TTJets': ["TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"],
@@ -46,12 +46,13 @@ for type in ["ZMUMU","ZEE"]:
 
     for systematic in ["","JESUp","JESDown","JERUp","JERDown","PUUp","PUDown","QGUp","QGDown","mcfmUp","mcfmDown"]:
       plot = base + category + systematic
-      if systematic == "QGDown" or systematic == "mcfmDown": plot = base + category
+      if systematic == "QGDown" or systematic == "mcfmDown" or systematic == "JERDown": plot = base + category
 
       expected = {}
       for name, mcs in mcGroups.iteritems():
         thisGroup = merge(sourceFile, plot, mcs)
-        thisGroup.Write(name + systematic)
+        if systematic == "": thisGroup.Write(name)
+        else: thisGroup.Write(name + "_" + systematic)
         expected[name] = ('%.3f' % thisGroup.Integral())
        
       if systematic == "":
