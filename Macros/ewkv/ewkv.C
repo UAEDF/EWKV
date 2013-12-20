@@ -46,28 +46,24 @@
 #define ZMASS 91.1876
 
 // Cuts
-#define JETPT_RADPAT 40
-#define JET1PT 50 
+#define JETPT_RADPAT 30
+#define JET1PT 30
 #define JET2PT 30 
 #define JET3PT 30 
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131022_InclusiveDY_ptZrew_BDT_100_STEP0"
+#define TMVATAG "20131022_InclusiveDY_ptZrew_BDT_STEP5"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131103_Fast_STEP0"
+#define OUTPUTTAG "20131220_Full"
 
 /*****************
  * Main function *
  *****************/
 int main(int argc, char *argv[]){
-  std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
-  if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
-  if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
   gROOT->SetBatch();
-
-  for(TString type : types){
+  for(TString type : typeSelector(argc, argv)){
     TString samplesDir = getCMSSWBASE() + "src/EWKV/Macros/samples/";					//Set up list of samples
     TString mcConfig = samplesDir + (DYTYPE == "inclusive"? "mcInclusive.config" : "mc.config");
     if(DYTYPE == "powheg") mcConfig = samplesDir + "mcPowheg.config";
@@ -81,10 +77,10 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
-      (*it)->useSkim(type, "20131022_Full");								//Use skimmed files to go faster
+//      (*it)->useSkim(type, "20131022_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -153,8 +149,6 @@ void ewkvAnalyzer::analyze_Zjets(){
   
     if(l1.Pt() < 20 || l2.Pt() < 20 || Z.Pt() <= 0) continue;
   
-    ptReweighting(Z.Pt());
-  //  etaReweighting(Z.Eta());
   
     histos->fillHist1D("lepton_pt", 	l1.Pt());
     histos->fillHist1D("lepton_eta", 	l1.Eta());
@@ -177,6 +171,8 @@ void ewkvAnalyzer::analyze_Zjets(){
     cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
   
     histos->fillHist1D("dilepton_pt", 	Z.Pt());
+    ptReweighting(Z.Pt());
+    histos->fillHist1D("dilepton_pt_flat", 	Z.Pt());
     histos->fillHist1D("dilepton_eta", 	Z.Eta());
     histos->fillHist1D("dilepton_phi", 	Z.Phi());
     checkRadiationPattern(Z.Rapidity());
@@ -268,7 +264,7 @@ void ewkvAnalyzer::analyze_Zjets(){
       // Add systematic branches for MCFM reweightig
       saveWeight();
       for(TString mcfmSyst : {"", "mjjUp", "ystarUp", "mcfmUp"}){
-        if((mySample->isData() || (puMode + subBranch) != "") && mcfmSyst != "") continue;
+        if((mySample->isData() || puMode != "") && mcfmSyst != "") continue;
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
         restoreWeight();										// Go back to normal event weight before next reweighting
@@ -318,13 +314,14 @@ void ewkvAnalyzer::analyze_Zjets(){
           double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
     
           histos->fillHist1D(TMVATYPE, 						mvaValue);
-          if(jj.M() > 100) histos->fillHist1D(TString(TMVATYPE)+"_100", 	mvaValue);
-          if(jj.M() > 200) histos->fillHist1D(TString(TMVATYPE)+"_200", 	mvaValue);
+          for(int m = 100; m < 750; m += 50){
+            if(jj.M() > m) histos->fillHist1D(TString(TMVATYPE)+"_"+TString::Format("%d", m), 	mvaValue);
+          }
+          histos->fillHist1D("dijet_mass", 		jj.M());
         }  
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
-  
-        histos->fillHist1D("dijet_mass", 		jj.M());
+        
         histos->fillHist1D("dijet_pt", 			jj.Pt());
         histos->fillHist1D("dijet_dphi", 		fabs(j1.DeltaPhi(j2)));
         histos->fillHist1D("dijet_deta", 		fabs(j1.Eta() - j2.Eta()));
@@ -407,17 +404,15 @@ void ewkvAnalyzer::initTMVAreader(){
   TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml";
 
   ifstream xmlFile;
-  xmlFile.open(weightsFile.Data());
-  if(xmlFile.is_open()){
-    std::string line;
-    while(getline(xmlFile,line)){
-      std::string::size_type start = line.find("Expression=\"");
-      if(start != std::string::npos){
-        TString variable = TString(line.substr(start + 12, line.find("\" Label") - start - 12));
-        tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
-      }
+  getStream(xmlFile, weightsFile.Data());
+  std::string line;
+  while(getline(xmlFile,line)){
+    std::string::size_type start = line.find("Expression=\"");
+    if(start != std::string::npos){
+      TString variable = TString(line.substr(start + 12, line.find("\" Label") - start - 12));
+      tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
     }
-  } else std::cout << "ewkv.C:\t\t!!!\tTMVA XML file not found!" << std::endl;
+  }
 
   tmvaReader->BookMVA( TMVATYPE, weightsFile);
 }
@@ -476,7 +471,7 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
  *****************/
 void ewkvAnalyzer::readEtaWeights(){
   std::ifstream readFile;
-  readFile.open("../reweightingZ/etaWeigths_" + type + ".txt");
+  getStream(readFile, "../reweightingZ/etaWeigths_" + type + ".txt");
   readFile.ignore(unsigned(-1), '\n');
   double min, max, ratio;
   while(readFile >> min >> max >> ratio){
@@ -498,7 +493,7 @@ void ewkvAnalyzer::etaReweighting(double eta){
 
 void ewkvAnalyzer::readPtWeights(){
   std::ifstream readFile;
-  readFile.open("../reweightingZ/ptWeigths_" + type + ".txt");
+  getStream(readFile, "../reweightingZ/ptWeigths_" + type + ".txt");
   readFile.ignore(unsigned(-1), '\n');
   double min, max, ratio;
   while(readFile >> min >> max >> ratio){
