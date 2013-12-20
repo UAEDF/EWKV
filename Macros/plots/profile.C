@@ -21,10 +21,11 @@
 class plotProfile{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
-  TString xtitle, ytitle, fileName, fileNameZEE, fileNameZMUMU, name;
+  TString xtitle, ytitle, nameData, nameMC;
   bool logX;
   bool JES;
   int removeJESbinLeft, removeJESbinRight;
+  std::map<TString, TString> fileName;
 
   std::vector<TString> mcs;
   std::map<TString, int> color;
@@ -33,17 +34,16 @@ class plotProfile{
 
   public:
   plotProfile(){};
-  bool configureStack();
+  void configureStack();
   void loop(TString type);
   void defaultStyle(TString type);
   void combinedStyle();
   void ratioStyle();
-  TH1* displaceBins(TH1* hh, double displaceFactor);
 };
 
 int main(){
   plotProfile *myPlotHistos = new plotProfile();
-  if(!myPlotHistos->configureStack()) return 1;
+  myPlotHistos->configureStack();
 //myPlotHistos->loop("ZMUMU");
 //myPlotHistos->loop("ZEE");
   myPlotHistos->loop("both");
@@ -52,13 +52,9 @@ int main(){
 }
 
 
-bool plotProfile::configureStack(){
-  std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "src/EWKV/Macros/plots/stack.config")); 
-  if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "src/EWKV/Macros/histos/stack.config not found!" << std::endl;
-    return false;
-  }
+void plotProfile::configureStack(){
+  std::ifstream readFile; 
+  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/plots/stack.config"); 
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
@@ -80,43 +76,40 @@ bool plotProfile::configureStack(){
     }
   }
   readFile.close();
-  return true;
 }
 
 
 void plotProfile::loop(TString type){
   //Get histogram info from file and loop
-  std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config")); 
-  if(!readFile.is_open()){
-    std::cout << "plot.C:\t\t\t!!!\t" + getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config not found!" << std::endl;
-    return;
-  }
+  std::ifstream readFile; 
+  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config"); 
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
-    if(useLine != "1"){
+    if(useLine != "1" && useLine != "3"){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
     bool plot;
-    readFile >> name >> bins >> min >> max >> logX >> plot;
+    readFile >> nameData >> bins >> min >> max >> logX >> plot;
+    nameMC = nameData;
     if(!plot){
       readFile.ignore(unsigned(-1), '\n');
       continue;
     }
-    readFile >> fileName >> xtitle >> ytitle >> ymin >> ymax >> xmin >> xmax >> rmin >> rmax;
+    TString fileName_;
+    readFile >> fileName_ >> xtitle >> ytitle >> ymin >> ymax >> xmin >> xmax >> rmin >> rmax;
     xtitle.ReplaceAll("__"," ");
     ytitle.ReplaceAll("__"," ");
-    if(type != "both"){
-      fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + fileName + ".root";
-      defaultStyle(type);
-    }
+    for(TString i : {"ZEE","ZMUMU"}) fileName[i] = getTreeLocation() + "outputs/rootfiles/" + i + "/" + fileName_ + ".root";
+    if(type != "both") defaultStyle(type);
+//    else combinedStyle();
     else {
-      fileNameZEE = getTreeLocation() + "outputs/rootfiles/ZEE/" + fileName + ".root";
-      fileNameZMUMU = getTreeLocation() + "outputs/rootfiles/ZMUMU/" + fileName + ".root";
-//      combinedStyle();
       ratioStyle();
+      if(useLine == "3"){
+        nameMC += "mcfmUp";
+        ratioStyle();
+      }
     }
   }
   readFile.close();
@@ -126,44 +119,27 @@ void plotProfile::loop(TString type){
 
 void plotProfile::defaultStyle(TString type){
   std::map<TString, TProfile*> profileHists;
-
-  
+ 
   TCanvas *c = new TCanvas("Canvas", "Canvas", 1500, 1200);
   TLegend *leg = new TLegend();
   if(type == "ZMUMU") leg->AddEntry((TObject*)0, "Z #rightarrow #mu#mu", "");
-  if(type == "ZEE") leg->AddEntry((TObject*)0, "Z #rightarrow ee", "");
-  TFile *file = new TFile(fileName);
+  if(type == "ZEE")   leg->AddEntry((TObject*)0, "Z #rightarrow ee", "");
+  TFile *file = new TFile(fileName[type]);
+
+  profileHists["data"] = getProfile(file, "data", nameData);
+  for(TString i : {"0","1","2","3","4"}) profileHists["DY"] = safeAdd(profileHists["DY"], getProfile(file, "DY" + i, nameMC, true));
+  if(!profileHists["DY"]){ std::cout << "No DY for " << nameMC << "!" << std::endl; exit(1);}
 
   //data
-  TDirectory *dir = file->GetDirectory("data");
-  TH1 *data; 
-  if(dir){
-    dir->cd();
-    data = (TH1*) file->Get(name);
-  } else data = (TH1*) file->Get(name + "_data");
-  data->SetMarkerStyle(20);
-  data->SetStats(0);
-  data->SetTitle("");
-  data->SetMarkerSize(1.5);
-  leg->AddEntry(data, "data", "p");
-  if(data->GetBinWidth(1) != data->GetBinWidth(2)) c->SetLogx();
-  data->GetXaxis()->SetTitle(xtitle);
-  data->GetYaxis()->SetTitle(ytitle);
-  data->Draw("e1p X0");
-
-  
-
-  for(auto mc = mcs.begin(); mc != mcs.end(); ++mc){
-    TDirectory *dir = file->GetDirectory(*mc);
-    if(dir){
-      dir->cd();
-      profileHists[*mc] = (TProfile*) file->Get(name);
-    } else profileHists[*mc] = (TProfile*) file->Get(name + "_" + *mc);
-  }
-
-  profileHists["DY"] = (TProfile*) profileHists["DY0"]->Clone();
-  color["DY"] = color["DY0"];
-  for(TString i : {"1","2","3","4"}) profileHists["DY"]->Add(profileHists["DY"+i]);
+  profileHists["data"]->SetMarkerStyle(20);
+  profileHists["data"]->SetStats(0);
+  profileHists["data"]->SetTitle("");
+  profileHists["data"]->SetMarkerSize(1.5);
+  leg->AddEntry(profileHists["data"], "data", "p");
+  if(isLogX(profileHists["data"])) c->SetLogx();
+  profileHists["data"]->GetXaxis()->SetTitle(xtitle);
+  profileHists["data"]->GetYaxis()->SetTitle(ytitle);
+  profileHists["data"]->Draw("e1p X0");
 
   int j = 1;
   for(TString i : {"ZVBF","DY"}){
@@ -171,8 +147,7 @@ void plotProfile::defaultStyle(TString type){
     if(i == "ZVBF") displaceFactor = -.1;
     if(i == "DY") displaceFactor = .1;
 
-    if(profileHists[i]->GetMaximum()*1.1 > data->GetMaximum()) data->SetMaximum(profileHists[i]->GetMaximum()*1.1);
-    if(profileHists[i]->GetMinimum()*.9 < data->GetMinimum()) data->SetMinimum(profileHists[i]->GetMinimum()*.9);
+    fixRange(profileHists["data"], profileHists[i]);
     TH1* displacedBinHisto = displaceBins(profileHists[i], displaceFactor);
     displacedBinHisto->SetMarkerStyle(2+j%4);
     displacedBinHisto->SetMarkerSize(1.5);
@@ -185,7 +160,7 @@ void plotProfile::defaultStyle(TString type){
   }
   leg->Draw();
 
-  c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + name + ".pdf");  
+  c->SaveAs(getTreeLocation() + "outputs/pdf/" + type + "/" + nameMC + ".pdf");  
   delete c;
   return;
 }
@@ -197,14 +172,11 @@ void plotProfile::combinedStyle(){
   std::map<TString, TH1*> th1Hists;
   TCanvas *c = new TCanvas("c","c", 600, 600);
 
-  file["ZEE"] = new TFile(fileNameZEE);
-  file["ZMUMU"] = new TFile(fileNameZMUMU);
-
   for(TString j : {"ZEE","ZMUMU"}){
-    profileHists["data" + j] = getProfile(file[j], "data", name);
-    for(auto mc = mcs.begin(); mc != mcs.end(); ++mc) profileHists[*mc + j] = getProfile(file[j], *mc, name);
-    profileHists["DY" + j] = (TProfile*) profileHists["DY0" + j]->Clone();
-    for(TString i : {"1","2","3","4"}) profileHists["DY" + j]->Add(profileHists["DY"+i + j]);
+    file[j] = new TFile(fileName[j]);
+    profileHists["data" + j] = getProfile(file[j], "data", nameData);
+    for(TString i : {"0","1","2","3","4"}) profileHists["DY"+j] = safeAdd(profileHists["DY"+j], getProfile(file[j], "DY" + i, nameMC, true));
+    if(!profileHists["DY"+j]){ std::cout << "No DY for " << nameMC << "!" << std::endl; exit(1);}
   }
 
   double k = -0.15;
@@ -245,8 +217,9 @@ void plotProfile::combinedStyle(){
   tex->Draw();
 
   if(!exists(getTreeLocation() + "outputs/pdf/combined/")) system("mkdir -p " + getTreeLocation() + "outputs/pdf/combined/");
-  c->SaveAs(getTreeLocation() + "outputs/pdf/combined/" + name + ".pdf");  
+  c->SaveAs(getTreeLocation() + "outputs/pdf/combined/" + nameMC + ".pdf");  
   delete c;
+  gDirectory->GetList()->Delete();
   return;
 }
 
@@ -304,14 +277,11 @@ void plotProfile::ratioStyle(){
 
   padUP->cd();
 
-  file["ZEE"] = new TFile(fileNameZEE);
-  file["ZMUMU"] = new TFile(fileNameZMUMU);
-
   for(TString j : {"ZEE","ZMUMU"}){
-    profileHists["data" + j] = (TProfile*) file[j]->Get(name + "_data");
-    for(auto mc = mcs.begin(); mc != mcs.end(); ++mc) profileHists[*mc + j] = (TProfile*) file[j]->Get(name + "_" + *mc);
-    profileHists["DY" + j] = (TProfile*) profileHists["DY0" + j]->Clone();
-    for(TString i : {"1","2","3","4"}) profileHists["DY" + j]->Add(profileHists["DY"+i + j]);
+    file[j] = new TFile(fileName[j]);
+    profileHists["data" + j] = getProfile(file[j], "data", nameData);
+    for(TString i : {"0","1","2","3","4"}) profileHists["DY"+j] = safeAdd(profileHists["DY"+j], getProfile(file[j], "DY" + i, nameMC, true));
+    if(!profileHists["DY"+j]){ std::cout << "No DY for " << nameMC << "!" << std::endl; exit(1);}
   }
 
   double k = -0.15;
@@ -324,7 +294,6 @@ void plotProfile::ratioStyle(){
 
   if(th1Hists["DYZMUMU"]->GetBinWidth(1) != th1Hists["DYZMUMU"]->GetBinWidth(2)) c->SetLogx();
   for(TString i : {"DYZMUMU","dataZMUMU","dataZEE","DYZEE"}) th1Hists[i]->Draw("e1p X0 same");
-
 
   TLegend *l = new TLegend(.15,.65,.37,.88);
   l->AddEntry(th1Hists["dataZMUMU"], "Z #rightarrow #mu#mu data", "p");
@@ -376,30 +345,8 @@ void plotProfile::ratioStyle(){
   th1Hists["ratioZMUMU"]->Draw("same e");
 
   if(!exists(getTreeLocation() + "outputs/pdf/combined/")) system("mkdir -p " + getTreeLocation() + "outputs/pdf/combined/");
-  c->SaveAs(getTreeLocation() + "outputs/pdf/combined/" + name + ".pdf");  
+  c->SaveAs(getTreeLocation() + "outputs/pdf/combined/" + nameMC + ".pdf");  
   delete c;
+  gDirectory->GetList()->Delete();
   return;
 }
-
-
-
-TH1* plotProfile::displaceBins(TH1* hh, double displaceFactor){
-  bool logx = (hh->GetBinWidth(1) != hh->GetBinWidth(2));
-  TH1* h = (TH1*) hh->Clone();
-  TAxis *axis = h->GetXaxis();
-  int bins = axis->GetNbins();
-  Axis_t logMin = TMath::Log10(axis->GetXmin());
-  Axis_t logMax = TMath::Log10(axis->GetXmax());
-  Axis_t logWidth = (logMax-logMin)/bins;
-  Axis_t width = (axis->GetXmax() - axis->GetXmin())/bins;
-  Axis_t *new_bins = new Axis_t[bins + 1];
-  for(int i = 0; i <= bins; i++){
-    if(logx) new_bins[i] = TMath::Power(10, logMin + logWidth*(i+displaceFactor)); 
-    else new_bins[i] = axis->GetXmin() + width*(i+displaceFactor);
-  }
-  axis->Set(bins, new_bins);
-  for(int i = 1; i <= bins; i++) h->Fill(h->GetBinCenter(i), hh->GetBinContent(i));
-  delete [] new_bins;
-  return h;
-}
-
