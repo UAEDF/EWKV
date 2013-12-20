@@ -17,9 +17,6 @@ int main(int argc, char *argv[]){
   bool force = false;
   bool pixel = false;
   TString minBiasXsec = "70300";
-  std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
-  if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
-  if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
   if(argc > 2) minBiasXsec = (TString) argv[2];
   if(argc > 3 && ((TString) argv[3]) == "-f") force = true;
   if(argc > 3 && ((TString) argv[3]) == "-p"){ pixel = true; force = true;}
@@ -28,7 +25,7 @@ int main(int argc, char *argv[]){
   if(pixel) option += "_pixel";
   if(puType == "true") option += "_true";
 
-  for(TString type : types){
+  for(TString type : typeSelector(argc, argv)){
 
     //Check data configuration
     sampleList *samples = new sampleList();
