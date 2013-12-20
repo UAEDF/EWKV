@@ -31,23 +31,22 @@ samples = {
 	   'DoubleElectronD' : 	['data',	'/DoubleElectron/Run2012D-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
 
 	   # Signal
-	   'ZVBF' :		['MC',		'/ZVBF_Mqq-120_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V19-v1/AODSIM'],
+	   'EWKZ' :		['MC',		'/ZVBF_Mqq-120_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V19-v1/AODSIM'],
+	   'EWKZRD' :		['MC',		'/ZVBF_Mqq-120_8TeV-madgraph/Summer12_DR53X-PU_RD1_START53_V7N-v1/AODSIM'],
 
            # DY backgrounds
 	   'DY' :		['MC',		'/DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
+	   'DYRD' :		['MC',		'/DYJetsToLL_M-50_TuneZ2Star_8TeV-madgraph-tarball/Summer12_DR53X-PU_RD1_START53_V7N-v1/AODSIM'],
 	   'DY1' :		['MC',		'/DY1JetsToLL_M-50_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
 	   'DY2' :		['MC',		'/DY2JetsToLL_M-50_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7C-v1/AODSIM'],
 	   'DY3' :		['MC',		'/DY3JetsToLL_M-50_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
 	   'DY4' :		['MC',		'/DY4JetsToLL_M-50_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
-	   'DYEE-powheg' :	['MC',		'/DYToEE_M-20_CT10_TuneZ2star_v2_8TeV-powheg-pythia6/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
-	   'DYMUMU-powheg' :	['MC',		'/DYToMuMu_M-20_CT10_TuneZ2star_v2_8TeV-powheg-pythia6/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
-	   'DYTAUTAU-powheg' :	['MC',		'/DYToTauTau_M-20_CT10_TuneZ2star_v2_8TeV-powheg-tauola-pythia6/Summer12_DR53X-PU_S10_START53_V7A-v2/AODSIM'],
 
 	   # WJets backgrounds
 	   'WJets':		['MC',		'/WJetsToLNu_TuneZ2Star_8TeV-madgraph-tarball/Summer12_DR53X-PU_S10_START53_V7A-v2/AODSIM'],
 	   'W1Jets':		['MC',		'/W1JetsToLNu_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
-	   'W2Jets':		['MC',		'/W2JetsToLNu_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
-	   'W3Jets':		['MC',		'/W3JetsToLNu_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
+	   'W2Jets':		['MC',		'/W2JetsToLNu_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V19-v1/AODSIM'],
+	   'W3Jets':		['MC',		'/W3JetsToLNu_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V19-v1/AODSIM'],
 	   'W4Jets':		['MC',		'/W4JetsToLNu_TuneZ2Star_8TeV-madgraph/Summer12_DR53X-PU_S10_START53_V7A-v1/AODSIM'],
 
 	   # Diboson backgrounds
