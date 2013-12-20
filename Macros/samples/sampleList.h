@@ -28,7 +28,7 @@ class sampleList{
    
 
   private:
-    bool readInitFile(TString file, TString type, bool useAll = false);
+    void readInitFile(TString file, TString type, bool useAll = false);
     bool readLeptonEfficiencies();
 
     std::vector<sample*> samples;
@@ -43,7 +43,8 @@ sampleList::~sampleList(){
 
 bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   if(!readLeptonEfficiencies()) std::cout << "sampleList:\t\t!!!\tFailed reading lepton efficiencies" << std::endl;
-  if(!(readInitFile(dataFile, "data", mode == "pileUp") && readInitFile(mcFile, "mc", mode == "pileUp"))) return false;
+  readInitFile(dataFile, "data", mode == "pileUp");
+  readInitFile(mcFile, "mc", mode == "pileUp");
   if(mode == "pileUp") return true;
 
   //pile-up weights
@@ -69,13 +70,9 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
   return true;
 }
 
-bool sampleList::readInitFile(TString file, TString type, bool useAll){
+void sampleList::readInitFile(TString file, TString type, bool useAll){
   std::ifstream readFile;
-  readFile.open(file.Data());
-  if(!readFile.is_open()){
-    std::cout << "sampleList:\t\t!!!\t" << file << " not found!" << std::endl;
-    return false;
-  }
+  getStream(readFile, file.Data());
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
@@ -97,7 +94,6 @@ bool sampleList::readInitFile(TString file, TString type, bool useAll){
   }
   if(type == "data") samples.push_back(new dataSample("data", dataRuns));
   readFile.close();
-  return true;
 }
 
 

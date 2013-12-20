@@ -172,8 +172,7 @@ TH1I* mcSample::getPileUpHisto(){
 bool mcSample::setPileUpWeights(TString pileUpWeightsFile, TString puMode){
   weights[puMode] = std::vector<double>(51, 1); 
   std::ifstream readFile;
-  readFile.open(pileUpWeightsFile.Data());
-  if(!readFile.is_open()) return false;
+  if(!getStream(readFile, pileUpWeightsFile.Data(), true)) return false;
   while(!readFile.eof()){
     TString name_;
     readFile >> name_;
