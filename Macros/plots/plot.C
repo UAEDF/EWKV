@@ -46,10 +46,7 @@ class plotHistos{
 };
 
 int main(int argc, char *argv[]){
-  std::vector<TString> types {"ZEE","ZMUMU"};								//If no type given as option, run both
-  if(argc > 1 && ((TString) argv[1]) == "ZEE") types = {"ZEE"};
-  if(argc > 1 && ((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
-  if(argc > 1 && (((TString) argv[1]) == "-r")) retrieveMeanAndRMS = true;
+  if(argc > 2 && (((TString) argv[2]) == "-r")) retrieveMeanAndRMS = true;
   else retrieveMeanAndRMS = false;
   if(retrieveMeanAndRMS){
     writeFile.open((getCMSSWBASE() + "src/EWKV/Macros/ewkv/meanAndRMS.h").Data());
@@ -58,7 +55,7 @@ int main(int argc, char *argv[]){
   }
   plotHistos *myPlotHistos = new plotHistos();
   if(!myPlotHistos->configureStack()) return 1;
-  for(TString type : types) myPlotHistos->loop(type);
+  for(TString type : typeSelector(argc, argv)) myPlotHistos->loop(type);
   if(retrieveMeanAndRMS){
     writeFile << "}" << std::endl;
     writeFile.close();
