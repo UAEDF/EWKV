@@ -65,6 +65,7 @@ class PFCandidatesNoV : public edm::EDFilter{
     TFile *f_pileUp; 
     TTree *t_pileUp;
     std::map<TString, TH1I*> h_pileUp;
+    std::map<TString, TH1D*> h_true;
     int nPileUp, nParticleEntries;
     float nTrue;
 

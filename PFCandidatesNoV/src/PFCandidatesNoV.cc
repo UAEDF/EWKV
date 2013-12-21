@@ -179,14 +179,14 @@ void PFCandidatesNoV::fillPU(edm::Event& iEvent){
     }  
   }
   h_pileUp["pileUp"]->Fill(nPileUp);
-  h_pileUp["true"]->Fill(nTrue);
+  h_true["true"]->Fill(nTrue);
 
   edm::Handle<LHEEventProduct> lheH; 
   iEvent.getByType(lheH);
   if(lheH.isValid()){
     nParticleEntries = lheH->hepeup().NUP;
     if(nParticleEntries > 4 && nParticleEntries < 10) h_pileUp["pileUp"+TString::Format("%d", nParticleEntries)]->Fill(nPileUp);
-    if(nParticleEntries > 4 && nParticleEntries < 10) h_pileUp["true"+TString::Format("%d", nParticleEntries)]->Fill(nTrue);
+    if(nParticleEntries > 4 && nParticleEntries < 10) h_true["true"+TString::Format("%d", nParticleEntries)]->Fill(nTrue);
   }
   t_pileUp->Fill();
 }
@@ -201,7 +201,7 @@ void PFCandidatesNoV::beginJob(){
   t_pileUp->Branch("nParticleEntries",	&nParticleEntries,	"nParticleEntries/I");
 
   for(TString i : {"","5","6","7","8","9"}) h_pileUp["pileUp"+i] = new TH1I("pileUp"+i, "pileUp"+i, 101, -.5, 100.5);
-  for(TString i : {"","5","6","7","8","9"}) h_pileUp["true"+i] = new TH1D("true"+i, "true"+i, 101, -.5, 100.5);
+  for(TString i : {"","5","6","7","8","9"}) h_true["true"+i] = new TH1D("true"+i, "true"+i, 101, -.5, 100.5);
 }
 
 
