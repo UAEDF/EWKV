@@ -207,11 +207,15 @@ void PFCandidatesNoV::beginJob(){
 
 void PFCandidatesNoV::endJob(){
   for(auto hist = h_pileUp.begin(); hist != h_pileUp.end(); ++hist) f_pileUp->WriteTObject(hist->second);
+  for(auto hist = h_true.begin(); hist != h_true.end(); ++hist) f_pileUp->WriteTObject(hist->second);
   f_pileUp->WriteTObject(t_pileUp);
+  f_pileUp->WriteTObject(t_true);
   f_pileUp->Close();
 
   for(auto hist = h_pileUp.begin(); hist != h_pileUp.end(); ++hist) delete hist->second;
+  for(auto hist = h_true.begin(); hist != h_true.end(); ++hist) delete hist->second;
   delete t_pileUp;
+  delete t_true;
   delete f_pileUp;
 }
 
@@ -232,6 +236,8 @@ void PFCandidatesNoV::fillDescriptions(edm::ConfigurationDescriptions& descripti
   desc.add<edm::InputTag>("conversionsInputTag");
   desc.add<edm::InputTag>("beamSpotInputTag");
   desc.add<edm::InputTag>("primaryVertexInputTag");
+  desc.add<edm::InputTag>("primaryVertexInputTag");
+  descriptions.add("PFCandidatesNoV", desc);
   descriptions.add("PFCandidatesNoV", desc);
 }
 

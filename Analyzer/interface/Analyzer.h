@@ -73,6 +73,7 @@ class Analyzer : public edm::EDAnalyzer{
 
     int nEvent,nRun,nLumi;
     int nPileUp, nPriVtxs;
+    float nTrue;
     float rhokt6PFJets;
 
     int nParticleEntries;

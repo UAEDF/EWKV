@@ -93,10 +93,11 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     for(std::vector<PileupSummaryInfo>::const_iterator PVI = PupInfo->begin(); PVI != PupInfo->end(); ++PVI){
       if(PVI->getBunchCrossing() == 0){ 
 	nPileUp = PVI->getPU_NumInteractions();
+	nTrue = PVI->getTrueNumInteractions();
 	continue;
       }
     }  
-  } else nPileUp = -1;
+  } else {nPileUp = -1, nTrue = -1;}
 
   edm::Handle<double> rho;
   iEvent.getByLabel(rhoInputTag, rho);
@@ -376,6 +377,7 @@ void Analyzer::beginJob(){
   t_Analyzer->Branch("nParticleEntries",	&nParticleEntries,	"nParticleEntries/I");
 
   t_Analyzer->Branch("nPileUp",			&nPileUp,		"nPileUp/I");
+  t_Analyzer->Branch("nTrue",			&nTrue,			"nTrue/F");
   t_Analyzer->Branch("rhokt6PFJets",		&rhokt6PFJets,		"rhokt6PFJets/F");
   t_Analyzer->Branch("nPriVtxs",		&nPriVtxs,		"nPriVtxs/I");
 
