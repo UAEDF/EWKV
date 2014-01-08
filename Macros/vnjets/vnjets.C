@@ -7,43 +7,47 @@
 #include "../environment.h"
 
 int main(){
-  for(TString inclusiveSample : {"DY", "WJets"}){
-    TString jets0Sample;
-    if(inclusiveSample == "DY") jets0Sample = "DY0";
-    if(inclusiveSample == "WJets") jets0Sample = "W0Jets";
+  for(TString sample : {"DY", "WJets"}){
+    for(TString fileType : {"pileUp","ewkv"}){
+      TString inclusiveSample = "", jets0Sample = "";
+      if(sample == "DY"){
+        inclusiveSample = 	getTreeLocation() + fileType + "_DY.root";
+        jets0Sample = 		getTreeLocation() + fileType + "_DY0.root";
+      } else if(sample == "WJets"){
+        inclusiveSample = 	getTreeLocation() + fileType + "_WJets.root";
+        jets0Sample = 		getTreeLocation() + fileType + "_W0Jets.root";
+      } else exit(1);
+      if(exists(jets0Sample)){ std::cout << "vnjets.C:\t\t!!!\t" << jets0Sample << " already exists" << std::endl; continue;}
 
-    // pile-up
-    std::cout << "Get pile-up distribution for " << jets0Sample << std::flush;
-    if(!exists(getTreeLocation() + "pileUp_" + jets0Sample + ".root")){
-      TFile *puFile = new TFile(getTreeLocation() + "pileUp_" + inclusiveSample + ".root");
-      TFile *puFile0jets = new TFile(getTreeLocation() + "pileUp_" + jets0Sample + ".root","RECREATE");
-      TH1I *puHisto = (TH1I*) puFile->Get("pileUp5");
-      puHisto->SetName("pileUp");
-      puFile0jets->cd();
-      puFile0jets->WriteTObject(puHisto);
-      puFile0jets->Close();
-      std::cout << " --> DONE" << std::endl;
-    } else std::cout << " --> Already exists" << std::endl;
+      std::cout << "vnJets.C:\t\t\tCreating " << jets0Sample << std::endl;
+      TFile *file = new TFile(inclusiveSample);
+      TFile *file0jets = new TFile(jets0Sample,"RECREATE");
 
-    // tree
-    std::cout << "Get " << jets0Sample << " tree" << std::flush;
-    if(!exists(getTreeLocation() + "ewkv_" + jets0Sample + ".root")){
-      TFile *file = new TFile(getTreeLocation() + "ewkv_" + inclusiveSample + ".root");
-      TTree *tree = (TTree*) file->Get("EWKV");
-      TFile *file0jets = new TFile(getTreeLocation() + "ewkv_" + jets0Sample + ".root","RECREATE");
+      if(fileType == "pileUp"){
+        for(TString name : {"pileUp","true"}){
+          TH1 *hist; file->GetObject(name + "5", hist);
+          if(!hist) continue;
+          hist->SetName(name);
+          file0jets->cd();
+          file0jets->WriteTObject(hist);
+        }
+      }
+
+      TTree *tree; file->GetObject((fileType == "ewkv"?"EWKV":"pileUp"), tree);
+      if(!tree) continue;
       file0jets->cd();
       TTree *tree0jets = tree->CloneTree(0);
 
       int nParticleEntries;
       tree->SetBranchAddress("nParticleEntries", &nParticleEntries);
-
       for(int i = 0; i < tree->GetEntries(); ++i){
         tree->GetEntry(i);
         if(nParticleEntries == 5) tree0jets->Fill(); 
       }
+
       file0jets->Close();
-      std::cout << " --> DONE" << std::endl;
-    } else std::cout << " --> Already exists" << std::endl;
+      file->Close();
+    }
   }
   return 0;
 }
