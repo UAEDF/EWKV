@@ -2,7 +2,7 @@
 #include <TROOT.h>
 #include <TFile.h>
 #include <TTree.h>
-#include <TH1I.h>
+#include <TH1.h>
 #include <iostream>
 #include "../environment.h"
 
@@ -35,16 +35,18 @@ int main(){
 
       TTree *tree; file->GetObject((fileType == "ewkv"?"EWKV":"pileUp"), tree);
       if(!tree) continue;
+      TString mergeCommand = "hadd " + jets0Sample + " " + jets0Sample + "_0";
       file0jets->cd();
       TTree *tree0jets = tree->CloneTree(0);
 
-      int nParticleEntries;
+      int nParticleEntries, nEvent;
       tree->SetBranchAddress("nParticleEntries", &nParticleEntries);
-      for(int i = 0; i < tree->GetEntries(); ++i){
+      tree->SetBranchAddress("event", &nEvent);
+      for(int i = 0, j = 0; i < tree->GetEntries(); ++i){
         tree->GetEntry(i);
         if(nParticleEntries == 5) tree0jets->Fill(); 
       }
-
+      tree0jets->AutoSave();
       file0jets->Close();
       file->Close();
     }
