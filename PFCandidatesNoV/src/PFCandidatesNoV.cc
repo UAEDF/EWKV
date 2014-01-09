@@ -201,7 +201,7 @@ void PFCandidatesNoV::beginJob(){
   t_pileUp->Branch("nParticleEntries",	&nParticleEntries,	"nParticleEntries/I");
 
   for(TString i : {"","5","6","7","8","9"}) h_pileUp["pileUp"+i] = new TH1I("pileUp"+i, "pileUp"+i, 101, -.5, 100.5);
-  for(TString i : {"","5","6","7","8","9"}) h_true["true"+i] = new TH1D("true"+i, "true"+i, 101, -.5, 100.5);
+  for(TString i : {"","5","6","7","8","9"}) h_true["true"+i] = new TH1D("true"+i, "true"+i, 10000, 0, 100);
 }
 
 
