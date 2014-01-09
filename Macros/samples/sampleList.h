@@ -74,23 +74,20 @@ void sampleList::readInitFile(TString file, TString type, bool useAll){
   std::ifstream readFile;
   getStream(readFile, file.Data());
   while(!readFile.eof()){
-    TString useLine;
+    bool useLine;
     readFile >> useLine;
-    if(useLine != "1"){
-      if(!((useLine == "0") && useAll)){
-        readFile.ignore(unsigned(-1), '\n');
-        continue;
+    if(useLine || useAll){
+      if(type == "data"){
+        TString name; double lumi;
+        readFile >> name >> lumi;
+        dataRuns.push_back(new dataRun(name, lumi));
+      } else {
+        TString name; double crossSection; int nEvents;
+        readFile >> name >> crossSection >> nEvents;
+        samples.push_back(new mcSample(name, crossSection, nEvents, efficiencies));
       }
-    }
-    if(type == "data"){
-      TString name; double lumi;
-      readFile >> name >> lumi;
-      dataRuns.push_back(new dataRun(name, lumi));
-    } else {
-      TString name; double crossSection; int nEvents;
-      readFile >> name >> crossSection >> nEvents;
-      samples.push_back(new mcSample(name, crossSection, nEvents, efficiencies));
     }    
+    readFile.ignore(unsigned(-1), '\n');
   }
   if(type == "data") samples.push_back(new dataSample("data", dataRuns));
   readFile.close();
