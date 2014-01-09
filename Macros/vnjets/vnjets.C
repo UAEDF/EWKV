@@ -41,7 +41,7 @@ int main(){
       int nParticleEntries, nEvent;
       tree->SetBranchAddress("nParticleEntries", &nParticleEntries);
       tree->SetBranchAddress("event", &nEvent);
-      for(int i = 0, j = 0; i < tree->GetEntries(); ++i){
+      for(int i = 0; i < tree->GetEntries(); ++i){
         tree->GetEntry(i);
         if(nParticleEntries == 5) tree0jets->Fill(); 
       }
