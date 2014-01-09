@@ -194,7 +194,7 @@ void PFCandidatesNoV::fillPU(edm::Event& iEvent){
 
 void PFCandidatesNoV::beginJob(){
   f_pileUp = new TFile(fileName,"RECREATE");
-  t_pileUp = new TTree("pileUp","pileUp tree");
+  t_pileUp = new TTree("pileUpTree","pileUp tree");
 
   t_pileUp->Branch("nPileUp",		&nPileUp,		"nPileUp/I");
   t_pileUp->Branch("nTrue",		&nTrue,			"nTrue/F");
