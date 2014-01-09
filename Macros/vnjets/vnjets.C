@@ -35,7 +35,6 @@ int main(){
 
       TTree *tree; file->GetObject((fileType == "ewkv"?"EWKV":"pileUp"), tree);
       if(!tree) continue;
-      TString mergeCommand = "hadd " + jets0Sample + " " + jets0Sample + "_0";
       file0jets->cd();
       TTree *tree0jets = tree->CloneTree(0);
 
