@@ -138,7 +138,7 @@ class mcSample : public sample{
   public:
     mcSample(TString name_, double crossSection_, int nEvents_, std::map<TString, TGraphAsymmErrors*> efficiencies_);
     bool setPileUpWeights(TString pileUpWeightsFile, TString puMode);
-    TH1I* getPileUpHisto();
+    TH1* getPileUpHisto();
  
     bool isData(){ return false;};
     double getPileUpWeight(int nPileUp, TString puMode){ return (nPileUp < 51 && nPileUp >= 0) ? weights[(puMode == "" ? "*" : puMode)].at(nPileUp) : 0;};
@@ -159,13 +159,11 @@ mcSample::mcSample(TString name_, double crossSection_, int nEvents_, std::map<T
   std::cout << "mcSample:\t\t\t" << name << " added (lumi = " << lumi << "/pb)" << std::endl;
 }
 
-TH1I* mcSample::getPileUpHisto(){
+TH1* mcSample::getPileUpHisto(){
   TFile* file = new TFile(getTreeLocation() + "pileUp_" + name + ".root");
-  if(file->IsZombie()){
-    std::cout << "mcSample:\t\tERROR\tCould not find "<< getTreeLocation() << "pileUp_" << name << ".root" << std::endl;
-    exit(1);
-  }
-  TH1I* hist = (TH1I*) file->Get("pileUp");
+  if(file->IsZombie()){ std::cout << "mcSample:\t\tERROR\tCould not find "<< (getTreeLocation() + "pileUp_" + name + ".root") << std::endl; exit(1);}
+  TH1* hist; file->Get("pileUp", hist);
+  if(!hist) std::cout << "mcSample:\t\tERROR\tNo pileUp histogram in file " << (getTreeLocation() + "pileUp_" + name + ".root") << std::endl; exit(1);}
   return hist;
 }
 
