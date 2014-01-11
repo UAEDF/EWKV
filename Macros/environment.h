@@ -5,6 +5,7 @@
 #include <TString.h>
 #include <stdlib.h>
 #include <fstream>
+#include <sstream>
 #include <sys/stat.h>
 #include <TH1D.h>
 #include <TProfile.h>
@@ -13,7 +14,8 @@
 bool exists(TString path){ struct stat buffer; return (stat (path.Data(), &buffer) == 0);};
 void makeDirectory(TString path){ if(!exists(path)) system("mkdir -p " + path);}
 
-TString getProduction(){ return "2013-06-JetIDfix";}
+//TString getProduction(){ return "2013-06-JetIDfix";}
+TString getProduction(){ return "2013-12";}
 
 TString getStringFromFile(TString fileName){
   std::ifstream readFile; 
@@ -56,6 +58,16 @@ bool getStream(std::ifstream &readFile, TString path, bool ignoreNonExist = fals
     else exit(1);
   } else return true;
 }
+
+bool getLine(std::ifstream &readFile, std::stringstream &streamLine){
+  std::string line;
+  bool success = std::getline(readFile, line);
+  streamLine.str("");
+  streamLine.clear();
+  streamLine << line;
+  return success;
+}
+
 
 std::vector<TString> typeSelector(int argc, char *argv[]){
   std::vector<TString> types {"ZEE","ZMUMU"};

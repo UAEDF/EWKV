@@ -73,21 +73,22 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
 void sampleList::readInitFile(TString file, TString type, bool useAll){
   std::ifstream readFile;
   getStream(readFile, file.Data());
-  while(!readFile.eof()){
-    bool useLine;
-    readFile >> useLine;
-    if(useLine || useAll){
+  std::stringstream line;
+  while(getLine(readFile, line)){
+    TString useLine;
+    line >> useLine;
+    if(!useLine.IsDigit()) continue;
+    if(useLine == "1" || useAll){
       if(type == "data"){
         TString name; double lumi;
-        readFile >> name >> lumi;
+        line >> name >> lumi;
         dataRuns.push_back(new dataRun(name, lumi));
       } else {
         TString name; double crossSection; int nEvents;
-        readFile >> name >> crossSection >> nEvents;
+        line >> name >> crossSection >> nEvents;
         samples.push_back(new mcSample(name, crossSection, nEvents, efficiencies));
       }
     }    
-    readFile.ignore(unsigned(-1), '\n');
   }
   if(type == "data") samples.push_back(new dataSample("data", dataRuns));
   readFile.close();

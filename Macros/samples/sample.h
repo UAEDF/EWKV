@@ -162,13 +162,13 @@ mcSample::mcSample(TString name_, double crossSection_, int nEvents_, std::map<T
 TH1* mcSample::getPileUpHisto(){
   TFile* file = new TFile(getTreeLocation() + "pileUp_" + name + ".root");
   if(file->IsZombie()){ std::cout << "mcSample:\t\tERROR\tCould not find "<< (getTreeLocation() + "pileUp_" + name + ".root") << std::endl; exit(1);}
-  TH1* hist; file->Get("pileUp", hist);
-  if(!hist) std::cout << "mcSample:\t\tERROR\tNo pileUp histogram in file " << (getTreeLocation() + "pileUp_" + name + ".root") << std::endl; exit(1);}
+  TH1* hist; file->GetObject("pileUp", hist);
+  if(!hist){ std::cout << "mcSample:\t\tERROR\tNo pileUp histogram in file " << (getTreeLocation() + "pileUp_" + name + ".root") << std::endl; exit(1);}
   return hist;
 }
 
 bool mcSample::setPileUpWeights(TString pileUpWeightsFile, TString puMode){
-  weights[puMode] = std::vector<double>(51, 1); 
+  weights[puMode] = std::vector<double>(101, 1); 
   std::ifstream readFile;
   if(!getStream(readFile, pileUpWeightsFile.Data(), true)) return false;
   while(!readFile.eof()){
@@ -176,7 +176,7 @@ bool mcSample::setPileUpWeights(TString pileUpWeightsFile, TString puMode){
     readFile >> name_;
     if(name_ == name){
       weights[puMode].clear();
-      for(int j=0; j < 51; ++j){
+      for(int j=0; j < 101; ++j){
         double weight = 1.;
         readFile >> weight;
         weights[puMode].push_back(weight);

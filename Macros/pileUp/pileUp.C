@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <TROOT.h>
 #include <TString.h>
 #include <TFile.h>
@@ -9,24 +10,24 @@
 #include "../samples/sample.h" 
 #include "../environment.h"
 
-void pileUpWeights(TH1D *pileUpData, TH1I *pileUpMC, TString sampleName);
+void pileUpWeights(TH1 *pileUpData, TH1 *pileUpMC, TString sampleName);
 std::ofstream writeFile;
 
 int main(int argc, char *argv[]){
-  TString puType = "observed";
-  bool force = false;
-  bool pixel = false;
   TString minBiasXsec = "70300";
-  if(argc > 2) minBiasXsec = (TString) argv[2];
-  if(argc > 3 && ((TString) argv[3]) == "-f") force = true;
-  if(argc > 3 && ((TString) argv[3]) == "-p"){ pixel = true; force = true;}
-
+  TString puType = "observed";
   TString option = "";
-  if(pixel) option += "_pixel";
-  if(puType == "true") option += "_true";
+  bool force = false, pixel = false;
+  if(argc > 2) minBiasXsec = (TString) argv[2];
+  if(argc > 3){
+    if(((TString) argv[3]).Contains("f")) force = true;
+    if(((TString) argv[3]).Contains("p")){ pixel = true; option += "_pixel";}
+    if(((TString) argv[3]).Contains("t")){ puType = "true"; option += "_true";}
+  }
+  TString puJSON = "pileup_JSON_DCSONLY_190389-208686_corr.txt";
+  if(pixel) puJSON = "pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt";
 
   for(TString type : typeSelector(argc, argv)){
-
     //Check data configuration
     sampleList *samples = new sampleList();
     TString samplesDir = getCMSSWBASE() + "src/EWKV/Macros/samples/";
@@ -45,8 +46,6 @@ int main(int argc, char *argv[]){
     if(!exists(mergedROOT) || force){
       std::cout << "pileUp.C:\t\t\tPile-up calculation of the data (minBiasXsec = " << minBiasXsec << "): this will take some time..." << std::endl;
       system(("mergeJSON.py" + listJSON + " --output="+mergedJSON).Data());
-      TString puJSON = "pileup_JSON_DCSONLY_190389-208686_corr.txt";
-      if(pixel) puJSON = "pileup_JSON_DCSONLY_190389-208686_All_2012_pixelcorr.txt";
       TString command = "pileupCalc.py -i "+mergedJSON+" --inputLumiJSON " + puJSON + " --calcMode " + puType + " --minBiasXsec " + minBiasXsec + " --maxPileupBin 100 --numPileupBins 100 " + mergedROOT;
       system(command); 
     } else { std::cout << "pileUp.C:\t\t!!!\tWill use existing pileUp" << mergeString << "_" << minBiasXsec << option << ".root file, use -f to recreate this file" << std::endl;}
@@ -67,18 +66,16 @@ int main(int argc, char *argv[]){
 }
 
 
-void pileUpWeights(TH1D *pileUpData, TH1I *pileUpMC, TString sampleName){
+void pileUpWeights(TH1 *pileUpData, TH1 *pileUpMC, TString sampleName){
   double sumData = pileUpData->Integral();
   double sumMC = pileUpMC->Integral();
 
   writeFile << sampleName << std::endl;
-  double weights[51];
-  int nPileUp;
-  for(int i = 0; i < 51; ++i){
-    weights[i] = (double) pileUpData->GetBinContent(i+1)/ (double)pileUpMC->GetBinContent(i+1);
-    weights[i] *= sumMC/sumData;
-    if(pileUpMC->GetBinContent(i+1) == 0) weights[i] = 0;
-    writeFile << weights[i] << "\t";
+  for(int i = 1; i <= pileUpData->GetNbinsX(); ++i){
+    double weight = (double) pileUpData->GetBinContent(i)/ (double)pileUpMC->GetBinContent(i);
+    weight *= sumMC/sumData;
+    if(pileUpMC->GetBinContent(i) == 0) weight = 0;
+    writeFile << weight << "\t";
   }
   writeFile << std::endl;
   return;
