@@ -16,6 +16,7 @@
 #include <TCut.h>
 #include <TGraph.h>
 #include <TLorentzVector.h>
+#include <TVector2.h>
 #include <TClonesArray.h>
 #include <TMath.h>
 #include <Math/VectorUtil.h>
@@ -66,7 +67,7 @@ class ewkvAnalyzer{
     int nPileUp, nPriVtxs;
     float rho;
     int nGenPart, nJets, nLeptons, nSoftTrackJets;
-    TClonesArray *vGenPart, *vLeptons, *vMET, *vMETCorr, *vMETCorrNoV, *vJets, *vSoftTrackJets;
+    TClonesArray *vGenPart, *vLeptons, *vMET, *vMETCorr, *vMETCorrNoV, *vJets, *vPull, *vPull2, *vSoftTrackJets;
     float met, metPhi, metSig;
     float totalSoftHT;
     int idGenPart[10], ncJets[15], leptonCharge[2];
@@ -120,8 +121,10 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
   vMET = 		new TClonesArray("TLorentzVector", 1);
   vMETCorr = 		new TClonesArray("TLorentzVector", 1);
   vMETCorrNoV = 	new TClonesArray("TLorentzVector", 1);
-  vJets = 		new TClonesArray("TLorentzVector", 15);
-  vSoftTrackJets = 	new TClonesArray("TLorentzVector", 25);
+  vJets = 		new TClonesArray("TLorentzVector", 5);
+  vPull = 		new TClonesArray("TVector2", 5);
+  vPull2 = 		new TClonesArray("TVector2", 5);
+  vSoftTrackJets = 	new TClonesArray("TLorentzVector", 15);
 
   // tree addresses
   tree->SetBranchAddress("run", 		&nRun);
@@ -150,6 +153,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
 
   tree->SetBranchAddress("nJets",		&nJets);
   tree->SetBranchAddress("vJets",		&vJets);
+  tree->SetBranchAddress("vPull",		&vPull);
+  tree->SetBranchAddress("vPull2",		&vPull2);
   tree->SetBranchAddress("jetUncertainty", 	jetUncertainty);
   tree->SetBranchAddress("genJetPt", 		genJetPt);
   tree->SetBranchAddress("jetSmearedPt", 	jetSmearedPt);
@@ -224,6 +229,7 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
 
   if(makeTMVAtree_ && !firstTMVAevent){
     tmvaFile->cd();
+    tmvaTree->AutoSave();
     tmvaFile->WriteTObject(tmvaTree);
     tmvaFile->Close();
     std::cout << "ewkvAnalyzer:\t\t\tTMVA tree prepared" << std::endl;
@@ -231,6 +237,7 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
 
   if(makeSkimTree_ && !firstSkimEvent){
     skimFile->cd();
+    skimTree->AutoSave();
     skimFile->WriteTObject(skimTree);
     skimFile->Close();
     std::cout << "ewkvAnalyzer:\t\t\tSkim of tree done" << std::endl;
