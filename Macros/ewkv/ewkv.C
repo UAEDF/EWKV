@@ -56,7 +56,7 @@
 #define TMVATAG "20131220_InclusiveDY_BDT_STEP5"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20131220_Full"
+#define OUTPUTTAG "20140113_Full"
 
 /*****************
  * Main function *
@@ -90,7 +90,6 @@ int main(int argc, char *argv[]){
     TString cutFlowDir = getTreeLocation() + "cutflow/" + type + "/";
     makeDirectory(cutFlowDir);
     cutflows->toLatex(cutFlowDir + OUTPUTTAG + "_notmerged.tex");					//Save cutflow table (individual samples)
-    cutflows->merge("DY-powheg",{"DYEE-powheg","DYMUMU-powheg","DYTAUTAU-powheg"});
     cutflows->merge("DY",{"DY0","DY1","DY2","DY3","DY4"});
     cutflows->merge("Diboson",{"WW","WZ","ZZ"});
     cutflows->merge("TTJets",{"TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"});
@@ -109,6 +108,8 @@ int main(int argc, char *argv[]){
  * Function called for every event in tree *
  *******************************************/
 void ewkvAnalyzer::analyze_Zjets(){
+  if(nPileUp > 50) return;
+
   // Trigger 
   if((vType == ZMUMU) && !(Mu17_Mu8 || Mu17_TkMu8)) return;
   if((vType == ZEE) && !Ele17T_Ele8T) return;
