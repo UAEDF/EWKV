@@ -33,14 +33,13 @@ int main(){
         }
       }
 
-      TTree *tree; file->GetObject((fileType == "ewkv"?"EWKV":"pileUp"), tree);
+      TTree *tree; file->GetObject((fileType == "ewkv"?"EWKV":"pileUpTree"), tree);
       if(!tree) continue;
       file0jets->cd();
       TTree *tree0jets = tree->CloneTree(0);
 
       int nParticleEntries, nEvent;
       tree->SetBranchAddress("nParticleEntries", &nParticleEntries);
-      tree->SetBranchAddress("event", &nEvent);
       for(int i = 0; i < tree->GetEntries(); ++i){
         tree->GetEntry(i);
         if(nParticleEntries == 5) tree0jets->Fill(); 
