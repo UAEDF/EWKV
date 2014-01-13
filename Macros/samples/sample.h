@@ -141,7 +141,7 @@ class mcSample : public sample{
     TH1* getPileUpHisto();
  
     bool isData(){ return false;};
-    double getPileUpWeight(int nPileUp, TString puMode){ return (nPileUp < 51 && nPileUp >= 0) ? weights[(puMode == "" ? "*" : puMode)].at(nPileUp) : 0;};
+    double getPileUpWeight(int nPileUp, TString puMode){ return (nPileUp < weights["*"].size() && nPileUp >= 0) ? weights[(puMode == "" ? "*" : puMode)].at(nPileUp) : 0;};
     double muonEfficiency(TLorentzVector *l);
     double getWeight(int nPileUp, TString puMode){ return getPileUpWeight(nPileUp, puMode)*lumiWeight;};
 };
@@ -171,19 +171,15 @@ bool mcSample::setPileUpWeights(TString pileUpWeightsFile, TString puMode){
   weights[puMode] = std::vector<double>(101, 1); 
   std::ifstream readFile;
   if(!getStream(readFile, pileUpWeightsFile.Data(), true)) return false;
-  while(!readFile.eof()){
-    TString name_;
-    readFile >> name_;
-    if(name_ == name){
-      weights[puMode].clear();
-      for(int j=0; j < 101; ++j){
-        double weight = 1.;
-        readFile >> weight;
-        weights[puMode].push_back(weight);
-      }
-      readFile.close();
-      return true;
-    }
+  std::stringstream line;
+  while(getLine(readFile, line)){
+    if(!TString(line.str()) == name) continue;
+    getLine(readFile, line);
+    weights[puMode].clear();
+    double weight = 0;
+    while(line >> weight) weights[puMode].push_back(weight);
+    readFile.close();
+    return true;
   }
   readFile.close();
   return false;
