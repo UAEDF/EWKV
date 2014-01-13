@@ -13,9 +13,9 @@ samples = {
 
 	   # Single electron
            'SingleElectronA' : 	['data',	'/SingleElectron/Run2012A-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
-	   'SingleElectronB' : 	['data',	'/SingleElectronMu/Run2012B-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
-	   'SingleElectronC' : 	['data',	'/SingleElectronMu/Run2012C-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
-	   'SingleElectronD' : 	['data',	'/SingleElectronMu/Run2012D-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
+	   'SingleElectronB' : 	['data',	'/SingleElectron/Run2012B-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
+	   'SingleElectronC' : 	['data',	'/SingleElectron/Run2012C-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
+	   'SingleElectronD' : 	['data',	'/SingleElectron/Run2012D-22Jan2013-v1/AOD', 		'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
 
 	   # Double muon 
            'DoubleMuonA' : 	['data',	'/DoubleMu/Run2012A-22Jan2013-v1/AOD', 			'Cert_190456-208686_8TeV_22Jan2013ReReco_Collisions12_JSON.txt'],
