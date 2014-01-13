@@ -19,7 +19,7 @@
 
 bool retrieveMeanAndRMS;
 bool putEvents = true;
-bool bottomLegend = false;
+bool bottomLegend = true;
 std::ofstream writeFile;
 
 
@@ -27,7 +27,7 @@ class plotHistos{
   int bins;
   double min, max, xmin, xmax, ymin, ymax, rmin, rmax;
   TString xtitle, ytitle, tag, fileName, name, nameData;
-  bool logX;
+  bool logX, logY;
   bool JES;
   int removeJESbinLeft, removeJESbinRight;
   bool plotSignificance;
@@ -97,6 +97,10 @@ void plotHistos::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile;
   getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/histos/1D.config");
+  TString version;
+  readFile >> version;
+  if(version != "v2") version == "v1";
+  std::cout << "plot.C:\t\t\t\t1D.config " << version << std::endl;
   while(!readFile.eof()){
     TString useLine; readFile >> useLine;
     if(!useLine.IsDigit()){ readFile.ignore(unsigned(-1), '\n'); continue;}
@@ -104,13 +108,18 @@ void plotHistos::loop(TString type){
     if(!plot){ readFile.ignore(unsigned(-1), '\n'); continue;}
     if(useLine == "2" || useLine == "4") plotSignificance = true;
     else plotSignificance = false;
-    readFile >> tag >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
+    logY = true;
+    if(version == "v1") readFile >> tag >> xtitle >> ytitle >> xmin >> xmax >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
+    else readFile >> tag >> xtitle >> ytitle >> xmin >> xmax >> logY >> ymin >> ymax >> rmin >> rmax >> JES >> removeJESbinLeft >> removeJESbinRight;
     xtitle.ReplaceAll("__"," "); ytitle.ReplaceAll("__"," ");
     fileName = getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root";
     nameData = name;
     next(type);
     if(useLine == "3" || useLine == "4"){
       name += "mcfmUp";
+      next(type);
+      name = nameData;
+      name += "mjjUp";
       next(type);
     }
     if(name.Contains("BDT")) system("cp " + getTreeLocation() +  "cutflow/" + type + "/" + tag + ".tex " + getTreeLocation() +  "cutflow/" + type + "/cutflow.tex");
@@ -144,7 +153,8 @@ void plotHistos::next(TString type){
   TPad *padDN = new TPad("padDN","down", 0, bottomPad, 1., horizontalSplit, 0);
   TPad *padLegend = new TPad("padLegend","downLegend", 0, 0, 1., bottomPad, 0);
   padUP->Draw(); padDN->Draw(); padLegend->Draw();
-  padUP->SetLogy();			padDN->SetGridy();
+  if(logY) padUP->SetLogy();			
+  padDN->SetGridy();
   padUP->SetLeftMargin(leftMargin);   	padDN->SetLeftMargin(leftMargin);
   padUP->SetRightMargin(rightMargin); 	padDN->SetRightMargin(rightMargin);
   padUP->SetTopMargin(topMargin);   	padDN->SetTopMargin(0.);
@@ -242,7 +252,7 @@ void plotHistos::next(TString type){
     mcbefore = mc;
   }
   hists["data"] = getPlot(file, "data", nameData);
-  hists["signal only"] = getPlot(file, "ZVBF", name);
+  hists["signal only"] = getPlot(file, "EWKZ", name);
   
 
   //Draw the histograms
@@ -308,7 +318,7 @@ void plotHistos::next(TString type){
     hObserved->SetFillColor(26);
     hObserved->Draw("same hist ][");
     hExpected->SetLineWidth(2.);
-    hExpected->SetLineColor(color["ZVBF"]);
+    hExpected->SetLineColor(color["EWKZ"]);
     hExpected->Draw("same hist ][");
 
     TLegend *legSignificance = new TLegend(0.15, 0.75, 0.35, 0.95);
