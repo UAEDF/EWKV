@@ -44,7 +44,7 @@ void cutFlowHandler::toLatex(TString fileName){
   for(auto cutflow : cutflows) texstream << " & " << cutflow->getName();
   texstream << "\\\\" << endl << "  \\hline" << endl;
 
-  auto trackPoints = cutflowsMap["ZVBF"]->getTrackPoints();
+  auto trackPoints = cutflowsMap["EWKZ"]->getTrackPoints();
   for(auto trackPoint = trackPoints.begin(); trackPoint != trackPoints.end(); ++trackPoint){
     texstream << "  " << *trackPoint;
 
@@ -74,7 +74,7 @@ void cutFlowHandler::toLatex(TString fileName){
 
 bool cutFlowHandler::merge(TString newName, std::vector<TString> mergeList, bool replace){
   cutflowsMap[newName] = new cutFlow(newName);
-  auto trackPoints = cutflowsMap["ZVBF"];
+  auto trackPoints = cutflowsMap["EWKZ"];
   for(auto trackPoint = trackPoints->begin(); trackPoint != trackPoints->end(); ++trackPoint){
     for(auto branch = trackPoint->second.begin(); branch != trackPoint->second.end(); ++branch){
       for(TString i : mergeList){
