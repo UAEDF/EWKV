@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 from ROOT import TFile, TH1
  
-tag = "20131119_CheckPtZ"
+tag = "20140115_Full"
 
 def getTreeLocation():
-  return "/user/tomc/public/merged/EWKV/2013-06-JetIDfix/"
+  return "/user/tomc/public/merged/EWKV/2013-12/"
 
 def getPlot(sourceFile, sample, plot, ignoreNonExist = False):
   hist = sourceFile.Get(sample + "/" + plot)
