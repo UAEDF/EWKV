@@ -103,7 +103,7 @@ void plotHistos::loop(TString type){
   std::cout << "plot.C:\t\t\t\t1D.config " << version << std::endl;
   while(!readFile.eof()){
     TString useLine; readFile >> useLine;
-    if(!useLine.IsDigit()){ readFile.ignore(unsigned(-1), '\n'); continue;}
+    if(!useLine.IsDigit() || useLine == "0"){ readFile.ignore(unsigned(-1), '\n'); continue;}
     bool plot; readFile >> name >> bins >> min >> max >> logX >> plot;
     if(!plot){ readFile.ignore(unsigned(-1), '\n'); continue;}
     if(useLine == "2" || useLine == "4") plotSignificance = true;
