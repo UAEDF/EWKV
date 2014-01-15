@@ -56,7 +56,7 @@
 #define TMVATAG "20131220_InclusiveDY_BDT_STEP5"
 #define TMVATYPE "BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140113_Full"
+#define OUTPUTTAG "20140115_Full"
 
 /*****************
  * Main function *
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
     TFile *outFile = new TFile(outputDir + OUTPUTTAG + ".root", "RECREATE");
 
     cutFlowHandler* cutflows = new cutFlowHandler();
-    for(sampleList::iterator it = samples->begin(); it != samples->end(); ++it){			//Loop over samples
+    for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
 //      (*it)->useSkim(type, "20131022_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
@@ -124,8 +124,8 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->setBranch(puMode); cutflow->setBranch(puMode);
 
     // Get weight (lumi + pileUp) and muon efficiencies (ISO+ID, trigger not yet available)
-    if(vType == ZMUMU) setWeight(mySample->getWeight(nPileUp, puMode)*mySample->muonEfficiency(&l1)*mySample->muonEfficiency(&l2));
-    if(vType == ZEE)   setWeight(mySample->getWeight(nPileUp, puMode));
+    if(vType == ZMUMU) setWeight(mySample->getWeight(nPileUp, puMode)*mySample->muonEfficiency(&l1, &l2));
+    if(vType == ZEE)   setWeight(mySample->getWeight(nPileUp, puMode)*mySample->electronEfficiency(&l1, &l2));
   
     // Apply muScleFit corrections
     if(vType == ZMUMU){
@@ -149,7 +149,6 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("nPileUp", 	nPileUp);
   
     if(l1.Pt() < 20 || l2.Pt() < 20 || Z.Pt() <= 0) continue;
-  
   
     histos->fillHist1D("lepton_pt", 	l1.Pt());
     histos->fillHist1D("lepton_eta", 	l1.Eta());
@@ -319,6 +318,29 @@ void ewkvAnalyzer::analyze_Zjets(){
             if(jj.M() > m) histos->fillHist1D(TString(TMVATYPE)+"_"+TString::Format("%d", m), 	mvaValue);
           }
           histos->fillHist1D("dijet_mass", 		jj.M());
+
+          // Zeppenfeld variables for the 3rd jet
+          if(jetOrder.size() > 2){
+            TLorentzVector j3 = *((TLorentzVector*) vJets->At(jetOrder.at(2)));
+            j3 *= (1+JESsign*jetUncertainty[jetOrder.at(2)]);
+            j3 *= (1+JERsign*(jetSmearedPt[jetOrder.at(2)]-j3.Pt())/j3.Pt());
+            if(j3.Pt() > JET3PT){
+              double ystar3 = fabs(j3.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2);
+              double zstar3 = ystar3/fabs(dy);
+              histos->fillHist1D("ystar_3", ystar3);
+              histos->fillHist1D("zstar_3", zstar3);
+              if(jj.M() > 100){
+	        if(ystar3 < 1.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_1",   mvaValue);
+	        if(ystar3 < 2. && ystar3 > 1.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_2",   mvaValue);
+	        if(ystar3 < 3. && ystar3 > 2.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_3",   mvaValue);
+	        if(ystar3 < 4. && ystar3 > 3.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_4",   mvaValue);
+	        if(ystar3 < 5. && ystar3 > 4.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_5",   mvaValue);
+	        if(zstar3 < .5) histos->fillHist1D(TString(TMVATYPE)+"_central3",   mvaValue);
+	        if(zstar3 > .5) histos->fillHist1D(TString(TMVATYPE)+"_noncentral3",   mvaValue);
+              }
+            }
+          }
+          histos->fillHist1D("dijet_mass", 		jj.M());
         }  
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
@@ -335,18 +357,6 @@ void ewkvAnalyzer::analyze_Zjets(){
     
         histos->fillHist1D("ystar_Z", 			fabs(ystarZ));
         histos->fillHist1D("zstar_Z", 			fabs(zstarZ));
-    
-        // Zeppenfeld variables for the 3rd jet
-        if(jetOrder.size() > 2){
-          TLorentzVector j3 = *((TLorentzVector*) vJets->At(jetOrder.at(2)));
-          j3 *= (1+JESsign*jetUncertainty[jetOrder.at(2)]);
-          j3 *= (1+JERsign*(jetSmearedPt[jetOrder.at(2)]-j3.Pt())/j3.Pt());
-          if(j3.Pt() > JET3PT){
-            double ystar3 = j3.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
-            histos->fillHist1D("ystar_3", 		fabs(ystar3));
-            histos->fillHist1D("zstar_3", 		fabs(ystar3/fabs(dy)));
-          }
-        }
     
         // Central activity with soft track jets
         int nStj = 0; double stjHT = 0, stjHT3 = 0;
