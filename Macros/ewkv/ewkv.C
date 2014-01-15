@@ -47,7 +47,7 @@
 
 // Cuts
 #define JETPT_RADPAT 30
-#define JET1PT 30
+#define JET1PT 50
 #define JET2PT 30 
 #define JET3PT 30 
 #define JETETA 4.7
@@ -330,11 +330,11 @@ void ewkvAnalyzer::analyze_Zjets(){
               histos->fillHist1D("ystar_3", ystar3);
               histos->fillHist1D("zstar_3", zstar3);
               if(jj.M() > 100){
-	        if(ystar3 < 1.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_1",   mvaValue);
-	        if(ystar3 < 2. && ystar3 > 1.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_2",   mvaValue);
-	        if(ystar3 < 3. && ystar3 > 2.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_3",   mvaValue);
-	        if(ystar3 < 4. && ystar3 > 3.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_4",   mvaValue);
-	        if(ystar3 < 5. && ystar3 > 4.) histos->fillHist1D(TString(TMVATYPE)+"_yStar3_5",   mvaValue);
+	        if(ystar3 < 1.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_1",   mvaValue);
+	        if(ystar3 < 2. && ystar3 > 1.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_2",   mvaValue);
+	        if(ystar3 < 3. && ystar3 > 2.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_3",   mvaValue);
+	        if(ystar3 < 4. && ystar3 > 3.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_4",   mvaValue);
+	        if(ystar3 < 5. && ystar3 > 4.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_5",   mvaValue);
 	        if(zstar3 < .5) histos->fillHist1D(TString(TMVATYPE)+"_central3",   mvaValue);
 	        if(zstar3 > .5) histos->fillHist1D(TString(TMVATYPE)+"_noncentral3",   mvaValue);
               }
