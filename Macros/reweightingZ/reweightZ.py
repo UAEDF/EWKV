@@ -31,7 +31,7 @@ for type in ["ZMUMU","ZEE"]:
   sourceFile = TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root")
   for plot in ["eta","pt"]:
     data = sourceFile.Get("data/dilepton_" + plot).Clone()
-    data.Add(merge(sourceFile, "dilepton_" + plot, ["TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic","T-W","Tbar-W","T-s","Tbar-s","T-t","Tbar-t","WW","WZ","ZZ","WJets","ZVBF"]), -1)
+    data.Add(merge(sourceFile, "dilepton_" + plot, ["TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic","T-W","Tbar-W","T-s","Tbar-s","T-t","Tbar-t","WW","WZ","ZZ","WJets","ZVBF","QCD100","QCD250","QCD500","QCD1000"]), -1)
     DY = merge(sourceFile, "dilepton_" + plot, ["DY0","DY1","DY2","DY3","DY4"])
     sumData = data.Integral()
     sumDY = DY.Integral()
