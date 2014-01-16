@@ -42,7 +42,7 @@ class histoCollection{
 
   void bookHistos();
   void bookHist1D(TString hName, int Xbins, double Xmin, double Xmax, bool logX = false);
-  void bookHist2D(TString hName, int Xbins, double Xmin, double Xmax, int Ybins, double Ymin, double Ymax);
+  void bookHist2D(TString hName, int Xbins, double Xmin, double Xmax, bool logX, int Ybins, double Ymin, double Ymax, bool logY);
   void bookProfileHist(TString hName, int Xbins, double Xmin, double Xmax, bool logX = false);
 
   TH1D* makeBranch1D(TH1D* h);
@@ -58,7 +58,8 @@ class histoCollection{
   void setWeight(double weight){		fillWeight = weight;};
   void setBranch(TString branch_ = ""){		branch = branch_;};
 
-  void binLogX(TH1* h);
+  void binLogAxis(TAxis *axis);
+  void binLogX(TH1* h){ binLogAxis(h->GetXaxis());}
 };
 
 
@@ -83,45 +84,48 @@ histoCollection::~histoCollection(){
 
 void histoCollection::bookHistos(){
   std::ifstream readFile;
-  readFile.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config")); 
-  if(!readFile.is_open()){
-    std::cout << "histos.h:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config not found!" << std::endl;
-    return;
-  }
-  while(!readFile.eof()){
+  std::stringstream line;
+  getStream(readFile, getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config"); 
+  while(getLine(readFile, line)){
     TString useLine;
-    readFile >> useLine;
-    if(!useLine.IsDigit()){ readFile.ignore(unsigned(-1), '\n'); continue;}
+    line >> useLine;
+    if(!useLine.IsDigit()) continue;
     TString name;
-    int bins;
-    double min, max;
+    int Xbins;
+    double Xmin, Xmax;
     bool logX;
-    readFile >> name >> bins >> min >> max >> logX;
-    bookHist1D(name, bins, min, max, logX);
-    readFile.ignore(unsigned(-1), '\n');
+    line >> name >> Xbins >> Xmin >> Xmax >> logX;
+    bookHist1D(name, Xbins, Xmin, Xmax, logX);
   }
   readFile.close();
 
-
-  std::ifstream readFile2;
-  readFile2.open((getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config")); 
-  if(!readFile2.is_open()){
-    std::cout << "histos.h:\t\t\t!!!\t" + getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config not found!" << std::endl;
-    return;
-  }
-  while(!readFile2.eof()){
+  getStream(readFile, getCMSSWBASE() + "/src/EWKV/Macros/histos/2D.config"); 
+  while(getLine(readFile, line)){
     TString useLine;
-    readFile2 >> useLine;
-    if(!useLine.IsDigit()){ readFile2.ignore(unsigned(-1), '\n'); continue;}
+    line >> useLine;
+    if(!useLine.IsDigit()) continue;
     TString name;
-    int bins;
-    double min, max;
-    bool logX;
-    readFile2 >> name >> bins >> min >> max >> logX;
-    bookProfileHist(name, bins, min, max, logX);
-    readFile2.ignore(unsigned(-1), '\n');
+    int Xbins, Ybins;
+    double Xmin, Xmax, Ymin, Ymax;
+    bool logX, logY;
+    line >> name >> Xbins >> Xmin >> Xmax >> logX >> Ybins >> Ymin >> Ymax >> logY;
+    bookHist2D(name, Xbins, Xmin, Xmax, logX, Ybins, Ymin, Ymax, logY);
   }
-  readFile2.close();
+  readFile.close();
+
+  getStream(readFile, getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config"); 
+  while(getLine(readFile, line)){
+    TString useLine;
+    line >> useLine;
+    if(!useLine.IsDigit()) continue;
+    TString name;
+    int Xbins;
+    double Xmin, Xmax;
+    bool logX;
+    line >> name >> Xbins >> Xmin >> Xmax >> logX;
+    bookProfileHist(name, Xbins, Xmin, Xmax, logX);
+  }
+  readFile.close();
   return;
 }
 
@@ -135,13 +139,15 @@ void histoCollection::bookHist1D(TString hName, int Xbins, double Xmin, double X
 TH1D* histoCollection::makeBranch1D(TH1D* h){
   outputFile->cd();
   hist1DList[h->GetName()+branch] = new TH1D(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax());
-  if(h->GetBinWidth(1) != h->GetBinWidth(2)) binLogX(hist1DList[h->GetName()+branch]);
+  if(isLogX(h)) binLogX(hist1DList[h->GetName()+branch]);
 }
 
 
-void histoCollection::bookHist2D(TString hName, int Xbins, double Xmin, double Xmax, int Ybins, double Ymin, double Ymax){
+void histoCollection::bookHist2D(TString hName, int Xbins, double Xmin, double Xmax, bool logX, int Ybins, double Ymin, double Ymax, bool logY){
   outputFile->cd();
   hist2DList[hName] = new TH2D(hName, hName, Xbins, Xmin, Xmax, Ybins, Ymin, Ymax);
+  if(logX) binLogAxis(hist2DList[hName]->GetXaxis());
+  if(logY) binLogAxis(hist2DList[hName]->GetYaxis());
 }
 
 TH2D* histoCollection::makeBranch2D(TH2D* h){
@@ -149,6 +155,8 @@ TH2D* histoCollection::makeBranch2D(TH2D* h){
   hist2DList[h->GetName()+branch] = new TH2D(h->GetName() + TString("_") + branch, h->GetTitle(), 
 						 h->GetNbinsX(), h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax(),
 						 h->GetNbinsY(), h->GetYaxis()->GetXmin(), h->GetYaxis()->GetXmax());
+  if(isLogX(h->GetXaxis())) binLogAxis(hist2DList[h->GetName()+branch]->GetXaxis());
+  if(isLogX(h->GetYaxis())) binLogAxis(hist2DList[h->GetName()+branch]->GetYaxis());
 }
 
 
@@ -161,7 +169,7 @@ void histoCollection::bookProfileHist(TString hName, int Xbins, double Xmin, dou
 TProfile* histoCollection::makeBranchProfile(TProfile* h){
   outputFile->cd();
   profileList[h->GetName()+branch] = new TProfile(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray());
-  if(h->GetBinWidth(1) != h->GetBinWidth(2)) binLogX(profileList[h->GetName()+branch]);
+  if(isLogX(h)) binLogX(profileList[h->GetName()+branch]);
 }
 
 
@@ -219,8 +227,7 @@ void histoCollection::fillProfileHist(TString hName, double Xvalue, double Yvalu
 }
 
 
-void histoCollection::binLogX(TH1* h){
-  TAxis *axis = h->GetXaxis();
+void histoCollection::binLogAxis(TAxis *axis){
   if(axis->GetXmin() == 0) std::cout << "histoCollection:\t!!!\tLogX is not compatible with x_min = 0" << std::endl;
   int bins = axis->GetNbins();
   Axis_t logMin = TMath::Log10(axis->GetXmin());

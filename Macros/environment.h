@@ -118,7 +118,8 @@ TProfile* safeAdd(TProfile *first, TProfile *second){
   return merged;
 }
 
-bool isLogX(TH1* h){ return (h->GetBinWidth(1) != h->GetBinWidth(2));}
+bool isLogX(TH1 *h){ return (h->GetBinWidth(1) != h->GetBinWidth(2));}
+bool isLogX(TAxis *axis){ return (axis->GetBinWidth(1) != axis->GetBinWidth(2));}
 
 TH1* displaceBins(TH1* hh, double displaceFactor){
   TH1* h = (TH1*) hh->Clone();
