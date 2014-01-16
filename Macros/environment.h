@@ -14,7 +14,6 @@
 bool exists(TString path){ struct stat buffer; return (stat (path.Data(), &buffer) == 0);};
 void makeDirectory(TString path){ if(!exists(path)) system("mkdir -p " + path);}
 
-//TString getProduction(){ return "2013-06-JetIDfix";}
 TString getProduction(){ return "2013-12";}
 
 TString getStringFromFile(TString fileName){
@@ -91,7 +90,7 @@ TH1D* getPlot(TFile *file, TString sample, TString plot, bool ignoreNonExist = f
   if(!ignoreNonExist){
     std::cout << ("environment.h:\t\t!!!\t" + sample + "/" + plot + " not found!") << std::endl;
     exit(1);
-  } else return NULL;
+  } else return nullptr;
 }
 
 TProfile* getProfile(TFile *file, TString sample, TString plot, bool ignoreNonExist = false){
@@ -100,7 +99,7 @@ TProfile* getProfile(TFile *file, TString sample, TString plot, bool ignoreNonEx
   if(!ignoreNonExist){
     std::cout << (sample + "/" + plot + " not found!") << std::endl;
     exit(1);
-  } else return NULL;
+  } else return nullptr;
 }
 
 TH1D* safeAdd(TH1D *first, TH1D *second){
