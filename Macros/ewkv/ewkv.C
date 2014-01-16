@@ -49,14 +49,13 @@
 #define JETPT_RADPAT 30
 #define JET1PT 50
 #define JET2PT 30 
-#define JET3PT 30 
+#define JET3PT 15
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20131220_InclusiveDY_BDT_STEP5"
-#define TMVATYPE "BDT"
-#define DYTYPE "inclusive"
-#define OUTPUTTAG "20140115_InclusiveDY"
+#define TMVATAG "20140115_InclusiveDY_BDT"
+#define DYTYPE "composed"
+#define OUTPUTTAG "20140116_Fast"
 
 /*****************
  * Main function *
@@ -76,10 +75,10 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
-//     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
+     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
-      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
+//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+//      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
       delete myAnalyzer;
@@ -227,8 +226,9 @@ void ewkvAnalyzer::analyze_Zjets(){
 
       TLorentzVector jj = TLorentzVector(j1 + j2);
       TLorentzVector all = TLorentzVector(l1 + l2 + j1 + j2);
-      double dy = j1.Rapidity() - j2.Rapidity();
-      double ystarZ = Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2;
+      double dy = fabs(j1.Rapidity() - j2.Rapidity());
+      double dEta = fabs(j1.Eta() - j2.Eta());
+      double ystarZ = fabs(Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2);
       double zstarZ = ystarZ/dy;
  
       histos->fillHist1D("dilepton_pt_JS", 	Z.Pt());
@@ -247,10 +247,6 @@ void ewkvAnalyzer::analyze_Zjets(){
         QGCorrections("j2", &j2, jetOrder);
       }
 
-      for(TString product : {"qg","axis1","axis2","mult","ptD"}){
-        histos->fillHist1D(product + "MLP_j1", jetQGvariables[product + "MLP"]->at(jetOrder.at(0)));
-        histos->fillHist1D(product + "MLP_j2", jetQGvariables[product + "MLP"]->at(jetOrder.at(1)));
-      }
       for(TString product : {"qg","axis2","mult","ptD"}){
       	histos->fillHist1D(product + "Likelihood_j1", jetQGvariables[product + "Likelihood"]->at(jetOrder.at(0)));
         histos->fillHist1D(product + "Likelihood_j2", jetQGvariables[product + "Likelihood"]->at(jetOrder.at(1)));
@@ -286,7 +282,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           histos->fillHist1D("qgHIG13011_j1", HIG13011_j1);
           histos->fillHist1D("qgHIG13011_j2", HIG13011_j2);
  
-          // TMVA tree variables (variables for training tree, for the actually used variables, see the TMVA init function)
+          // TMVA tree variables (variables for training tree, for the actually used variables, see TMVA XML file)
           tmvaVariables["pT_Z"] = 		Z.Pt();
           tmvaVariables["pT_j1"] = 		j1.Pt();
           tmvaVariables["pT_j2"] = 		j2.Pt();
@@ -296,27 +292,36 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["dPhi_j1"] = 		fabs(Z.DeltaPhi(j1));
           tmvaVariables["dPhi_j2"] = 		fabs(Z.DeltaPhi(j2));
           tmvaVariables["dPhi_jj"] = 		fabs(j1.DeltaPhi(j2)); 
-          tmvaVariables["dEta_jj"] = 		fabs(j1.Eta() - j2.Eta());
+          tmvaVariables["dEta_jj"] = 		dEta;
           tmvaVariables["avEta_jj"] = 		fabs((j1.Eta() + j2.Eta())/2); 
-          tmvaVariables["qgMLP_j1"] = 		jetQGvariables["qgMLP"]->at(jetOrder.at(0));
-          tmvaVariables["qgMLP_j2"] = 		jetQGvariables["qgMLP"]->at(jetOrder.at(1));
           tmvaVariables["qgLikelihood_j1"] = 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(0));
           tmvaVariables["qgLikelihood_j2"] = 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(1));
           tmvaVariables["qgHIG13011_j1"] = 	HIG13011_j1;
           tmvaVariables["qgHIG13011_j2"] = 	HIG13011_j2;
           tmvaVariables["M_jj"] = 		jj.M();
-          tmvaVariables["ystarZ"] = 		fabs(ystarZ);
-          tmvaVariables["zstarZ"] = 		fabs(zstarZ);
+          tmvaVariables["ystarZ"] = 		ystarZ;
+          tmvaVariables["zstarZ"] = 		zstarZ;
           tmvaVariables["weight"] = 		getWeight();
           if(branch == "") fillTMVAtree();
-     
-          double mvaValue = tmvaReader->EvaluateMVA(TMVATYPE); 
-    
-          histos->fillHist1D(TMVATYPE, 						mvaValue);
+
+          double mvaValue = tmvaReader->EvaluateMVA("BDT"); 
+
+          histos->fillHist1D("BDT", 						mvaValue);
           for(int m : {100,200,300,400,500,600,750,1250}){
-            if(jj.M() > m) histos->fillHist1D(TString(TMVATYPE)+"_"+TString::Format("%d", m), 	mvaValue);
+            if(jj.M() > m) histos->fillHist1D("BDT_"+TString::Format("%d", m), 	mvaValue);
           }
-          histos->fillHist1D("dijet_mass", 		jj.M());
+
+          histos->fillHist1D("dijet_mass", 				jj.M());
+          histos->fillHist1D("dijet_pt", 				jj.Pt());
+          histos->fillHist1D("dijet_dphi", 				fabs(j1.DeltaPhi(j2)));
+          histos->fillHist1D("dijet_deta", 				dEta);
+          if(jj.M() > 1250) histos->fillHist1D("dijet_deta_1250",	dEta);
+          histos->fillHist1D("dijet_av_eta", 				(j1.Eta() + j2.Eta())/2);
+          histos->fillHist1D("dijet_sum_pt", 				(j1.Pt() + j2.Pt()));
+          histos->fillHist1D("jet1_Z_dphi", 				fabs(Z.DeltaPhi(j1)));
+          histos->fillHist1D("jet2_Z_dphi", 				fabs(Z.DeltaPhi(j2)));
+          histos->fillHist1D("ystar_Z", 				ystarZ);
+          histos->fillHist1D("zstar_Z", 				zstarZ);
 
           // Zeppenfeld variables for the 3rd jet
           if(jetOrder.size() > 2){
@@ -325,75 +330,99 @@ void ewkvAnalyzer::analyze_Zjets(){
             j3 *= (1+JERsign*(jetSmearedPt[jetOrder.at(2)]-j3.Pt())/j3.Pt());
             if(j3.Pt() > JET3PT){
               double ystar3 = fabs(j3.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2);
-              double zstar3 = ystar3/fabs(dy);
+              double zstar3 = ystar3/dy;
               histos->fillHist1D("ystar_3", ystar3);
               histos->fillHist1D("zstar_3", zstar3);
               if(jj.M() > 100){
-	        if(ystar3 < 1.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_1",   mvaValue);
-	        if(ystar3 < 2. && ystar3 > 1.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_2",   mvaValue);
-	        if(ystar3 < 3. && ystar3 > 2.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_3",   mvaValue);
-	        if(ystar3 < 4. && ystar3 > 3.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_4",   mvaValue);
-	        if(ystar3 < 5. && ystar3 > 4.) histos->fillHist1D(TString(TMVATYPE)+"_ystar3_5",   mvaValue);
-	        if(zstar3 < .5) histos->fillHist1D(TString(TMVATYPE)+"_central3",   mvaValue);
-	        if(zstar3 > .5) histos->fillHist1D(TString(TMVATYPE)+"_noncentral3",   mvaValue);
+	        if(ystar3 < 1.) 		histos->fillHist1D("BDT_ystar3_1",   	mvaValue);
+	        if(ystar3 < 2. && ystar3 > 1.) 	histos->fillHist1D("BDT_ystar3_2",   	mvaValue);
+	        if(ystar3 < 3. && ystar3 > 2.) 	histos->fillHist1D("BDT_ystar3_3",   	mvaValue);
+	        if(ystar3 < 4. && ystar3 > 3.) 	histos->fillHist1D("BDT_ystar3_4",   	mvaValue);
+	        if(ystar3 < 5. && ystar3 > 4.) 	histos->fillHist1D("BDT_ystar3_5",   	mvaValue);
+	        if(zstar3 < .5) 		histos->fillHist1D("BDT_central3",   	mvaValue);
+	        if(zstar3 > .5) 		histos->fillHist1D("BDT_noncentral3",   mvaValue);
               }
             }
           }
-          histos->fillHist1D("dijet_mass", 		jj.M());
+
+          // Central activity with soft track jets
+          int nStj = 0; double stjHT = 0, stjHT3 = 0;
+          for(int t=0; t < vSoftTrackJets->GetEntries(); ++t){
+            TLorentzVector softTrackJet = *((TLorentzVector*) vSoftTrackJets->At(t));
+            if((softTrackJet.Pt() > 500) || (softTrackJet.Eta() > etamax) || (softTrackJet.Eta() < etamin)) continue;
+            stjHT += softTrackJet.Pt();
+            if(nStj < 2) stjHT3 += softTrackJet.Pt();
+            if(nStj == 0){
+              histos->fillHist1D("softTrackJet1_pt", 		softTrackJet.Pt());
+              histos->fillHist2D("softTrackJet1_pt_vs_BDT", 	softTrackJet.Pt(),	mvaValue);
+              histos->fillHist2D("softTrackJet1_pt_vs_dEta", 	softTrackJet.Pt(),	dEta);
+            }
+            ++nStj;
+          }
+          histos->fillHist1D("nSoftTrackJets", 		nStj);
+          histos->fillHist1D("stjHT3", 			stjHT3);
+          histos->fillHist2D("stjHT3_vs_BDT", 		stjHT3,				mvaValue);
+          histos->fillHist2D("stjHT3_vs_dEta", 		stjHT3,				dEta);
+          histos->fillProfileHist("softHT3_vs_PV", 	nPriVtxs, 			stjHT3);
+          histos->fillProfileHist("softHT3_vs_mjj", 	jj.M(), 			stjHT3);
+          histos->fillProfileHist("softHT3_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	stjHT3);
+
+          // Central activity with jets
+          int nCentralJets = 0; double centralHT = 0;
+          for(int j=0; j < vJets->GetEntries(); ++j){
+            if(j == jetOrder.at(0) || j == jetOrder.at(1)) continue;
+            TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
+            if(jet.Pt() < JET3PT) continue;
+            if((fabs(jet.Eta()) > etamax) || (fabs(jet.Eta()) < etamin)) continue;
+            jet *= (1+JESsign*jetUncertainty[j]);
+            jet *= (1+JERsign*(jetSmearedPt[j]-jet.Pt())/jet.Pt());
+            if(nCentralJets == 0){
+	      histos->fillHist1D("centralJet1_pt", 		jet.Pt());
+	      histos->fillHist2D("centralJet1_pt_vs_BDT", 	jet.Pt(),	mvaValue);
+	      histos->fillHist2D("centralJet1_pt_vs_dEta", 	jet.Pt(),	dEta);
+            }
+            centralHT += jet.Pt();
+            ++nCentralJets;
+          }
+          histos->fillHist1D("nCentralJets", 		nCentralJets);
+          if(nCentralJets > 0){
+            histos->fillHist1D("centralHT",		centralHT);
+            histos->fillHist2D("centralHT_vs_BDT",	centralHT,	mvaValue);
+            histos->fillHist2D("centralHT_vs_dEta",	centralHT,	dEta);
+          }
+
+          //Pull vectors
+          TVector2 pull_j1 = *((TVector2*) vPull->At(jetOrder.at(0)));
+          TVector2 pull_j2 = *((TVector2*) vPull->At(jetOrder.at(1)));
+          TVector2 pull2_j1 = *((TVector2*) vPull->At(jetOrder.at(0)));
+          TVector2 pull2_j2 = *((TVector2*) vPull->At(jetOrder.at(1)));
+
+	  //Get pull in direction eta --> infinity
+          int sign_j1 = (j1.Eta() > 0) - (j1.Eta() < 0);
+          int sign_j2 = (j2.Eta() > 0) - (j2.Eta() < 0);
+	  histos->fillProfileHist("pullEta_vs_BDT",	pull_j1.X()*sign_j1,	mvaValue);
+	  histos->fillProfileHist("pullEta_vs_BDT",	pull_j2.X()*sign_j2,	mvaValue);
+	  histos->fillProfileHist("pull2Eta_vs_BDT",	pull2_j1.X()*sign_j1,	mvaValue);
+	  histos->fillProfileHist("pull2Eta_vs_BDT",	pull2_j2.X()*sign_j2,	mvaValue);
+	  histos->fillProfileHist("pullEta_vs_dEta",	pull_j1.X()*sign_j1,	dEta);
+	  histos->fillProfileHist("pullEta_vs_dEta",	pull_j2.X()*sign_j2,	dEta);
+	  histos->fillProfileHist("pull2Eta_vs_dEta",	pull2_j1.X()*sign_j1,	dEta);
+	  histos->fillProfileHist("pull2Eta_vs_dEta",	pull2_j2.X()*sign_j2,	dEta);
+	  histos->fillProfileHist("pullEta_vs_eta",	pull_j1.X()*sign_j1,	fabs(j1.Eta()));
+	  histos->fillProfileHist("pullEta_vs_eta",	pull_j2.X()*sign_j2,	fabs(j2.Eta()));
+	  histos->fillProfileHist("pull2Eta_vs_eta",	pull2_j1.X()*sign_j1,	fabs(j1.Eta()));
+	  histos->fillProfileHist("pull2Eta_vs_eta",	pull2_j2.X()*sign_j2,	fabs(j2.Eta()));
+	  histos->fillProfileHist("pullEta_vs_mjj",	pull_j1.X()*sign_j1,	jj.M());
+	  histos->fillProfileHist("pullEta_vs_mjj",	pull_j2.X()*sign_j2,	jj.M());
+	  histos->fillProfileHist("pull2Eta_vs_mjj",	pull2_j1.X()*sign_j1,	jj.M());
+	  histos->fillProfileHist("pull2Eta_vs_mjj",	pull2_j2.X()*sign_j2,	jj.M());
+	  histos->fillProfileHist("pullEta_vs_zstarZ",	pull_j1.X()*sign_j1,	zstarZ);
+	  histos->fillProfileHist("pullEta_vs_zstarZ",	pull_j2.X()*sign_j2,	zstarZ);
+	  histos->fillProfileHist("pull2Eta_vs_zstarZ",	pull2_j1.X()*sign_j1,	zstarZ);
+	  histos->fillProfileHist("pull2Eta_vs_zstarZ",	pull2_j2.X()*sign_j2,	zstarZ);
         }  
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
-        
-        histos->fillHist1D("dijet_pt", 			jj.Pt());
-        histos->fillHist1D("dijet_dphi", 		fabs(j1.DeltaPhi(j2)));
-        histos->fillHist1D("dijet_deta", 		fabs(j1.Eta() - j2.Eta()));
-        if(jj.M() > 1250) histos->fillHist1D("dijet_deta_1250",	fabs(j1.Eta() - j2.Eta()));
-        histos->fillHist1D("dijet_av_eta", 		(j1.Eta() + j2.Eta())/2);
-        histos->fillHist1D("dijet_sum_pt", 		(j1.Pt() + j2.Pt()));
-    
-        histos->fillHist1D("jet1_Z_dphi", 		fabs(Z.DeltaPhi(j1)));
-        histos->fillHist1D("jet2_Z_dphi", 		fabs(Z.DeltaPhi(j2)));
-    
-        histos->fillHist1D("ystar_Z", 			fabs(ystarZ));
-        histos->fillHist1D("zstar_Z", 			fabs(zstarZ));
-    
-        // Central activity with soft track jets
-        int nStj = 0; double stjHT = 0, stjHT3 = 0;
-        for(int t=0; t < vSoftTrackJets->GetEntries(); ++t){
-          TLorentzVector softTrackJet = *((TLorentzVector*) vSoftTrackJets->At(t));
-          if((softTrackJet.Pt() > 500) || (softTrackJet.Eta() > etamax) || (softTrackJet.Eta() < etamin)) continue;
-          stjHT += softTrackJet.Pt();
-          if(nStj < 2) stjHT3 += softTrackJet.Pt();
-          if(nStj == 0) histos->fillHist1D("softTrackJet1_pt", softTrackJet.Pt());
-          ++nStj;
-        }
-        histos->fillHist1D("nSoftTrackJets", 		nStj);
-        histos->fillHist1D("stjHT3", 			stjHT3);
-        histos->fillHist1D("totalSoftHT", 		totalSoftHT);
-        histos->fillProfileHist("softHT3_vs_PV", 	nPriVtxs, 			stjHT3);
-        histos->fillProfileHist("softHT3_vs_mjj", 	jj.M(), 			stjHT3);
-        histos->fillProfileHist("softHT3_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	stjHT3);
-        histos->fillProfileHist("softHT_vs_PV", 	nPriVtxs, 			totalSoftHT);
-        histos->fillProfileHist("softHT_vs_mjj", 	jj.M(), 			totalSoftHT);
-        histos->fillProfileHist("softHT_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	totalSoftHT);
-    
-    
-        // Central activity with jets
-        int nCentralJets = 0; double centralHT = 0;
-        for(int j=0; j < vJets->GetEntries(); ++j){
-          if(j == jetOrder.at(0) || j == jetOrder.at(1)) continue;
-          TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
-          if(jet.Pt() < JET3PT) continue;
-          if((fabs(jet.Eta()) > etamax) || (fabs(jet.Eta()) < etamin)) continue;
-          jet *= (1+JESsign*jetUncertainty[j]);
-          jet *= (1+JERsign*(jetSmearedPt[j]-jet.Pt())/jet.Pt());
-          if(nCentralJets == 0) histos->fillHist1D("centralJet1_pt", jet.Pt());
-          centralHT += jet.Pt();
-          ++nCentralJets;
-        }
-        histos->fillHist1D("nCentralJets", 			nCentralJets);
-        if(nCentralJets > 0) histos->fillHist1D("centralHT",	centralHT);
-    
     
         // Additional cutflow
         if(jj.M() < 200) continue;			cutflow->track("$m_{jj} > 200$ GeV");
@@ -412,7 +441,7 @@ void ewkvAnalyzer::analyze_Zjets(){
  *************************************/
 void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
-  TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_" + TMVATYPE + ".weights.xml";
+  TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_BDT.weights.xml";
 
   ifstream xmlFile;
   getStream(xmlFile, weightsFile.Data());
@@ -425,7 +454,7 @@ void ewkvAnalyzer::initTMVAreader(){
     }
   }
 
-  tmvaReader->BookMVA( TMVATYPE, weightsFile);
+  tmvaReader->BookMVA("BDT", weightsFile);
 }
 
 
