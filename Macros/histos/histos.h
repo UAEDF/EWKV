@@ -113,7 +113,7 @@ void histoCollection::bookHistos(){
   }
   readFile.close();
 
-  getStream(readFile, getCMSSWBASE() + "/src/EWKV/Macros/histos/1D.config"); 
+  getStream(readFile, getCMSSWBASE() + "/src/EWKV/Macros/histos/profile.config");
   while(getLine(readFile, line)){
     TString useLine;
     line >> useLine;
