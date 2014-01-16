@@ -55,8 +55,8 @@
 // Options
 #define TMVATAG "20131220_InclusiveDY_BDT_STEP5"
 #define TMVATYPE "BDT"
-#define DYTYPE "composed"
-#define OUTPUTTAG "20140115_Full"
+#define DYTYPE "inclusive"
+#define OUTPUTTAG "20140115_InclusiveDY"
 
 /*****************
  * Main function *
@@ -66,7 +66,6 @@ int main(int argc, char *argv[]){
   for(TString type : typeSelector(argc, argv)){
     TString samplesDir = getCMSSWBASE() + "src/EWKV/Macros/samples/";					//Set up list of samples
     TString mcConfig = samplesDir + (DYTYPE == "inclusive"? "mcInclusive.config" : "mc.config");
-    if(DYTYPE == "powheg") mcConfig = samplesDir + "mcPowheg.config";
     TString dataConfig = samplesDir + "data_" + type + "_pixel.config";
     sampleList* samples = new sampleList();
     if(!samples->init(dataConfig, mcConfig)) return 1;
@@ -77,9 +76,9 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
-//      (*it)->useSkim(type, "20131022_Full");								//Use skimmed files to go faster
+//     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
       myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow

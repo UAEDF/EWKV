@@ -72,7 +72,7 @@ bool sampleList::init(TString dataFile, TString mcFile, TString mode){
 
 void sampleList::readInitFile(TString file, TString type, bool useAll){
   std::ifstream readFile;
-  getStream(readFile, file.Data());
+  getStream(readFile, file);
   std::stringstream line;
   while(getLine(readFile, line)){
     TString useLine;
