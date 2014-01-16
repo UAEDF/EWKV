@@ -134,8 +134,8 @@ void plotHistos::next(TString type){
 
   //Set up histos
   std::map<TString, TH1D*> hists;
-  for(TString h : mcs) 							 					hists[h] = NULL;
-  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-","signal only","thisLegendItem"}) 	hists[h] = NULL;
+  for(TString h : mcs) 							 					hists[h] = nullptr;
+  for(TString h : {"data", "ratio", "ratio+", "ratio-", "JES+", "JES-","signal only","thisLegendItem"}) 	hists[h] = nullptr;
 
   double horizontalSplit = 0.275;
   double leftMargin = .12;
@@ -227,7 +227,7 @@ void plotHistos::next(TString type){
   auto mcbefore = mcs.rbegin();
   for(auto mc = mcs.rbegin(); mc != mcs.rend(); ++mc){
     hists[*mc] = safeAdd(hists[*mcbefore], getPlot(file, *mc, name, true));
-    if(newLegendItem){ hists["temp"] = NULL; newLegendItem = false;}
+    if(newLegendItem){ hists["temp"] = nullptr; newLegendItem = false;}
     hists["temp"] = safeAdd(hists["temp"], getPlot(file, *mc, name, true));
     if(useLegend[*mc]){
       if(hists["temp"]){
@@ -263,7 +263,7 @@ void plotHistos::next(TString type){
     hists[mc]->SetLineColor(color[mc]);
     hists[mc]->SetFillColor(color[mc]);
     hists[mc]->Draw("same hist");
-    if(useLegend[mc]){
+    if(useLegend[mc] && events[mc] > 0.5){
       leg->AddEntry(hists[mc], " " + legendNames[mc] + " ", "F");
       if(putEvents || bottomLegend){
         leg->AddEntry("", TString::Format("%d", (int)(events[mc]+.5)),"");
@@ -309,8 +309,8 @@ void plotHistos::next(TString type){
         hObserved->SetBinContent(i, (data-bkg)/sqrt(bkg+deltaB));
         hExpected->SetBinContent(i, signal/sqrt(bkg+deltaB));
       } else {
-        hObserved->SetBinContent(i, NULL);
-        hExpected->SetBinContent(i, NULL);
+        hObserved->SetBinContent(i, nullptr);
+        hExpected->SetBinContent(i, nullptr);
       }
     }
  
