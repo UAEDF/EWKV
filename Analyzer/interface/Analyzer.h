@@ -48,7 +48,7 @@
 
 
 const int maxGen = 10;
-const int maxJet = 5;
+const int maxJet = 15;
 const int maxSTJ = 15;
 const int maxTrg = 15;
 
