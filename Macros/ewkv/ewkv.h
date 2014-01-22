@@ -40,7 +40,7 @@ class ewkvAnalyzer{
   private:
     void analyze_Zjets();
     void analyze_Wjets(){std::cout << "ewkvAnalyzer:\t\t\tanalyze_WType() is not implemented yet" << std::endl;}
-    void fillTMVAtree();
+    void fillTMVAtree(TString branch);
     void fillSkimTree();
     void initTMVAreader();
     void checkRadiationPattern(double zRapidity);
@@ -81,11 +81,13 @@ class ewkvAnalyzer{
     sample* mySample;
     histoCollection* histos;
     cutFlow* cutflow;
-    bool makeTMVAtree_, firstTMVAevent;
-    bool makeSkimTree_, firstSkimEvent, alreadyOnSkimmedTree;
+    bool makeTMVAtree_;
     std::map<TString, float> tmvaVariables;
-    TFile *tmvaFile, *skimFile;
-    TTree *tmvaTree, *skimTree;
+    std::map<TString, TFile*> tmvaFile;
+    std::map<TString, TTree*> tmvaTree; 
+    bool makeSkimTree_, alreadyOnSkimmedTree;
+    TFile *skimFile;
+    TTree *skimTree;
     TString outputTag;
     TMVA::Reader *tmvaReader;
     double eventWeight, savedWeight;
@@ -194,7 +196,6 @@ ewkvAnalyzer::~ewkvAnalyzer(){
 
 
 void ewkvAnalyzer::loop(TString type_, double testFraction){
-  firstTMVAevent = true; firstSkimEvent = true;
   type = type_;
   VType theType;
   if(type == "ZMUMU") theType = ZMUMU;
@@ -227,15 +228,17 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   while(bar < 100){ std::cout << "="<< std::flush; ++bar;}
   std::cout << std::endl;
 
-  if(makeTMVAtree_ && !firstTMVAevent){
-    tmvaFile->cd();
-    tmvaTree->AutoSave();
-    tmvaFile->WriteTObject(tmvaTree);
-    tmvaFile->Close();
+  if(makeTMVAtree_){
+    for(auto branch = tmvaFile.begin();branch != tmvaFile.end(); ++branch){
+      tmvaFile[branch->first]->cd();
+      tmvaTree[branch->first]->AutoSave();
+      tmvaFile[branch->first]->WriteTObject(tmvaTree[branch->first]);
+      tmvaFile[branch->first]->Close();
+    }
     std::cout << "ewkvAnalyzer:\t\t\tTMVA tree prepared" << std::endl;
   }
 
-  if(makeSkimTree_ && !firstSkimEvent){
+  if(makeSkimTree_ && skimFile){
     skimFile->cd();
     skimTree->AutoSave();
     skimFile->WriteTObject(skimTree);
@@ -248,33 +251,34 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   return;
 }
 
-void ewkvAnalyzer::fillTMVAtree(){
+void ewkvAnalyzer::fillTMVAtree(TString branch_){
   if(!makeTMVAtree_) return;
-  if(firstTMVAevent){
+  TString branch;
+  if(branch_ != "") branch = "_" + branch_;
+  else branch = "*"; 
+  if(!tmvaTree[branch]){
     TString location = getTreeLocation() + "tmva-input/" + type + "/" + outputTag + "/";
     makeDirectory(location);
 
-    tmvaFile = new TFile(location + mySample->getName() + ".root" ,"new");
-    if(!tmvaFile->IsOpen()){
-      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << location << mySample->getName() << ".root (maybe already exists)" << std::endl;
+    tmvaFile[branch] = new TFile(location + mySample->getName() + branch_ + ".root" ,"new");
+    if(!tmvaFile[branch]->IsOpen()){
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << (location + mySample->getName() + branch_) << ".root (maybe already exists)" << std::endl;
       makeTMVAtree_ = false;
       return;
     }
-    tmvaFile->cd();
-    tmvaTree = new TTree("ewkv-TMVA-input","tree used for TMVA input");
+    tmvaFile[branch]->cd();
+    tmvaTree[branch] = new TTree("ewkv-TMVA-input","tree used for TMVA input");
     for(auto tmvaVariable = tmvaVariables.begin(); tmvaVariable != tmvaVariables.end(); ++tmvaVariable){
-      tmvaTree->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/F");
+      tmvaTree[branch]->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/F");
     }
-    firstTMVAevent = false;
   }
-
-  tmvaTree->Fill();
+  tmvaTree[branch]->Fill();
 }
 
 
 void ewkvAnalyzer::fillSkimTree(){
   if(!makeSkimTree_ || alreadyOnSkimmedTree) return;
-  if(firstSkimEvent){
+  if(!skimTree){
     TString location = getTreeLocation() + "skimmed/" + type + "/" + outputTag + "/";
     makeDirectory(location);
 
@@ -286,7 +290,6 @@ void ewkvAnalyzer::fillSkimTree(){
     }
     skimFile->cd();
     skimTree = tree->CloneTree(0);
-    firstSkimEvent = false;
   }
   skimTree->Fill();
   alreadyOnSkimmedTree = true;

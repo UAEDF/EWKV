@@ -53,9 +53,9 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20140115_InclusiveDY_BDT"
-#define DYTYPE "composed"
-#define OUTPUTTAG "20140116_Fast"
+#define TMVATAG "20140121_InclusiveDY_BDT"
+#define DYTYPE "inclusive"
+#define OUTPUTTAG "20140122_InclusiveDY"
 
 /*****************
  * Main function *
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
      (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
@@ -168,10 +168,11 @@ void ewkvAnalyzer::analyze_Zjets(){
     if(fabs(Z.M() - ZMASS) > 20) continue;
     cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
   
-    histos->fillHist1D("dilepton_pt", 	Z.Pt());
-    ptReweighting(Z.Pt());
+    histos->fillHist1D("dilepton_pt", 		Z.Pt());
+//    ptReweighting(Z.Pt());
     histos->fillHist1D("dilepton_pt_flat", 	Z.Pt());
-    histos->fillHist1D("dilepton_eta", 	Z.Eta());
+    histos->fillHist1D("dilepton_eta", 		Z.Eta());
+    histos->fillHist1D("dilepton_rapidity", 	Z.Rapidity());
     histos->fillHist1D("dilepton_phi", 	Z.Phi());
     checkRadiationPattern(Z.Rapidity());
   
@@ -212,17 +213,18 @@ void ewkvAnalyzer::analyze_Zjets(){
       j2 *= (1+JERsign*(jetSmearedPt[jetOrder.at(1)]-j2.Pt())/j2.Pt());
       double etamin = (j1.Eta() < j2.Eta()? j1.Eta() : j2.Eta()) + 0.5;
       double etamax = (j1.Eta() < j2.Eta()? j2.Eta() : j1.Eta()) - 0.5;
-  
+
+      if(j1.Pt() < JET1PT) continue;
+      if(j2.Pt() < JET2PT) continue;
+      cutflow->track("2 jets"); 
+      fillSkimTree();
+
       histos->fillHist1D("jet1_pt", 		j1.Pt());
       histos->fillHist1D("jet1_pt_log", 	j1.Pt());
   
       histos->fillHist1D("jet2_pt", 		j2.Pt());
       histos->fillHist1D("jet2_pt_log", 	j2.Pt());
 
-      if(j1.Pt() < JET1PT) continue;
-      if(j2.Pt() < JET2PT) continue;
-      cutflow->track("2 jets"); 
-      fillSkimTree();
 
       TLorentzVector jj = TLorentzVector(j1 + j2);
       TLorentzVector all = TLorentzVector(l1 + l2 + j1 + j2);
@@ -302,7 +304,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["ystarZ"] = 		ystarZ;
           tmvaVariables["zstarZ"] = 		zstarZ;
           tmvaVariables["weight"] = 		getWeight();
-          if(branch == "") fillTMVAtree();
+          fillTMVAtree(branch);
 
           double mvaValue = tmvaReader->EvaluateMVA("BDT"); 
 
@@ -317,6 +319,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           histos->fillHist1D("dijet_deta", 				dEta);
           if(jj.M() > 1250) histos->fillHist1D("dijet_deta_1250",	dEta);
           histos->fillHist1D("dijet_av_eta", 				(j1.Eta() + j2.Eta())/2);
+          histos->fillHist1D("dijet_etaeta", 				j1.Eta()*j2.Eta());
           histos->fillHist1D("dijet_sum_pt", 				(j1.Pt() + j2.Pt()));
           histos->fillHist1D("jet1_Z_dphi", 				fabs(Z.DeltaPhi(j1)));
           histos->fillHist1D("jet2_Z_dphi", 				fabs(Z.DeltaPhi(j2)));
@@ -394,8 +397,8 @@ void ewkvAnalyzer::analyze_Zjets(){
           //Pull vectors
           TVector2 pull_j1 = *((TVector2*) vPull->At(jetOrder.at(0)));
           TVector2 pull_j2 = *((TVector2*) vPull->At(jetOrder.at(1)));
-          TVector2 pull2_j1 = *((TVector2*) vPull->At(jetOrder.at(0)));
-          TVector2 pull2_j2 = *((TVector2*) vPull->At(jetOrder.at(1)));
+          TVector2 pull2_j1 = *((TVector2*) vPull2->At(jetOrder.at(0)));
+          TVector2 pull2_j2 = *((TVector2*) vPull2->At(jetOrder.at(1)));
 
 	  //Get pull in direction eta --> infinity
           int sign_j1 = (j1.Eta() > 0) - (j1.Eta() < 0);
