@@ -50,12 +50,13 @@ TString getTreeLocation(){
 }
 
 bool getStream(std::ifstream &readFile, TString path, bool ignoreNonExist = false){
-  readFile.open(path); 
-  if(!readFile.is_open()){
-    std::cout << ("environment.h:\t\t!!!\t" + path + " not found!") << std::endl;
-    if(ignoreNonExist) return false;
-    else exit(1);
-  } else return true;
+  if(exists(path)){
+    readFile.open(path); 
+    if(readFile.is_open()) return true;
+  }
+  std::cout << ("environment.h:\t\t!!!\tCould not open " + path + "!") << std::endl;
+  if(ignoreNonExist) return false;
+  else exit(1);
 }
 
 bool getLine(std::ifstream &readFile, std::stringstream &streamLine){
