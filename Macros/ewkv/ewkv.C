@@ -53,9 +53,9 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20140121_InclusiveDY_BDT"
-#define DYTYPE "inclusive"
-#define OUTPUTTAG "20140122_InclusiveDY"
+#define TMVATAG "20140122_InclusiveDY_BDT"
+#define DYTYPE "composed"
+#define OUTPUTTAG "20140122_Fast"
 
 /*****************
  * Main function *
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
      (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
@@ -307,6 +307,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           fillTMVAtree(branch);
 
           double mvaValue = tmvaReader->EvaluateMVA("BDT"); 
+          if(branch == "JESUp" || branch == "JESDown") mvaValue = tmvaReader->EvaluateMVA("BDT"+branch); 
 
           histos->fillHist1D("BDT", 						mvaValue);
           for(int m : {100,200,300,400,500,600,750,1250}){
@@ -395,34 +396,31 @@ void ewkvAnalyzer::analyze_Zjets(){
           }
 
           //Pull vectors
-          TVector2 pull_j1 = *((TVector2*) vPull->At(jetOrder.at(0)));
-          TVector2 pull_j2 = *((TVector2*) vPull->At(jetOrder.at(1)));
-          TVector2 pull2_j1 = *((TVector2*) vPull2->At(jetOrder.at(0)));
-          TVector2 pull2_j2 = *((TVector2*) vPull2->At(jetOrder.at(1)));
+          for(TString pullType : {"pull","pull2"}){
+	    std::map<TString, TVector2> pullVectors;
+            pullVectors["j1"] 	 = *((TVector2*) vPull[pullType]->At(jetOrder.at(0)));
+            pullVectors["j2"] 	 = *((TVector2*) vPull[pullType]->At(jetOrder.at(1)));
+            pullVectors["dijet"] = (pullVectors["j1"]-pullVectors["j2"])*(j2.Eta()-j1.Eta())/dEta;	//Positive eta in combined pull: point away from eachother
+													//Negative eta in combined pull: to eachother
+            std::map<TString, int> sign;								//Sign needed to point jets with negative eta to closest beamline
+            sign["j1"] = (j1.Eta() > 0) - (j1.Eta() < 0);
+            sign["j2"] = (j2.Eta() > 0) - (j2.Eta() < 0);
+	    sign["dijet"] = 1;
 
-	  //Get pull in direction eta --> infinity
-          int sign_j1 = (j1.Eta() > 0) - (j1.Eta() < 0);
-          int sign_j2 = (j2.Eta() > 0) - (j2.Eta() < 0);
-	  histos->fillProfileHist("pullEta_vs_BDT",	pull_j1.X()*sign_j1,	mvaValue);
-	  histos->fillProfileHist("pullEta_vs_BDT",	pull_j2.X()*sign_j2,	mvaValue);
-	  histos->fillProfileHist("pull2Eta_vs_BDT",	pull2_j1.X()*sign_j1,	mvaValue);
-	  histos->fillProfileHist("pull2Eta_vs_BDT",	pull2_j2.X()*sign_j2,	mvaValue);
-	  histos->fillProfileHist("pullEta_vs_dEta",	pull_j1.X()*sign_j1,	dEta);
-	  histos->fillProfileHist("pullEta_vs_dEta",	pull_j2.X()*sign_j2,	dEta);
-	  histos->fillProfileHist("pull2Eta_vs_dEta",	pull2_j1.X()*sign_j1,	dEta);
-	  histos->fillProfileHist("pull2Eta_vs_dEta",	pull2_j2.X()*sign_j2,	dEta);
-	  histos->fillProfileHist("pullEta_vs_eta",	pull_j1.X()*sign_j1,	fabs(j1.Eta()));
-	  histos->fillProfileHist("pullEta_vs_eta",	pull_j2.X()*sign_j2,	fabs(j2.Eta()));
-	  histos->fillProfileHist("pull2Eta_vs_eta",	pull2_j1.X()*sign_j1,	fabs(j1.Eta()));
-	  histos->fillProfileHist("pull2Eta_vs_eta",	pull2_j2.X()*sign_j2,	fabs(j2.Eta()));
-	  histos->fillProfileHist("pullEta_vs_mjj",	pull_j1.X()*sign_j1,	jj.M());
-	  histos->fillProfileHist("pullEta_vs_mjj",	pull_j2.X()*sign_j2,	jj.M());
-	  histos->fillProfileHist("pull2Eta_vs_mjj",	pull2_j1.X()*sign_j1,	jj.M());
-	  histos->fillProfileHist("pull2Eta_vs_mjj",	pull2_j2.X()*sign_j2,	jj.M());
-	  histos->fillProfileHist("pullEta_vs_zstarZ",	pull_j1.X()*sign_j1,	zstarZ);
-	  histos->fillProfileHist("pullEta_vs_zstarZ",	pull_j2.X()*sign_j2,	zstarZ);
-	  histos->fillProfileHist("pull2Eta_vs_zstarZ",	pull2_j1.X()*sign_j1,	zstarZ);
-	  histos->fillProfileHist("pull2Eta_vs_zstarZ",	pull2_j2.X()*sign_j2,	zstarZ);
+	    for(auto pull = pullVectors.begin(); pull != pullVectors.end(); ++pull){
+	      double pullAngle = fabs(pull->second.Phi());
+	      if(sign[pull->first] == -1) pullAngle = TMath::Pi() - pullAngle;
+	      double pullEta = pull->second.X()*sign[pull->first];
+              histos->fillHist1D(pullType + "Angle_" + pull->first, 	fabs(pull->second.Phi()));
+              histos->fillHist1D(pullType + "Eta_" + pull->first, 	pullEta);
+
+	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_BDT",	pullEta,	mvaValue);
+	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_dEta",	pullEta,	dEta);
+	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_eta",	pullEta,	fabs(j1.Eta()));
+	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_mjj",	pullEta,	jj.M());
+	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_zstarZ",	pullEta,	zstarZ);
+            }
+          }
         }  
         branch = puMode + subBranch + mcfmSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
@@ -444,10 +442,10 @@ void ewkvAnalyzer::analyze_Zjets(){
  *************************************/
 void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
-  TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_BDT.weights.xml";
 
+  TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_BDT.weights.xml";
   ifstream xmlFile;
-  getStream(xmlFile, weightsFile.Data());
+  getStream(xmlFile, weightsFile);
   std::string line;
   while(getline(xmlFile,line)){
     std::string::size_type start = line.find("Expression=\"");
@@ -456,8 +454,12 @@ void ewkvAnalyzer::initTMVAreader(){
       tmvaReader->AddVariable( variable, &tmvaVariables[variable]);
     }
   }
-
   tmvaReader->BookMVA("BDT", weightsFile);
+
+  for(TString syst : {"JESUp","JESDown"}){
+    weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "_" + syst + "/weights/TMVAClassification_BDT.weights.xml";
+    tmvaReader->BookMVA("BDT"+syst, weightsFile);
+  }
 }
 
 
@@ -491,7 +493,7 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
     histos->fillProfileHist("nJets_vs_detajj", 		dEta, 	nJets);
     histos->fillProfileHist("cosdPhi_vs_HT", 		HT, 	cosDPhi);
     histos->fillProfileHist("cosdPhi_vs_detajj", 	dEta, 	cosDPhi);
-    restoreWeight();												// Go back to normal event weight
+    restoreWeight();													// Go back to normal event weight
   }
 }
 

@@ -52,6 +52,7 @@ class ewkvAnalyzer{
     void initQGCorrections();
     void QGCorrections(TString jet, TLorentzVector *j, std::vector<int> jetOrder);
     float QGsmearing(TLorentzVector *j, float input);
+    TVector2 reversePull(TVector2 *pull);
 
     void setWeight(double weight_){  		eventWeight = weight_; histos->setWeight(weight_); cutflow->setWeight(weight_);};
     void saveWeight(){				savedWeight = eventWeight;};
@@ -67,7 +68,8 @@ class ewkvAnalyzer{
     int nPileUp, nPriVtxs;
     float rho;
     int nGenPart, nJets, nLeptons, nSoftTrackJets;
-    TClonesArray *vGenPart, *vLeptons, *vMET, *vMETCorr, *vMETCorrNoV, *vJets, *vPull, *vPull2, *vSoftTrackJets;
+    TClonesArray *vGenPart, *vLeptons, *vMET, *vMETCorr, *vMETCorrNoV, *vJets, *vSoftTrackJets;
+    std::map<TString, TClonesArray*> vPull;
     float met, metPhi, metSig;
     float totalSoftHT;
     int idGenPart[10], ncJets[15], leptonCharge[2];
@@ -124,8 +126,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
   vMETCorr = 		new TClonesArray("TLorentzVector", 1);
   vMETCorrNoV = 	new TClonesArray("TLorentzVector", 1);
   vJets = 		new TClonesArray("TLorentzVector", 5);
-  vPull = 		new TClonesArray("TVector2", 5);
-  vPull2 = 		new TClonesArray("TVector2", 5);
+  vPull["pull"] = 	new TClonesArray("TVector2", 5);
+  vPull["pull2"] = 	new TClonesArray("TVector2", 5);
   vSoftTrackJets = 	new TClonesArray("TLorentzVector", 15);
 
   // tree addresses
@@ -155,8 +157,8 @@ ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_
 
   tree->SetBranchAddress("nJets",		&nJets);
   tree->SetBranchAddress("vJets",		&vJets);
-  tree->SetBranchAddress("vPull",		&vPull);
-  tree->SetBranchAddress("vPull2",		&vPull2);
+  tree->SetBranchAddress("vPull",		&vPull["pull"]);
+  tree->SetBranchAddress("vPull2",		&vPull["pull2"]);
   tree->SetBranchAddress("jetUncertainty", 	jetUncertainty);
   tree->SetBranchAddress("genJetPt", 		genJetPt);
   tree->SetBranchAddress("jetSmearedPt", 	jetSmearedPt);
