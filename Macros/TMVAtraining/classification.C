@@ -19,21 +19,22 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20140115_InclusiveDY";			// Trees used for training
+TString tag = "20140122_InclusiveDY";			// Trees used for training
 TString DYtype = "inclusive";				// Inclusive or composed DY
 TString mva = "BDT";					// Choosen MVA
 //TCut mjjCut = "M_jj>100";				// Mjj cut
 TCut mjjCut = "";
    
 int main(int argc, char *argv[]){
+ for(TString syst : {"","_JESUp","_JESDown"}){
   for(TString type : typeSelector(argc, argv)){
     std::cout << "TMVA classification for " << (tag + "_" + mva) << " with " << type << std::endl;
     int step = 5; TString stepString = "";
-    if(argc > 1){ step = atoi(argv[2]); stepString = "_STEP" + TString::Format("%d", step);}
+    if(argc > 2){ step = atoi(argv[2]); stepString = "_STEP" + TString::Format("%d", step);}
 
     //Initialization
-    TString nTrainS = "40000", nTrainB = (type == "ZEE"? "70000" : "110000");
-    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + "_" + mva + stepString + "/";
+    TString nTrainS = "40000", nTrainB = (type == "ZEE"? "70000" : (syst == "_JESDown"? "109000":"110000"));
+    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + "_" + mva + stepString + syst + "/";
     makeDirectory(outputDir);
     TFile *outputFile = new TFile(outputDir + "TMVA.root" , "RECREATE" );
     (TMVA::gConfig().GetIONames()).fWeightFileDir = outputDir + "/weights/";
@@ -60,10 +61,10 @@ int main(int argc, char *argv[]){
     TString treeDir = getTreeLocation() + "tmva-input/" + type + "/" + tag + "/";
     std::map<TString, TFile*> files;
     std::map<TString, TTree*> trees;
-    files["signal"] = new TFile(treeDir + "EWKZ.root");
-    if(DYtype == "inclusive") 	files["DY"] = new TFile(treeDir + "DY.root");
-    else if(DYtype == "data")   files["DY"] = new TFile(treeDir + "data.root");
-    else for(TString i : {"2","3","4"}) files["DY" + i] = new TFile(treeDir + "DY" + i + ".root");
+    files["signal"] = new TFile(treeDir + "EWKZ" + syst + ".root");
+    if(DYtype == "inclusive") 	files["DY"] = new TFile(treeDir + "DY" + syst + ".root");
+    else if(DYtype == "data")   files["DY"] = new TFile(treeDir + "data" + syst + ".root");
+    else for(TString i : {"2","3","4"}) files["DY" + i] = new TFile(treeDir + "DY" + i + syst + ".root");
 
     for(auto file = files.begin(); file != files.end(); ++file) trees[file->first] = (TTree*) file->second->Get("ewkv-TMVA-input");
 
@@ -90,5 +91,6 @@ int main(int argc, char *argv[]){
 
     delete factory;
   }
-  return 0;
+ }
+ return 0;
 }
