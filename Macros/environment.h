@@ -2,13 +2,15 @@
 #ifndef ENVIRONMENT_H
 #define ENVIRONMENT_H
 
-#include <TString.h>
 #include <stdlib.h>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <sys/stat.h>
+#include <TFile.h>
 #include <TH1D.h>
 #include <TProfile.h>
+#include <TString.h>
 #include <TMath.h>
 
 bool exists(TString path){ struct stat buffer; return (stat (path.Data(), &buffer) == 0);};
