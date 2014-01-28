@@ -2,22 +2,27 @@
 from ROOT import TFile, TH1
  
 base = "BDT"
-tag = "20131030_Fast_STEP5"
+tag = "20140121_Fast"
 
 mcGroups = {'DY': ["DY0","DY1","DY2","DY3","DY4"],
             'TTJets': ["TTJetsSemiLept","TTJetsFullLept","TTJetsHadronic"],
             'T-s': ["T-s","Tbar-s"], 'T-W': ["T-W","Tbar-W"], 'T-t': ["T-t","Tbar-t"],
             'WW': ["WW"], 'WZ': ["WZ"], 'ZZ': ["ZZ"], 'WJets': ["WJets"],
-            'ewkZjj': ["ZVBF"]}
+            'ewkZjj': ["EWKZ"]}
 
 def getTreeLocation():
-  return "/user/tomc/public/merged/EWKV/2013-06-JetIDfix/"
+  return "/user/tomc/public/merged/EWKV/2013-12/"
 
-def getPlot(sourceFile, sample, plot, ignoreNonExist = False):
+def addErrorToHist(h, sigma):
+  if sigma == 0: return h;
+  for bin in range(0, bin <= h.GetXaxis().GetNbins() + 1): h.SetBinContent(bin, h.GetBinContent(bin) + h.GetBinError(bin)*sigma);
+  return h;
+
+def getPlot(sourceFile, sample, plot, ignoreNonExist = False, addError = 0.):
   hist = sourceFile.Get(sample + "/" + plot)
-  if hist: return hist.Clone()
+  if hist and hist.GetEntries() != 0: return addErrorToHist(hist.Clone(), addError)
   hist = sourceFile.Get(plot + "_" + sample)
-  if hist: return hist.Clone()
+  if hist and hist.GetEntries() != 0: return addErrorToHist(hist.Clone(), addError)
   if not ignoreNonExist: 
     print sample + "/" + plot + " not found!"
     exit(1)
@@ -25,8 +30,9 @@ def getPlot(sourceFile, sample, plot, ignoreNonExist = False):
 def safeAdd(first, second):
   if first is None: return second
   if second is None: return first
-  first.Add(second)
-  return first
+  merged = first.Clone()
+  merged.Add(second)
+  return merged
 
 def merge(sourceFile, plot, histList):
   histMerged = getPlot(sourceFile, histList[0], plot)
