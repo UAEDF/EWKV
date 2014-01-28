@@ -24,10 +24,8 @@ class cutFlowHandler{
 
 
 void cutFlowHandler::toLatex(TString fileName){
-  using namespace std;
-  ofstream texstream;
+  std::ofstream texstream(fileName);
   texstream.setf(ios::fixed);
-  texstream.open(fileName);
   texstream << setprecision(0); double roundingUp = .5;
 
   if(!hasTotalMC){
