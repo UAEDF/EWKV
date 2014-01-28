@@ -20,6 +20,7 @@ int main(int argc, char* argv[]){
       bool eventMode = false;
       TLorentzVector firstJet;
       bool firstJetInEvent = true;
+      nEventInFile = 0;
       std::stringstream line;
       while(getLine(lheInput, line)){
         TString pid; line >> pid;
