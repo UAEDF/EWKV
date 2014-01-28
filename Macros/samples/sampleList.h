@@ -1,11 +1,12 @@
 #ifndef SAMPLELIST_H
 #define SAMPLELIST_H
 
-#include <TString.h>
-#include <TGraphAsymmErrors.h>
 #include <fstream>
 #include <map>
 #include <stdlib.h>
+#include <TFile.h>
+#include <TString.h>
+#include <TGraphAsymmErrors.h>
 
 #include "sample.h"
 #include "../environment.h"
