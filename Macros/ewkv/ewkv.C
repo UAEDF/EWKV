@@ -53,9 +53,9 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20140122_InclusiveDY_BDT"
+#define TMVATAG "20140121_InclusiveDY_BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140122_Fast"
+#define OUTPUTTAG "20140124_Fast"
 
 /*****************
  * Main function *
@@ -304,10 +304,9 @@ void ewkvAnalyzer::analyze_Zjets(){
           tmvaVariables["ystarZ"] = 		ystarZ;
           tmvaVariables["zstarZ"] = 		zstarZ;
           tmvaVariables["weight"] = 		getWeight();
-          fillTMVAtree(branch);
+          fillTMVAtree();
 
           double mvaValue = tmvaReader->EvaluateMVA("BDT"); 
-          if(branch == "JESUp" || branch == "JESDown") mvaValue = tmvaReader->EvaluateMVA("BDT"+branch); 
 
           histos->fillHist1D("BDT", 						mvaValue);
           for(int m : {100,200,300,400,500,600,750,1250}){
@@ -408,10 +407,10 @@ void ewkvAnalyzer::analyze_Zjets(){
 	    sign["dijet"] = 1;
 
 	    for(auto pull = pullVectors.begin(); pull != pullVectors.end(); ++pull){
-	      double pullAngle = fabs(pull->second.Phi());
+	      double pullAngle = fabs(TMath::ATan2(pull->second.Y(), pull->second.X()));
 	      if(sign[pull->first] == -1) pullAngle = TMath::Pi() - pullAngle;
 	      double pullEta = pull->second.X()*sign[pull->first];
-              histos->fillHist1D(pullType + "Angle_" + pull->first, 	fabs(pull->second.Phi()));
+              histos->fillHist1D(pullType + "Angle_" + pull->first, 	pullAngle);
               histos->fillHist1D(pullType + "Eta_" + pull->first, 	pullEta);
 
 	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_BDT",	pullEta,	mvaValue);
@@ -455,11 +454,6 @@ void ewkvAnalyzer::initTMVAreader(){
     }
   }
   tmvaReader->BookMVA("BDT", weightsFile);
-
-  for(TString syst : {"JESUp","JESDown"}){
-    weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "_" + syst + "/weights/TMVAClassification_BDT.weights.xml";
-    tmvaReader->BookMVA("BDT"+syst, weightsFile);
-  }
 }
 
 

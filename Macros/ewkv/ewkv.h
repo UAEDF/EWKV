@@ -40,7 +40,7 @@ class ewkvAnalyzer{
   private:
     void analyze_Zjets();
     void analyze_Wjets(){std::cout << "ewkvAnalyzer:\t\t\tanalyze_WType() is not implemented yet" << std::endl;}
-    void fillTMVAtree(TString branch);
+    void fillTMVAtree();
     void fillSkimTree();
     void initTMVAreader();
     void checkRadiationPattern(double zRapidity);
@@ -85,11 +85,9 @@ class ewkvAnalyzer{
     cutFlow* cutflow;
     bool makeTMVAtree_;
     std::map<TString, float> tmvaVariables;
-    std::map<TString, TFile*> tmvaFile;
-    std::map<TString, TTree*> tmvaTree; 
     bool makeSkimTree_, alreadyOnSkimmedTree;
-    TFile *skimFile;
-    TTree *skimTree;
+    TFile *skimFile, *tmvaFile;
+    TTree *skimTree, *tmvaTree;
     TString outputTag;
     TMVA::Reader *tmvaReader;
     double eventWeight, savedWeight;
@@ -230,19 +228,15 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   while(bar < 100){ std::cout << "="<< std::flush; ++bar;}
   std::cout << std::endl;
 
-  if(makeTMVAtree_){
-    for(auto branch = tmvaFile.begin();branch != tmvaFile.end(); ++branch){
-      tmvaFile[branch->first]->cd();
-      tmvaTree[branch->first]->AutoSave();
-      tmvaFile[branch->first]->WriteTObject(tmvaTree[branch->first]);
-      tmvaFile[branch->first]->Close();
-    }
+  if(makeTMVAtree_ && tmvaFile){
+    tmvaFile->cd();
+    tmvaFile->WriteTObject(tmvaTree);
+    tmvaFile->Close();
     std::cout << "ewkvAnalyzer:\t\t\tTMVA tree prepared" << std::endl;
   }
 
   if(makeSkimTree_ && skimFile){
     skimFile->cd();
-    skimTree->AutoSave();
     skimFile->WriteTObject(skimTree);
     skimFile->Close();
     std::cout << "ewkvAnalyzer:\t\t\tSkim of tree done" << std::endl;
@@ -253,28 +247,25 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   return;
 }
 
-void ewkvAnalyzer::fillTMVAtree(TString branch_){
+void ewkvAnalyzer::fillTMVAtree(){
   if(!makeTMVAtree_) return;
-  TString branch;
-  if(branch_ != "") branch = "_" + branch_;
-  else branch = "*"; 
-  if(!tmvaTree[branch]){
+  if(!tmvaTree){
     TString location = getTreeLocation() + "tmva-input/" + type + "/" + outputTag + "/";
     makeDirectory(location);
 
-    tmvaFile[branch] = new TFile(location + mySample->getName() + branch_ + ".root" ,"new");
-    if(!tmvaFile[branch]->IsOpen()){
-      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << (location + mySample->getName() + branch_) << ".root (maybe already exists)" << std::endl;
+    tmvaFile = new TFile(location + mySample->getName() + ".root" ,"new");
+    if(!tmvaFile->IsOpen()){
+      std::cout << "ewkvAnalyzer:\t\t!!!\tCould not create " << (location + mySample->getName()) << ".root (maybe already exists)" << std::endl;
       makeTMVAtree_ = false;
       return;
     }
-    tmvaFile[branch]->cd();
-    tmvaTree[branch] = new TTree("ewkv-TMVA-input","tree used for TMVA input");
+    tmvaFile->cd();
+    tmvaTree = new TTree("ewkv-TMVA-input","tree used for TMVA input");
     for(auto tmvaVariable = tmvaVariables.begin(); tmvaVariable != tmvaVariables.end(); ++tmvaVariable){
-      tmvaTree[branch]->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/F");
+      tmvaTree->Branch(tmvaVariable->first, &tmvaVariables[tmvaVariable->first], tmvaVariable->first + "/F");
     }
   }
-  tmvaTree[branch]->Fill();
+  tmvaTree->Fill();
 }
 
 
