@@ -36,6 +36,7 @@ int main(int argc, char *argv[]){
   TString rootVersion = gROOT->GetVersion();
   if(((TString) rootVersion(0,4)).Atof() < 5.34){ std::cout << "fractionFitter.C\t!!!\t: outdated ROOT version could lead to infinite loops, upgrade to 5.34" << std::endl; exit(1);}
   TString tag = ((TString) argv[2]);
+  std::map<TString, std::map<TString, double>> systematicErrors;
 
   for(TString type : typeSelector(argc, argv)){
     TFile *file = new TFile(getTreeLocation() + "outputs/rootfiles/" + type + "/" + tag + ".root");
@@ -45,12 +46,11 @@ int main(int argc, char *argv[]){
       TString plot = "BDT";
       if(selection != "") plot = "BDT_" + selection;
  
-      makeDirectory("results/"+ tag);
-      remove("results/"+ tag + "/" + plot + ".txt");
-      std::ofstream out("results/"+ tag + "/" + plot + ".txt", std::ios_base::app | std::ios_base::out);
-//      std::streambuf *coutbuf = std::cout.rdbuf(); //save old buf
-//      std::cout.rdbuf(out.rdbuf()); //redirect std::cout to out.txt!
+      makeDirectory("results/"+ tag + "/" + type);
+      remove("results/"+ tag + "/" + type + "/" + plot + ".txt");
+      std::ofstream out("results/"+ tag + "/" + type + "/" + plot + ".txt", std::ios_base::app | std::ios_base::out);
  
+      double fitResultNoSystematic;
       for(TString syst : {"","JESUp","JESDown","JERUp","JERDown","PUUp","PUDown","QGUp","ystarUp","mjjUp","mcfmUp"}){
         out << std::endl << type << "\t\t" << syst << std::endl;
         std::map<TString, TH1D*> histos;
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]){
         histos["DY"] 					= nullptr;
         histos["other"] 				= nullptr;
         for(TString i : {"DY1","DY2","DY3","DY4"}) 	histos["DY"] = safeAdd(histos["DY"], getPlot(file, i, plot + syst));
-        for(TString i : {"TTJetsSemiLept", "TTJetsFullLept","TTJetsHadronic","WW","WZ","ZZ","WJets","T-W","Tbar-W","T-s","Tbar-s","T-t","Tbar-t","DY0","QCD100","QCD250","QCD500","QCD1000"}){  
+        for(TString i : {"DY0","TTJetsSemiLept", "TTJetsFullLept","TTJetsHadronic","WW","WZ","ZZ","WJets","T-W","Tbar-W","T-s","Tbar-s","T-t","Tbar-t","QCD100","QCD250","QCD500","QCD1000"}){  
           histos["other"] = safeAdd(histos["other"], getPlot(file, i, plot + syst, true));
         }
  
@@ -119,9 +119,8 @@ int main(int argc, char *argv[]){
 
         if(syst == ""){
           fitResults->SetBinError(fitResults->Fill(plot, k["EWKZ"]), kError["EWKZ"]);
-        }
+          fitResultNoSystematic = k["EWKZ"];
  
-        if(syst == ""){
           out << "Correlation matrix:\t";
           double c00 = fit->GetFitter()->GetCovarianceMatrixElement(0, 0);
           double c01 = fit->GetFitter()->GetCovarianceMatrixElement(0, 1);
@@ -131,6 +130,8 @@ int main(int argc, char *argv[]){
           out << c01/sqrt(c00*c11) << std::endl << "\t\t\t";
           out << c10/sqrt(c11*c00) << "\t";
           out << c11/sqrt(c11*c11) << std::endl;
+        } else {
+	  systematicErrors[type][syst] = ceil(fabs(k["EWKZ"] - fitResultNoSystematic)*100)/100;
         }
       }
       out << std::endl << std::endl;
@@ -141,6 +142,27 @@ int main(int argc, char *argv[]){
     fitResults->GetYaxis()->SetTitle("fit result");
     fitResults->Draw();
     c->SaveAs("BDT_" + type + ".pdf");
+
+    for(TString syst : {"PU","JES","JER"}){
+      systematicErrors[type][syst] = (systematicErrors[type][syst + "Up"] > systematicErrors[type][syst + "Down"] ? systematicErrors[type][syst + "Up"] : systematicErrors[type][syst + "Down"]);
+    }
+    for(TString syst : {"mcfm","QG"}){
+      systematicErrors[type][syst] = systematicErrors[type][syst + "Up"];
+    }
   }
+  std::ofstream texstream("results/" + tag + ".txt");
+  texstream << "\\begin{table}[h]\n \\center\n \\begin{tabular}{ | l | c c | }\n  \\hline" << std::endl;
+  texstream << "                                              & $Z \\rightarrow ee$ channel    & $Z \\rightarrow \\mu\\mu$ channel \\\\\n  \\hline" << std::endl;
+  texstream << "  Jet energy scale                            & " << systematicErrors["ZEE"]["JES"] << "                          & " << systematicErrors["ZMUMU"]["JES"] << " \\\\" << std::endl;
+  texstream << "  Jet energy resolution                       & " << systematicErrors["ZEE"]["JER"] << "                          & " << systematicErrors["ZMUMU"]["JER"] << " \\\\" << std::endl;
+  texstream << "  Gluon/Quark jet discrimination              & " << systematicErrors["ZEE"]["QG"] << "                          & " << systematicErrors["ZMUMU"]["QG"] << " \\\\" << std::endl;
+  texstream << "  $Z \\rightarrow ll$ selection efficiency     & 0.03                          & 0.03 \\\\" << std::endl;
+  texstream << "  Luminosity                                  & 0.03                          & 0.03 \\\\" << std::endl;
+  texstream << "  DY $Zjj$ background modeling                & " << systematicErrors["ZEE"]["mcfm"] << "                          & " << systematicErrors["ZMUMU"]["mcfm"] << " \\\\" << std::endl;
+  texstream << "  Signal acceptance                           & 0.06                          & 0.06 \\\\" << std::endl;
+  texstream << "  Pile-up                                     & " << systematicErrors["ZEE"]["PU"] << "                          & " << systematicErrors["ZMUMU"]["PU"] << " \\\\" << std::endl;
+  texstream << "  \\hline\n \\end{tabular}\n \\caption{Overview of systematic uncertainties on the fit results\\label{tab:syst}}\n\\end{table}" << std::endl;
+  texstream.close();
+
   return 0; 
 }
