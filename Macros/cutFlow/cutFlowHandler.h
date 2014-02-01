@@ -25,8 +25,8 @@ class cutFlowHandler{
 
 void cutFlowHandler::toLatex(TString fileName){
   std::ofstream texstream(fileName);
-  texstream.setf(ios::fixed);
-  texstream << setprecision(0); double roundingUp = .5;
+  texstream.setf(std::ios::fixed);
+  texstream << std::setprecision(0); double roundingUp = .5;
 
   if(!hasTotalMC){
     std::vector<TString> mcList;
@@ -38,9 +38,9 @@ void cutFlowHandler::toLatex(TString fileName){
   //Header
   texstream << " \\begin{tabular}{| l |";
   for(auto cutflow : cutflows) texstream << " c ";
-  texstream << "|}" << endl << "  \\hline" << endl;
+  texstream << "|}" << std::endl << "  \\hline" << std::endl;
   for(auto cutflow : cutflows) texstream << " & " << cutflow->getName();
-  texstream << "\\\\" << endl << "  \\hline" << endl;
+  texstream << "\\\\" << std::endl << "  \\hline" << std::endl;
 
   auto trackPoints = cutflowsMap["EWKZ"]->getTrackPoints();
   for(auto trackPoint = trackPoints.begin(); trackPoint != trackPoints.end(); ++trackPoint){
@@ -54,19 +54,19 @@ void cutFlowHandler::toLatex(TString fileName){
 
       if(cutflow->getName() == "data") texstream << " & " << (counts);
       else {
-        if(counts < 10){ texstream << setprecision(1); roundingUp = 0.05;}
+        if(counts < 10){ texstream << std::setprecision(1); roundingUp = 0.05;}
         texstream << " & " << counts; 
         if(errors && ((countsJESplus-counts) != 0 || (counts-countsJESmin) != 0)){
           texstream << "$^{ +" << (countsJESplus-counts+roundingUp) << "}_{ -" << (counts-countsJESmin+roundingUp) << "}$"; 
         }
-        if(counts < 10){ texstream << setprecision(0); roundingUp = 0.5;}
+        if(counts < 10){ texstream << std::setprecision(0); roundingUp = 0.5;}
       }
     }
-    texstream << "\\\\" << endl;
+    texstream << "\\\\" << std::endl;
   }
 
-  texstream << "  \\hline" << endl;
-  texstream << " \\end{tabular}" << endl;
+  texstream << "  \\hline" << std::endl;
+  texstream << " \\end{tabular}" << std::endl;
   texstream.close();
 }
 
