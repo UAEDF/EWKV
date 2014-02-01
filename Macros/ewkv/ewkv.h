@@ -112,6 +112,7 @@ class ewkvAnalyzer{
 
 ewkvAnalyzer::ewkvAnalyzer(sample* mySample_, TFile* outFile, TString outputTag_){
   makeTMVAtree_ = false; makeSkimTree_ = false;
+  tmvaTree = nullptr; skimTree = nullptr;
   outputTag = outputTag_;
   mySample = mySample_;
   tree = mySample->getTree();
