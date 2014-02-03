@@ -55,7 +55,7 @@
 // Options
 #define TMVATAG "20140121_InclusiveDY_BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140124_Fast"
+#define OUTPUTTAG "20140203_Full"
 
 /*****************
  * Main function *
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
-     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
+//     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
@@ -169,7 +169,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
   
     histos->fillHist1D("dilepton_pt", 		Z.Pt());
-//    ptReweighting(Z.Pt());
+    ptReweighting(Z.Pt());
     histos->fillHist1D("dilepton_pt_flat", 	Z.Pt());
     histos->fillHist1D("dilepton_eta", 		Z.Eta());
     histos->fillHist1D("dilepton_rapidity", 	Z.Rapidity());
