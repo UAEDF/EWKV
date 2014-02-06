@@ -10,20 +10,24 @@
 #include <TLegend.h>
 #include "../Macros/environment.h"
 
-
+// first argument: ewk, qcd or all
+// second argument: nothing or mjj1000
 int main(int argc, char* argv[]){
+  TString mjjBin = "";
+  if(argc > 2) mjjBin = "_mjj1000";
   std::map<TString, TH1D*> hist;
-  for(TString sample : {"ewk","qcd","all"}){
-    hist[sample] = new TH1D(sample, sample, 50, 1000, 3500);
+  for(TString sample : {(TString) argv[1]}){
+    hist[sample] = new TH1D(sample, sample, 36, 100, 1000);
+    hist[sample + "1000"] = new TH1D(sample, sample, 100, 1000, 3500);
 
+    int accepted = 0, accepted1000;
     std::vector<std::pair<int, double>> eventsAndXsec;
-      for(int i = 1; i <= (sample == "all"? 2000 : 1500); ++i){
-//    for(int i = 1; i <= 4000; ++i){
+    for(int i = 1; i <= (mjjBin == "_mjj1000"? (sample == "all"? 2000 : 1500) : (sample == "ewk"? 12000 : 7500)); ++i){
       std::ifstream lheInput;
-      if(!getStream(lheInput, "/localgrid/tomc/" + sample + "Zjj_mjj1000_gridpack/lhe/" + sample + "Zjj_gridpack_" + TString::Format("%04d", i) + ".lhe", true)) continue;
+      if(!getStream(lheInput, "/localgrid/tomc/" + sample + "Zjj" + mjjBin + "_gridpack/lhe/" + sample + "Zjj_gridpack_" + TString::Format("%04d", i) + ".lhe", true)) continue;
       std::stringstream line;
 
-      int events = 0; double xsec = 0.;
+      int events = 0, events1000; double xsec = 0.;
       while(getLine(lheInput, line)){													//Read lhe line
         TString tag; line >> tag;
         if(tag == "<init>"){														//Init tag: cross section two lines further
@@ -32,20 +36,31 @@ int main(int argc, char* argv[]){
           xsec = intWeight.Atof();
         } else if(tag == "<event>"){													//Event found
           ++events;
-          TLorentzVector jj; int jets = 0;
+          TLorentzVector jj; int jets = 0; bool leadingJet = false;
           while(getLine(lheInput, line)){												//Read particles until </event> tag
             TString pid; line >> pid; if(pid == "</event>") break; 
             if(pid.Atoi() == 0){ --events; std::cout<< "PID=0 in file " << i << ", event " << events << std::endl; break;}
             TString status, mother, mother2, color, color2, p1, p2, p3, p4, mass, lifetime, spin;
             line >> status >> mother >> mother2 >> color >> color2 >> p1 >> p2 >> p3 >> p4 >> mass >> lifetime >> spin;
+            if(pid.Atoi() == 23 && fabs(mass.Atof() - 91.1876) > 20) break;
+            if(fabs(pid.Atoi()) == 11 || fabs(pid.Atoi()) == 13 || fabs(pid.Atoi()) == 15){
+              TLorentzVector l = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
+              if(l.Pt() < 20 || fabs(l.Eta()) > 2.4) break;
+            }
             if(status.Atoi() == 1 && (fabs(pid.Atoi()) < 6 || fabs(pid.Atoi()) == 21)){							//Find jet
               ++jets;
-              jj = TLorentzVector(jj + TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof()));					//Add it to the dijet vector
-              if(jets == 2) hist[sample]->Fill(jj.M());											//Fill if the two jets were found
-              else if(jets > 2){
-                std::cout << "Warning: more than 2 jets in the event!" << std::endl;
-                std::cout << "File " << i << ", event " << events << ", p1 " << p1 << std::endl;
-                break;
+              TLorentzVector j = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
+              if(j.Pt() < 30) break;
+              if(j.Pt() > 30) leadingJet = true;
+              if(fabs(j.Eta()) > 4.7) break;
+              jj = TLorentzVector(jj + j);												//Add it to the dijet vector
+              if(jets == 2 && leadingJet){
+                if(jj.M() < 1000) hist[sample]->Fill(jj.M());										//Fill if the two jets were found
+                else {
+         	  hist[sample + "1000"]->Fill(jj.M());
+                  ++accepted1000;
+                }
+                ++accepted;
               }
             }
           }
@@ -66,71 +81,14 @@ int main(int argc, char* argv[]){
     double RMS = (b*events - a*a)/((double)events*events);
 
     hist[sample]->Scale(1./events*xsec);
-    std::cout << events << " events in " << sample << "Zjj with xsec = " << xsec << " +/- " << sqrt(RMS) << " pb" << std::endl;
-  }
+    std::cout << events << " events in " << sample << "Zjj with xsec = " << xsec*((double)accepted/(double)events) << " +/- " << sqrt(RMS)*((double)accepted/(double)events) << " pb" << std::endl;
+    std::cout << accepted << " events in " << sample << "Zjj with xsec = " << xsec*((double)accepted/(double)events) << " +/- " << sqrt(RMS)*((double)accepted/(double)events) << " pb (accepted)" << std::endl;
+    std::cout << accepted1000 << " events passed selection and have mjj > 1000 GeV" << std::endl;
 
-  TCanvas *c = new TCanvas("Canvas", "Canvas", 1);
-  TPad *pad1 = new TPad("pad1","1", 0, 0.4, 1., 1.0, 0); pad1->Draw(); pad1->SetLeftMargin(0.1);
-  TPad *pad2 = new TPad("pad2","2", 0, 0.2, 1., 0.4, 0); pad2->Draw(); pad2->SetLeftMargin(0.1);
-  TPad *pad3 = new TPad("pad3","3", 0, 0.0, 1., 0.2, 0); pad3->Draw(); pad3->SetLeftMargin(0.1);
-  pad1->cd();
-  pad1->SetLogy();
-  hist["all"]->SetLineColor(kViolet);
-  hist["all"]->SetStats(0);
-  hist["all"]->SetTitle("Interference between QCD and EWK Zjj");
-  hist["all"]->GetXaxis()->SetTitle("M_{jj}");
-  hist["all"]->GetYaxis()->SetTitle("normalized events");
-  hist["all"]->GetYaxis()->SetTitleOffset(1.5);
-  hist["all"]->DrawCopy();
-  hist["ewk"]->SetLineColor(kGreen);
-  hist["ewk"]->DrawCopy("same");
-  hist["qcd"]->SetLineColor(kRed);
-  hist["qcd"]->DrawCopy("same");
-  hist["sum"] = (TH1D*) hist["qcd"]->Clone();
-  hist["sum"]->Add(hist["ewk"]);
-  hist["sum"]->SetLineColor(kBlue);
-  hist["sum"]->DrawCopy("same");
-  hist["all"]->SetLineColor(kViolet);
-  hist["all"]->DrawCopy("same");
-  TLegend *l = new TLegend(0.65, 0.65, 0.9, 0.9);
-  l->SetFillColor(kWhite);
-  for(auto entry = hist.begin(); entry != hist.end(); ++entry) l->AddEntry(entry->second, entry->first, "l");
-  l->Draw();
-  pad2->cd();
-  pad2->SetGridy();
-  gStyle->SetGridWidth(.6);
-  hist["diff"] = (TH1D*) hist["all"]->Clone();
-  hist["diff"]->SetLineColor(kRed);
-  hist["diff"]->Add(hist["qcd"], -1);
-  hist["diff"]->Divide(hist["ewk"]);
-  hist["diff"]->SetTitle("");
-  hist["diff"]->GetXaxis()->SetTitle("");
-  hist["diff"]->GetXaxis()->SetLabelSize(.1);
-  hist["diff"]->GetYaxis()->SetTitle("#sigma_{ewk+int}/#sigma_{ewk}");
-  hist["diff"]->GetYaxis()->SetTitleSize(.15);
-  hist["diff"]->GetYaxis()->SetNdivisions(5);
-  hist["diff"]->GetYaxis()->SetLabelSize(.1);
-  hist["diff"]->GetYaxis()->SetTitleOffset(.3);
-  hist["diff"]->SetMinimum(0.7);
-  hist["diff"]->SetMaximum(1.5);
-  hist["diff"]->DrawCopy();
-  pad3->cd();
-  pad3->SetGridy();
-  hist["diff"] = (TH1D*) hist["all"]->Clone();
-  hist["diff"]->SetLineColor(kRed);
-  hist["diff"]->Add(hist["ewk"], -1);
-  hist["diff"]->Divide(hist["qcd"]);
-  hist["diff"]->SetTitle("");
-  hist["diff"]->GetXaxis()->SetTitle("");
-  hist["diff"]->GetXaxis()->SetLabelSize(.1);
-  hist["diff"]->GetYaxis()->SetTitle("#sigma_{qcd+int}/#sigma_{qcd}");
-  hist["diff"]->GetYaxis()->SetTitleSize(.15);
-  hist["diff"]->GetYaxis()->SetLabelSize(.1);
-  hist["diff"]->GetYaxis()->SetNdivisions(5);
-  hist["diff"]->GetYaxis()->SetTitleOffset(.3);
-  hist["diff"]->SetMinimum(0.7);
-  hist["diff"]->SetMaximum(1.5);
-  hist["diff"]->DrawCopy();
-  c->SaveAs("interference_mjj1000.pdf");
+    TFile *file = new TFile(sample + mjjBin + ".root","RECREATE");
+    hist[sample]->Write();
+    hist[sample+"1000"]->Write();
+    file->Close();
+  }
   return 0;
 }
