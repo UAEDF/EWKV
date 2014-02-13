@@ -18,9 +18,9 @@ int main(int argc, char* argv[]){
   std::map<TString, TH1D*> hist;
   for(TString sample : {(TString) argv[1]}){
     hist[sample] = new TH1D(sample, sample, 36, 100, 1000);
-    hist[sample + "1000"] = new TH1D(sample, sample, 100, 1000, 3500);
+    hist[sample + "1000"] = new TH1D(sample + "1000", sample + "1000", 100, 1000, 3500);
 
-    int accepted = 0, accepted1000;
+    int accepted = 0, accepted1000 = 0;
     std::vector<std::pair<int, double>> eventsAndXsec;
     for(int i = 1; i <= (mjjBin == "_mjj1000"? (sample == "all"? 2000 : 1500) : (sample == "ewk"? 12000 : 7500)); ++i){
       std::ifstream lheInput;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]){
               ++jets;
               TLorentzVector j = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
               if(j.Pt() < 30) break;
-              if(j.Pt() > 30) leadingJet = true;
+              if(j.Pt() > 50) leadingJet = true;
               if(fabs(j.Eta()) > 4.7) break;
               jj = TLorentzVector(jj + j);												//Add it to the dijet vector
               if(jets == 2 && leadingJet){
@@ -80,8 +80,7 @@ int main(int argc, char* argv[]){
     double xsec = a/(double)events;
     double RMS = (b*events - a*a)/((double)events*events);
 
-    hist[sample]->Scale(1./events*xsec);
-    std::cout << events << " events in " << sample << "Zjj with xsec = " << xsec*((double)accepted/(double)events) << " +/- " << sqrt(RMS)*((double)accepted/(double)events) << " pb" << std::endl;
+    std::cout << events << " events in " << sample << "Zjj with xsec = " << xsec << " +/- " << sqrt(RMS) << " pb" << std::endl;
     std::cout << accepted << " events in " << sample << "Zjj with xsec = " << xsec*((double)accepted/(double)events) << " +/- " << sqrt(RMS)*((double)accepted/(double)events) << " pb (accepted)" << std::endl;
     std::cout << accepted1000 << " events passed selection and have mjj > 1000 GeV" << std::endl;
 
