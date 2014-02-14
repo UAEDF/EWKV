@@ -20,14 +20,14 @@ int main(int argc, char* argv[]){
     hist[sample] = new TH1D(sample, sample, 36, 100, 1000);
     hist[sample + "1000"] = new TH1D(sample + "1000", sample + "1000", 100, 1000, 3500);
 
-    int accepted = 0, accepted1000 = 0;
+    int accepted = 0, accepted1000 = 0, events1000 = 0;
     std::vector<std::pair<int, double>> eventsAndXsec;
     for(int i = 1; i <= (mjjBin == "_mjj1000"? (sample == "all"? 2000 : 1500) : (sample == "ewk"? 12000 : 7500)); ++i){
       std::ifstream lheInput;
       if(!getStream(lheInput, "/localgrid/tomc/" + sample + "Zjj" + mjjBin + "_gridpack/lhe/" + sample + "Zjj_gridpack_" + TString::Format("%04d", i) + ".lhe", true)) continue;
       std::stringstream line;
 
-      int events = 0, events1000; double xsec = 0.;
+      int events = 0; double xsec = 0.;
       while(getLine(lheInput, line)){													//Read lhe line
         TString tag; line >> tag;
         if(tag == "<init>"){														//Init tag: cross section two lines further
@@ -35,26 +35,13 @@ int main(int argc, char* argv[]){
           TString intWeight; line >> intWeight;
           xsec = intWeight.Atof();
         } else if(tag == "<event>"){													//Event found
-          ++events;
-          TLorentzVector jj; int jets = 0; bool leadingJet = false;
+          TLorentzVector jj; int jets = 0, leptons = 0; bool leadingJet = false, Zboson = false;
           while(getLine(lheInput, line)){												//Read particles until </event> tag
-            TString pid; line >> pid; if(pid == "</event>") break; 
-            if(pid.Atoi() == 0){ --events; std::cout<< "PID=0 in file " << i << ", event " << events << std::endl; break;}
-            TString status, mother, mother2, color, color2, p1, p2, p3, p4, mass, lifetime, spin;
-            line >> status >> mother >> mother2 >> color >> color2 >> p1 >> p2 >> p3 >> p4 >> mass >> lifetime >> spin;
-            if(pid.Atoi() == 23 && fabs(mass.Atof() - 91.1876) > 20) break;
-            if(fabs(pid.Atoi()) == 11 || fabs(pid.Atoi()) == 13 || fabs(pid.Atoi()) == 15){
-              TLorentzVector l = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
-              if(l.Pt() < 20 || fabs(l.Eta()) > 2.4) break;
-            }
-            if(status.Atoi() == 1 && (fabs(pid.Atoi()) < 6 || fabs(pid.Atoi()) == 21)){							//Find jet
-              ++jets;
-              TLorentzVector j = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
-              if(j.Pt() < 30) break;
-              if(j.Pt() > 50) leadingJet = true;
-              if(fabs(j.Eta()) > 4.7) break;
-              jj = TLorentzVector(jj + j);												//Add it to the dijet vector
-              if(jets == 2 && leadingJet){
+            TString pid; line >> pid; 
+            if(pid == "</event>"){
+              ++events;
+              if(jj.M() > 1000) ++events1000;
+              if(jets == 2 && leptons == 2 && leadingJet && Zboson){
                 if(jj.M() < 1000) hist[sample]->Fill(jj.M());										//Fill if the two jets were found
                 else {
          	  hist[sample + "1000"]->Fill(jj.M());
@@ -62,6 +49,22 @@ int main(int argc, char* argv[]){
                 }
                 ++accepted;
               }
+              break;
+            } 
+            if(pid.Atoi() == 0){ std::cout<< "PID=0 in file " << i << ", event " << events << std::endl; break;}
+
+            TString status, mother, mother2, color, color2, p1, p2, p3, p4, mass, lifetime, spin;
+            line >> status >> mother >> mother2 >> color >> color2 >> p1 >> p2 >> p3 >> p4 >> mass >> lifetime >> spin;
+            if(pid.Atoi() == 23 && fabs(mass.Atof() - 91.1876) < 20) Zboson = true;
+            if(fabs(pid.Atoi()) == 11 || fabs(pid.Atoi()) == 13 || fabs(pid.Atoi()) == 15){
+              TLorentzVector l = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
+              if(l.Pt() > 20 && fabs(l.Eta()) < 2.4) ++leptons;
+            }
+            if(status.Atoi() == 1 && (fabs(pid.Atoi()) < 6 || fabs(pid.Atoi()) == 21)){							//Find jet
+              TLorentzVector j = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
+              jj = TLorentzVector(jj + j);
+              if((j.Pt() > 30) && fabs(j.Eta()) < 4.7) ++jets;
+              if(j.Pt() > 50) leadingJet = true;
             }
           }
         }
@@ -82,7 +85,8 @@ int main(int argc, char* argv[]){
 
     std::cout << events << " events in " << sample << "Zjj with xsec = " << xsec << " +/- " << sqrt(RMS) << " pb" << std::endl;
     std::cout << accepted << " events in " << sample << "Zjj with xsec = " << xsec*((double)accepted/(double)events) << " +/- " << sqrt(RMS)*((double)accepted/(double)events) << " pb (accepted)" << std::endl;
-    std::cout << accepted1000 << " events passed selection and have mjj > 1000 GeV" << std::endl;
+    std::cout << events1000 << " events in " << sample << "Zjj (mjj > 1000 GeV) with xsec = " << xsec*((double)events1000/(double)events) << " +/- " << sqrt(RMS)*((double)events1000/(double)events) << " pb" << std::endl;
+    std::cout << accepted1000 << " events in " << sample << "Zjj (mjj > 1000 GeV) with xsec = " << xsec*((double)accepted1000/(double)events) << " +/- " << sqrt(RMS)*((double)accepted1000/(double)events) << " pb (accepted)" << std::endl;
 
     TFile *file = new TFile(sample + mjjBin + ".root","RECREATE");
     hist[sample]->Write();
