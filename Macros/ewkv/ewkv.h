@@ -45,6 +45,7 @@ class ewkvAnalyzer{
     void initTMVAreader();
     void checkRadiationPattern(double zRapidity);
     void mcfmReweighting(double mjj, double ystar);
+    void interference(double mjj);
     void etaReweighting(double rapidity);
     void readEtaWeights();
     void ptReweighting(double rapidity);
@@ -56,7 +57,9 @@ class ewkvAnalyzer{
 
     void setWeight(double weight_){  		eventWeight = weight_; histos->setWeight(weight_); cutflow->setWeight(weight_);};
     void saveWeight(){				savedWeight = eventWeight;};
+    void saveWeight2(){				savedWeight = eventWeight;};
     void restoreWeight(){			setWeight(savedWeight);};
+    void restoreWeight2(){			setWeight(savedWeight2);};
     void multiplyWeight(double weight_){	setWeight(eventWeight*weight_);};
     double getWeight(){				return eventWeight;};
 
@@ -90,7 +93,7 @@ class ewkvAnalyzer{
     TTree *skimTree, *tmvaTree;
     TString outputTag;
     TMVA::Reader *tmvaReader;
-    double eventWeight, savedWeight;
+    double eventWeight, savedWeight, savedWeight2;
 
     MuScleFitCorrector *muScleFitCorrector, *muScleFitCorrectorD;
     std::vector<double> etaWeights, etaBins;
@@ -244,8 +247,6 @@ void ewkvAnalyzer::loop(TString type_, double testFraction){
   }
 
   histos->toFile(); 
-
-  return;
 }
 
 void ewkvAnalyzer::fillTMVAtree(){

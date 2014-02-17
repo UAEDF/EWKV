@@ -54,8 +54,8 @@
 
 // Options
 #define TMVATAG "20140121_InclusiveDY_BDT"
-#define DYTYPE "inclusive"
-#define OUTPUTTAG "20140203_InclusiveDY"
+#define DYTYPE "composed"
+#define OUTPUTTAG "20140217_Fast"
 
 /*****************
  * Main function *
@@ -75,9 +75,9 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
-     (*it)->useSkim(type, "20140115_InclusiveDY");							//Use skimmed files to go faster
+     (*it)->useSkim(type, "20140130_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
-      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
+//      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
       myAnalyzer->loop(type);										//Loop over events in tree
       cutflows->add(myAnalyzer->getCutFlow());								//Get the cutflow
@@ -161,7 +161,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("lepton-_pt", 	l2.Pt());
     histos->fillHist1D("lepton-_eta",	l2.Eta());
     histos->fillHist1D("lepton-_phi",	l2.Phi());
-  
+
     // Select Z bosons
     if(fabs(Z.M() - ZMASS) > 40) continue;
     histos->fillHist1D("dilepton_mass", 	Z.M());
@@ -169,7 +169,6 @@ void ewkvAnalyzer::analyze_Zjets(){
     cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
   
     histos->fillHist1D("dilepton_pt", 		Z.Pt());
-    ptReweighting(Z.Pt());
     histos->fillHist1D("dilepton_pt_flat", 	Z.Pt());
     histos->fillHist1D("dilepton_eta", 		Z.Eta());
     histos->fillHist1D("dilepton_rapidity", 	Z.Rapidity());
@@ -207,6 +206,7 @@ void ewkvAnalyzer::analyze_Zjets(){
  
       TLorentzVector j1 = *((TLorentzVector*) vJets->At(jetOrder.at(0)));
       TLorentzVector j2 = *((TLorentzVector*) vJets->At(jetOrder.at(1)));
+
       j1 *= (1+JESsign*jetUncertainty[jetOrder.at(0)]);
       j1 *= (1+JERsign*(jetSmearedPt[jetOrder.at(0)]-j1.Pt())/j1.Pt());
       j2 *= (1+JESsign*jetUncertainty[jetOrder.at(1)]);
@@ -221,9 +221,14 @@ void ewkvAnalyzer::analyze_Zjets(){
 
       histos->fillHist1D("jet1_pt", 		j1.Pt());
       histos->fillHist1D("jet1_pt_log", 	j1.Pt());
-  
       histos->fillHist1D("jet2_pt", 		j2.Pt());
       histos->fillHist1D("jet2_pt_log", 	j2.Pt());
+
+      double pthard = l1.Pt() + l2.Pt() + j1.Pt() + j2.Pt();
+      double Rpthard = pthard/(Z.Pt() + j1.Pt() + j2.Pt());
+      histos->fillHist1D("hard_pt", 		pthard);
+      histos->fillHist1D("hard_pt_log", 	pthard);
+      histos->fillHist1D("R_hard_pt", 		Rpthard);
 
 
       TLorentzVector jj = TLorentzVector(j1 + j2);
@@ -258,53 +263,55 @@ void ewkvAnalyzer::analyze_Zjets(){
         histos->fillHist1D(product + "HIG13011_j2", jetQGvariables[product+"HIG13011"]->at(jetOrder.at(1)));
       }
 
-      // Add systematic branches for MCFM reweightig
+      // Add systematic branches for shape systematics
       saveWeight();
-      for(TString mcfmSyst : {"", "mjjUp", "ystarUp", "mcfmUp"}){
-        if((mySample->isData() || puMode != "") && mcfmSyst != "") continue;
-        branch = puMode + subBranch + mcfmSyst;
+      for(TString shapeSyst : {"", "mjjUp", "ystarUp", "mcfmUp","reweightPtZ","QGUp"}){
+        if((mySample->isData() || puMode != "") && shapeSyst != "") continue;
+        branch = puMode + subBranch + shapeSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
         restoreWeight();										// Go back to normal event weight before next reweighting
-        if(mcfmSyst == "mjjUp") 	mcfmReweighting(jj.M(), -1);
-        if(mcfmSyst == "ystarUp")	mcfmReweighting(-1, ystarZ);
-        if(mcfmSyst == "mcfmUp") 	mcfmReweighting(jj.M(), ystarZ);
-  
-        // Add systematic branch for QG smearing
-        for(TString qgSyst : {"","QGUp"}){
-          if((mySample->isData() || (puMode + subBranch + mcfmSyst) != "") && qgSyst != "") continue;
-          branch = puMode + subBranch + mcfmSyst + qgSyst;
-          histos->setBranch(branch); cutflow->setBranch(branch);
-  
-          float HIG13011_j1 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)); 
-          float HIG13011_j2 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(1));
-          if(qgSyst == "QGUp"){
-            HIG13011_j1 = QGsmearing(&j1, HIG13011_j1);
-            HIG13011_j2 = QGsmearing(&j2, HIG13011_j2);
-          }
-          histos->fillHist1D("qgHIG13011_j1", HIG13011_j1);
-          histos->fillHist1D("qgHIG13011_j2", HIG13011_j2);
+
+        if(shapeSyst == "mjjUp") 	mcfmReweighting(jj.M(), -1);
+        if(shapeSyst == "ystarUp")	mcfmReweighting(-1, ystarZ);
+        if(shapeSyst == "mcfmUp") 	mcfmReweighting(jj.M(), ystarZ);
+        if(shapeSyst == "reweightPtZ")	ptReweighting(Z.Pt());
+
+        float HIG13011_j1 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)); 
+        float HIG13011_j2 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(1));
+        if(shapeSyst == "QGUp"){
+          HIG13011_j1 = QGsmearing(&j1, HIG13011_j1);
+          HIG13011_j2 = QGsmearing(&j2, HIG13011_j2);
+        }
+        histos->fillHist1D("qgHIG13011_j1", HIG13011_j1);
+        histos->fillHist1D("qgHIG13011_j2", HIG13011_j2);
  
-          // TMVA tree variables (variables for training tree, for the actually used variables, see TMVA XML file)
-          tmvaVariables["pT_Z"] = 		Z.Pt();
-          tmvaVariables["pT_j1"] = 		j1.Pt();
-          tmvaVariables["pT_j2"] = 		j2.Pt();
-          tmvaVariables["pT_jj"] = 		jj.Pt();
-          tmvaVariables["eta_Z"] = 		Z.Eta();
-          tmvaVariables["abs(eta_Z)"] = 	fabs(Z.Eta());
-          tmvaVariables["dPhi_j1"] = 		fabs(Z.DeltaPhi(j1));
-          tmvaVariables["dPhi_j2"] = 		fabs(Z.DeltaPhi(j2));
-          tmvaVariables["dPhi_jj"] = 		fabs(j1.DeltaPhi(j2)); 
-          tmvaVariables["dEta_jj"] = 		dEta;
-          tmvaVariables["avEta_jj"] = 		fabs((j1.Eta() + j2.Eta())/2); 
-          tmvaVariables["qgLikelihood_j1"] = 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(0));
-          tmvaVariables["qgLikelihood_j2"] = 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(1));
-          tmvaVariables["qgHIG13011_j1"] = 	HIG13011_j1;
-          tmvaVariables["qgHIG13011_j2"] = 	HIG13011_j2;
-          tmvaVariables["M_jj"] = 		jj.M();
-          tmvaVariables["ystarZ"] = 		ystarZ;
-          tmvaVariables["zstarZ"] = 		zstarZ;
-          tmvaVariables["weight"] = 		getWeight();
-          fillTMVAtree();
+        // TMVA tree variables (variables for training tree, for the actually used variables, see TMVA XML file)
+        tmvaVariables["pT_Z"] = 		Z.Pt();
+        tmvaVariables["pT_j1"] = 		j1.Pt();
+        tmvaVariables["pT_j2"] = 		j2.Pt();
+        tmvaVariables["pT_jj"] = 		jj.Pt();
+        tmvaVariables["eta_Z"] = 		Z.Eta();
+        tmvaVariables["abs(eta_Z)"] = 		fabs(Z.Eta());
+        tmvaVariables["dPhi_j1"] = 		fabs(Z.DeltaPhi(j1));
+        tmvaVariables["dPhi_j2"] = 		fabs(Z.DeltaPhi(j2));
+        tmvaVariables["dPhi_jj"] = 		fabs(j1.DeltaPhi(j2));
+        tmvaVariables["dEta_jj"] = 		dEta;
+        tmvaVariables["avEta_jj"] = 		fabs((j1.Eta() + j2.Eta())/2);
+        tmvaVariables["qgLikelihood_j1"] = 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(0));
+        tmvaVariables["qgLikelihood_j2"] = 	jetQGvariables["qgLikelihood"]->at(jetOrder.at(1));
+        tmvaVariables["qgHIG13011_j1"] = 	HIG13011_j1;
+        tmvaVariables["qgHIG13011_j2"] = 	HIG13011_j2;
+        tmvaVariables["M_jj"] = 		jj.M();
+        tmvaVariables["ystarZ"] = 		ystarZ;
+        tmvaVariables["zstarZ"] = 		zstarZ;
+        tmvaVariables["weight"] = 		getWeight();
+        fillTMVAtree();
+
+        for(TString intf : {"","interference"}){
+	  if(intf == "interference" && mySample->getName() != "EWKZ") continue;
+          branch = puMode + subBranch + shapeSyst + intf;
+          histos->setBranch(branch); cutflow->setBranch(branch);
+          if(intf == "interference") interference(jj.M());
 
           double mvaValue = tmvaReader->EvaluateMVA("BDT"); 
 
@@ -314,6 +321,9 @@ void ewkvAnalyzer::analyze_Zjets(){
           }
 
           histos->fillHist1D("dijet_mass", 				jj.M());
+          if(jj.M() > 200) histos->fillHist1D("dijet_mass_200", 	jj.M());
+          if(intf == "interference") interference(jj.M());
+
           histos->fillHist1D("dijet_pt", 				jj.Pt());
           histos->fillHist1D("dijet_dphi", 				fabs(j1.DeltaPhi(j2)));
           histos->fillHist1D("dijet_deta", 				dEta);
@@ -325,6 +335,7 @@ void ewkvAnalyzer::analyze_Zjets(){
           histos->fillHist1D("jet2_Z_dphi", 				fabs(Z.DeltaPhi(j2)));
           histos->fillHist1D("ystar_Z", 				ystarZ);
           histos->fillHist1D("zstar_Z", 				zstarZ);
+          histos->fillHist1D("dilepton_dphi", 				fabs(l1.DeltaPhi(l2)));
 
           // Zeppenfeld variables for the 3rd jet
           if(jetOrder.size() > 2){
@@ -371,15 +382,16 @@ void ewkvAnalyzer::analyze_Zjets(){
           histos->fillProfileHist("softHT3_vs_detajj", 	fabs(j1.Eta() - j2.Eta()), 	stjHT3);
 
           // Central activity with jets
-          int nCentralJets = 0; double centralHT = 0;
+          int nCentralJets = 0; double centralHT = 0; bool CJV = false;
           for(int j=0; j < vJets->GetEntries(); ++j){
             if(j == jetOrder.at(0) || j == jetOrder.at(1)) continue;
             TLorentzVector jet = *((TLorentzVector*) vJets->At(j));
-            if(jet.Pt() < JET3PT) continue;
             if((fabs(jet.Eta()) > etamax) || (fabs(jet.Eta()) < etamin)) continue;
             jet *= (1+JESsign*jetUncertainty[j]);
             jet *= (1+JERsign*(jetSmearedPt[j]-jet.Pt())/jet.Pt());
+            if(jet.Pt() < JET3PT) continue;
             if(nCentralJets == 0){
+	      CJV = true;
 	      histos->fillHist1D("centralJet1_pt", 		jet.Pt());
 	      histos->fillHist2D("centralJet1_pt_vs_BDT", 	jet.Pt(),	mvaValue);
 	      histos->fillHist2D("centralJet1_pt_vs_dEta", 	jet.Pt(),	dEta);
@@ -393,42 +405,42 @@ void ewkvAnalyzer::analyze_Zjets(){
             histos->fillHist2D("centralHT_vs_BDT",	centralHT,	mvaValue);
             histos->fillHist2D("centralHT_vs_dEta",	centralHT,	dEta);
           }
-
-          //Pull vectors
-          for(TString pullType : {"pull","pull2"}){
-	    std::map<TString, TVector2> pullVectors;
-            pullVectors["j1"] 	 = *((TVector2*) vPull[pullType]->At(jetOrder.at(0)));
-            pullVectors["j2"] 	 = *((TVector2*) vPull[pullType]->At(jetOrder.at(1)));
-            pullVectors["dijet"] = (pullVectors["j1"]-pullVectors["j2"])*(j2.Eta()-j1.Eta())/dEta;	//Positive eta in combined pull: point away from eachother
+	  if(Rpthard < 0.15 && CJV) histos->fillHist1D("dijet_mass_CJV",	jj.M());
+	  if(Rpthard < 0.15 && CJV && jj.M() > 200) histos->fillHist1D("dijet_mass_CJV_200",	jj.M());
+/*
+        //Pull vectors
+        for(TString pullType : {"pull","pull2"}){
+	  std::map<TString, TVector2> pullVectors;
+          pullVectors["j1"] 	 = *((TVector2*) vPull[pullType]->At(jetOrder.at(0)));
+          pullVectors["j2"] 	 = *((TVector2*) vPull[pullType]->At(jetOrder.at(1)));
+          pullVectors["dijet"]   = (pullVectors["j1"]-pullVectors["j2"])*(j2.Eta()-j1.Eta())/dEta;	//Positive eta in combined pull: point away from eachother
 													//Negative eta in combined pull: to eachother
-            std::map<TString, int> sign;								//Sign needed to point jets with negative eta to closest beamline
-            sign["j1"] = (j1.Eta() > 0) - (j1.Eta() < 0);
-            sign["j2"] = (j2.Eta() > 0) - (j2.Eta() < 0);
-	    sign["dijet"] = 1;
+          std::map<TString, int> sign;									//Sign needed to point jets with negative eta to closest beamline
+          sign["j1"] = (j1.Eta() > 0) - (j1.Eta() < 0);
+          sign["j2"] = (j2.Eta() > 0) - (j2.Eta() < 0);
+	  sign["dijet"] = 1;
 
-	    for(auto pull = pullVectors.begin(); pull != pullVectors.end(); ++pull){
-	      double pullAngle = fabs(TMath::ATan2(pull->second.Y(), pull->second.X()));
-	      if(sign[pull->first] == -1) pullAngle = TMath::Pi() - pullAngle;
-	      double pullEta = pull->second.X()*sign[pull->first];
-              histos->fillHist1D(pullType + "Angle_" + pull->first, 	pullAngle);
-              histos->fillHist1D(pullType + "Eta_" + pull->first, 	pullEta);
+	  for(auto pull = pullVectors.begin(); pull != pullVectors.end(); ++pull){
+	    double pullAngle = fabs(TMath::ATan2(pull->second.Y(), pull->second.X()));
+	    if(sign[pull->first] == -1) pullAngle = TMath::Pi() - pullAngle;
+	    double pullEta = pull->second.X()*sign[pull->first];
+            histos->fillHist1D(pullType + "Angle_" + pull->first, 	pullAngle);
+            histos->fillHist1D(pullType + "Eta_" + pull->first, 	pullEta);
 
-	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_BDT",	pullEta,	mvaValue);
-	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_dEta",	pullEta,	dEta);
-	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_eta",	pullEta,	fabs(j1.Eta()));
-	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_mjj",	pullEta,	jj.M());
-	      histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_zstarZ",	pullEta,	zstarZ);
-            }
+	    histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_BDT",	pullEta,	mvaValue);
+	    histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_dEta",	pullEta,	dEta);
+	    histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_eta",	pullEta,	fabs(j1.Eta()));
+	    histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_mjj",	pullEta,	jj.M());
+	    histos->fillProfileHist(pullType + "Eta_" + pull->first + "_vs_zstarZ",	pullEta,	zstarZ);
           }
-        }  
-        branch = puMode + subBranch + mcfmSyst;
-        histos->setBranch(branch); cutflow->setBranch(branch);
+        }*/
     
-        // Additional cutflow
-        if(jj.M() < 200) continue;			cutflow->track("$m_{jj} > 200$ GeV");
-        if(fabs(ystarZ)> 1.2) continue;    		cutflow->track("$\\mid y^{*} \\mid < 1.2$");
-        if(jj.M() < 600) continue;    			cutflow->track("$m_{jj} > 600$ GeV");
-        if(fabs(j1.Eta() - j2.Eta()) < 3.5) continue;	cutflow->track("$\\Delta\\eta_{jj} > 3.5$");
+          // Additional cutflow
+          if(jj.M() < 200) continue;			cutflow->track("$m_{jj} > 200$ GeV");
+          if(fabs(ystarZ)> 1.2) continue;    		cutflow->track("$\\mid y^{*} \\mid < 1.2$");
+          if(jj.M() < 600) continue;    			cutflow->track("$m_{jj} > 600$ GeV");
+          if(fabs(j1.Eta() - j2.Eta()) < 3.5) continue;	cutflow->track("$\\Delta\\eta_{jj} > 3.5$");
+        }
       }
       restoreWeight();
     }
@@ -503,6 +515,14 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
   if(mjj < 200 || mjj == -1) mjjWeight = 1.;
   if(ystarZ == -1) ystarZWeight = 1.;
   multiplyWeight(ystarZWeight*mjjWeight);
+}
+
+/*********************
+ * Interference term *
+ ********************/
+void ewkvAnalyzer::interference(double mjj){
+  double weight = 12.7733 + 1773.74/mjj - 151127/(mjj*mjj) + 4.04978e+06/(mjj*mjj*mjj) - 0.00044359*mjj - 88.2666/log(mjj) - 1;
+  multiplyWeight(weight);
 }
 
 /*****************
