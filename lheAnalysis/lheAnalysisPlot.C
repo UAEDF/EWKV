@@ -6,28 +6,43 @@
 #include <TStyle.h>
 #include <TLorentzVector.h>
 #include <TH1D.h>
+#include <TF1.h>
 #include <TCanvas.h>
 #include <TLegend.h>
 #include "../Macros/environment.h"
 
 
-int main(int argc, char* argv[]){
-  TString mjjBin = "";
-  if(argc > 1) mjjBin = "_mjj1000";
+void addHist(TH1D* destination, TH1D* source, double scale){
+  for(int i = 0; i <= source->GetNbinsX() + 1; ++i){
+    int bin = destination->Fill(source->GetBinCenter(i), source->GetBinContent(i)*scale);
+    destination->SetBinError(bin, source->GetBinError(i)*scale);
+  }
+}
 
+
+int main(int argc, char* argv[]){
   std::map<TString, double> events, xsec;
-  events["all"] = (mjjBin == ""? 137439997. : 18872752.);
-  events["qcd"] = (mjjBin == ""? 135989997. : 11738168.);
-  events["ewk"] = (mjjBin == ""? 186532772. : 14989893.);
-  xsec["all"] = (mjjBin == ""? 228.758 : 1.69653);
-  xsec["qcd"] = (mjjBin == ""? 227.218 : 1.56452);
-  xsec["ewk"] = (mjjBin == ""? 0.988631 : 0.10709);
+  events["all"] = 299999990.;	events["all1000"] = 18872752.;
+  events["qcd"] = 299999992.; 	events["qcd1000"] = 11738168.;
+  events["ewk"] = 299999993.; 	events["ewk1000"] = 14989893.;
+  xsec["all"] = 40.8845;	xsec["all1000"] = 1.69653;	xsec["all_cut1000"] = 1.59065;
+  xsec["qcd"] = 40.3595;	xsec["qcd1000"] = 1.56452;	xsec["qcd_cut1000"] = 1.45615;
+  xsec["ewk"] = 0.397162;	xsec["ewk1000"] = 0.10709;	xsec["ewk_cut1000"] = 0.114177;
 
   std::map<TString, TH1D*> hist;
   for(TString sample : {"ewk","qcd","all"}){
-    TFile *f = new TFile(sample + mjjBin + ".root");
-    f->GetObject(sample + (mjjBin == ""? "":"1000"), hist[sample]);
-    hist[sample]->Scale(1./events[sample]*xsec[sample]);
+    hist[sample] = new TH1D(sample, sample, 136, 100, 3500);
+
+    TFile *f = new TFile(sample + "_cuts.root");
+    TH1D *h; f->GetObject(sample, h);
+//    addHist(hist[sample], h, 1./events[sample]*xsec[sample]/xsec[sample + "_cut1000"]*xsec[sample + "1000"]);
+    addHist(hist[sample], h, 1./events[sample]*xsec[sample]);
+    delete f, h;
+
+    f = new TFile(sample + "_mjj1000.root");
+    f->GetObject(sample + "1000", h);
+    addHist(hist[sample], h, 1./events[sample + "1000"]*xsec[sample + "1000"]);
+    delete f, h;
   }
 
   TCanvas *c = new TCanvas("Canvas", "Canvas", 1);
@@ -74,6 +89,17 @@ int main(int argc, char* argv[]){
   hist["diff"]->GetYaxis()->SetLabelSize(.1);
   hist["diff"]->GetYaxis()->SetTitleOffset(.3);
   hist["diff"]->DrawCopy();
+  gStyle->SetFuncWidth(0.3);
+  TF1 *fit = new TF1("fit","[0]+[1]/x+[2]/(x*x)+[3]/(x*x*x)+[4]*x+[5]/log(x)", 100,3500); 
+  hist["diff"]->Fit(fit,"QSMR");
+  fit->DrawCopy("same");
+  std::cout << "(" << fit->GetParameter(0) << " +- " << fit->GetParError(0) << ") + ";
+  std::cout << "(" << fit->GetParameter(1) << " +- " << fit->GetParError(1) << ")/x + ";
+  std::cout << "(" << fit->GetParameter(2) << " +- " << fit->GetParError(2) << ")/(x*x) + ";
+  std::cout << "(" << fit->GetParameter(3) << " +- " << fit->GetParError(3) << ")/(x*x*x) + ";
+  std::cout << "(" << fit->GetParameter(4) << " +- " << fit->GetParError(4) << ")*x + ";;
+  std::cout << "(" << fit->GetParameter(5) << " +- " << fit->GetParError(5) << ")/logx" << std::endl;
+
   pad3->cd();
   pad3->SetGridy();
   hist["diff"] = (TH1D*) hist["all"]->Clone();
@@ -89,6 +115,6 @@ int main(int argc, char* argv[]){
   hist["diff"]->GetYaxis()->SetNdivisions(5);
   hist["diff"]->GetYaxis()->SetTitleOffset(.3);
   hist["diff"]->DrawCopy();
-  c->SaveAs("interference" + mjjBin + ".pdf");
+  c->SaveAs("interference.pdf");
   return 0;
 }

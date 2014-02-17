@@ -13,7 +13,7 @@
 // first argument: ewk, qcd or all
 // second argument: nothing or mjj1000
 int main(int argc, char* argv[]){
-  TString mjjBin = "";
+  TString mjjBin = "_cuts";
   if(argc > 2) mjjBin = "_mjj1000";
   std::map<TString, TH1D*> hist;
   for(TString sample : {(TString) argv[1]}){
@@ -22,9 +22,9 @@ int main(int argc, char* argv[]){
 
     int accepted = 0, accepted1000 = 0, events1000 = 0;
     std::vector<std::pair<int, double>> eventsAndXsec;
-    for(int i = 1; i <= (mjjBin == "_mjj1000"? (sample == "all"? 2000 : 1500) : (sample == "ewk"? 12000 : 7500)); ++i){
+    for(int i = 1; i <= (mjjBin == "_mjj1000"? (sample == "all"? 2000 : 1500) : 3000); ++i){
       std::ifstream lheInput;
-      if(!getStream(lheInput, "/localgrid/tomc/" + sample + "Zjj" + mjjBin + "_gridpack/lhe/" + sample + "Zjj_gridpack_" + TString::Format("%04d", i) + ".lhe", true)) continue;
+      if(!getStream(lheInput, "/localgrid/tomc/" + sample + "Zjj" + mjjBin + "_gridpack/lhe/" + sample + "Zjj" + (mjjBin == "_cuts"?"_cuts":"") + "_gridpack_" + TString::Format("%04d", i) + ".lhe", true)) continue;
       std::stringstream line;
 
       int events = 0; double xsec = 0.;
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]){
               TLorentzVector j = TLorentzVector(p1.Atof(), p2.Atof(), p3.Atof(), p4.Atof());
               jj = TLorentzVector(jj + j);
               if((j.Pt() > 30) && fabs(j.Eta()) < 4.7) ++jets;
-              if(j.Pt() > 50) leadingJet = true;
+              if((j.Pt() > 50) && fabs(j.Eta()) < 4.7) leadingJet = true;
             }
           }
         }
