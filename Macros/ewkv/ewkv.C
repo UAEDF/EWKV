@@ -55,7 +55,7 @@
 // Options
 #define TMVATAG "20140121_InclusiveDY_BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140217_Fast"
+#define OUTPUTTAG "20140219_Fast"
 
 /*****************
  * Main function *
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
-     (*it)->useSkim(type, "20140130_Full");								//Use skimmed files to go faster
+     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
@@ -224,7 +224,7 @@ void ewkvAnalyzer::analyze_Zjets(){
       histos->fillHist1D("jet2_pt", 		j2.Pt());
       histos->fillHist1D("jet2_pt_log", 	j2.Pt());
 
-      double pthard = l1.Pt() + l2.Pt() + j1.Pt() + j2.Pt();
+      double pthard = (Z + j1 + j2).Pt();
       double Rpthard = pthard/(Z.Pt() + j1.Pt() + j2.Pt());
       histos->fillHist1D("hard_pt", 		pthard);
       histos->fillHist1D("hard_pt_log", 	pthard);
@@ -405,8 +405,9 @@ void ewkvAnalyzer::analyze_Zjets(){
             histos->fillHist2D("centralHT_vs_BDT",	centralHT,	mvaValue);
             histos->fillHist2D("centralHT_vs_dEta",	centralHT,	dEta);
           }
-	  if(Rpthard < 0.15 && CJV) histos->fillHist1D("dijet_mass_CJV",	jj.M());
-	  if(Rpthard < 0.15 && CJV && jj.M() > 200) histos->fillHist1D("dijet_mass_CJV_200",	jj.M());
+	  if(Rpthard < 0.15) histos->fillHist1D("dijet_mass_ptHard",				jj.M());
+	  if(Rpthard < 0.15 && jj.M() > 200) histos->fillHist1D("dijet_mass_ptHard_200",	jj.M());
+	  if(Rpthard < 0.15 && jj.M() > 200) histos->fillHist1D("BDT_ptHard_200",		mvaValue);
 /*
         //Pull vectors
         for(TString pullType : {"pull","pull2"}){
