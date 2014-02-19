@@ -53,9 +53,9 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20140121_InclusiveDY_BDT"
+#define TMVATAG "20140121_InclusiveDY_BDT_13var"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140219_Fast"
+#define OUTPUTTAG "20140219_Fast_13var"
 
 /*****************
  * Main function *
