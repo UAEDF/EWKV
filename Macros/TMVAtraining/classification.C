@@ -1,5 +1,5 @@
 // argv[1]: type selection (ZEE,ZMUMU or ALL)
-// argv[2]: step number to choose configuration
+// argv[2]: variation 
 #include <cstdlib>
 #include <iostream> 
 #include <map>
@@ -19,7 +19,7 @@
 #include <TMVA/Config.h>
 #include "../environment.h"
 
-TString tag = "20140122_InclusiveDY";			// Trees used for training
+TString tag = "20140121_InclusiveDY";			// Trees used for training
 TString DYtype = "inclusive";				// Inclusive or composed DY
 TString mva = "BDT";					// Choosen MVA
 //TCut mjjCut = "M_jj>100";				// Mjj cut
@@ -28,12 +28,12 @@ TCut mjjCut = "";
 int main(int argc, char *argv[]){
   for(TString type : typeSelector(argc, argv)){
     std::cout << "TMVA classification for " << (tag + "_" + mva) << " with " << type << std::endl;
-    int step = 5; TString stepString = "";
-    if(argc > 2){ step = atoi(argv[2]); stepString = "_STEP" + TString::Format("%d", step);}
+    TString variation = "";
+    if(argc > 2) variation = TString(argv[2]);
 
     //Initialization
     TString nTrainS = "40000", nTrainB = (type == "ZEE"? "70000" : "110000");
-    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + "_" + mva + stepString + "/";
+    TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + "_" + mva + (variation == ""? "" : ("_" + variation)) + "/";
     makeDirectory(outputDir);
     TFile *outputFile = new TFile(outputDir + "TMVA.root" , "RECREATE" );
     (TMVA::gConfig().GetIONames()).fWeightFileDir = outputDir + "/weights/";
@@ -41,20 +41,18 @@ int main(int argc, char *argv[]){
 
     //Variable configuration
     factory->AddVariable( "pT_Z", 'F' );
-    if(step < 4 || step == 6) factory->AddVariable( "pT_j1", 'F' );
-    if(step < 5) factory->AddVariable( "pT_j2", 'F' );
+    if(variation == "13var") factory->AddVariable( "pT_j1", 'F' );
+    if(variation == "13var") factory->AddVariable( "pT_j2", 'F' );
     factory->AddVariable( "abs(eta_Z)", 'F' );
-    if(step < 2) factory->AddVariable( "dPhi_j1", 'F' );
-    if(step < 2) factory->AddVariable( "dPhi_j2", 'F' );
-    if(step < 3) factory->AddVariable( "dPhi_jj", 'F' );
-    if(step < 1) factory->AddVariable( "dEta_jj", 'F' );
-    if(step != 0) factory->AddVariable( "zstarZ", 'F' );
+    if(variation == "13var") factory->AddVariable( "dPhi_j1", 'F' );
+    if(variation == "13var") factory->AddVariable( "dPhi_j2", 'F' );
+    if(variation == "13var") factory->AddVariable( "dPhi_jj", 'F' );
+    if(variation == "13var") factory->AddVariable( "dEta_jj", 'F' );
+    factory->AddVariable( "zstarZ", 'F' );
     factory->AddVariable( "avEta_jj", 'F' );
     factory->AddVariable( "qgHIG13011_j1", 'F' );
     factory->AddVariable( "qgHIG13011_j2", 'F' );
-//    factory->AddVariable( "qgLikelihood_j1", 'F' );
-//    factory->AddVariable( "qgLikelihood_j2", 'F' );
-    if(step != 7) factory->AddVariable( "M_jj", 'F' );
+    factory->AddVariable( "M_jj", 'F' );
 
     // Init trees
     TString treeDir = getTreeLocation() + "tmva-input/" + type + "/" + tag + "/";
