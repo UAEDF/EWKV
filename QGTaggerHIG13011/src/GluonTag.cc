@@ -128,7 +128,7 @@ void QGTaggerHIG13011::produce(Event& iEvent, const EventSetup& iSetup){
   rhokt6PFJets = *rho;
 
   Handle<VertexCollection> vC;
-  iEvent.getByLabel("offlinePrimaryVertices", vC);
+  iEvent.getByLabel("goodOfflinePrimaryVertices", vC);
 
   //Loop over jets with pt > 20
   Handle<PFJetCollection> pfJets;
