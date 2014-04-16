@@ -53,9 +53,9 @@
 #define JETETA 4.7
 
 // Options
-#define TMVATAG "20140121_InclusiveDY_BDT_13var"
+#define TMVATAG "20140121_InclusiveDY_BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140219_Fast_13var"
+#define OUTPUTTAG "20140414_Fast_7var"
 
 /*****************
  * Main function *
@@ -169,7 +169,6 @@ void ewkvAnalyzer::analyze_Zjets(){
     cutflow->track("$\\mid m_Z-m_{ll} \\mid < 20$ GeV"); 
   
     histos->fillHist1D("dilepton_pt", 		Z.Pt());
-    histos->fillHist1D("dilepton_pt_flat", 	Z.Pt());
     histos->fillHist1D("dilepton_eta", 		Z.Eta());
     histos->fillHist1D("dilepton_rapidity", 	Z.Rapidity());
     histos->fillHist1D("dilepton_phi", 	Z.Phi());
@@ -178,8 +177,8 @@ void ewkvAnalyzer::analyze_Zjets(){
   
     // Set up parallel branches in the histograms/cutflow for JES and JER
     for(TString subBranch : {"", "JESUp", "JESDown", "JERUp", "JERDown"}){
-      TString branch = puMode + subBranch;
       if((mySample->isData() || puMode != "") && subBranch != "") continue;
+      TString branch = puMode + subBranch;
       histos->setBranch(branch); cutflow->setBranch(branch);
 
       int JESsign = 0, JERsign = 0;
@@ -225,11 +224,7 @@ void ewkvAnalyzer::analyze_Zjets(){
       histos->fillHist1D("jet2_pt_log", 	j2.Pt());
 
       double pthard = (Z + j1 + j2).Pt();
-      double Rpthard = pthard/(Z.Pt() + j1.Pt() + j2.Pt());
-      histos->fillHist1D("hard_pt", 		pthard);
-      histos->fillHist1D("hard_pt_log", 	pthard);
-      histos->fillHist1D("R_hard_pt", 		Rpthard);
-
+      double Rpthard = fabs(pthard/(Z.Pt() + j1.Pt() + j2.Pt()));
 
       TLorentzVector jj = TLorentzVector(j1 + j2);
       TLorentzVector all = TLorentzVector(l1 + l2 + j1 + j2);
@@ -237,6 +232,9 @@ void ewkvAnalyzer::analyze_Zjets(){
       double dEta = fabs(j1.Eta() - j2.Eta());
       double ystarZ = fabs(Z.Rapidity() - (j1.Rapidity() + j2.Rapidity())/2);
       double zstarZ = ystarZ/dy;
+      if(jj.M() > 200) histos->fillHist1D("hard_pt", 		pthard);
+      if(jj.M() > 200) histos->fillHist1D("hard_pt_log", 	pthard);
+      if(jj.M() > 200) histos->fillHist1D("R_hard_pt", 		Rpthard);
  
       histos->fillHist1D("dilepton_pt_JS", 	Z.Pt());
       histos->fillHist1D("dilepton_eta_JS", 	Z.Eta());
@@ -265,8 +263,8 @@ void ewkvAnalyzer::analyze_Zjets(){
 
       // Add systematic branches for shape systematics
       saveWeight();
-      for(TString shapeSyst : {"", "mjjUp", "ystarUp", "mcfmUp","reweightPtZ","QGUp"}){
-        if((mySample->isData() || puMode != "") && shapeSyst != "") continue;
+      for(TString shapeSyst : {"", "mjjUp", "ystarUp","mcfmUp","ptZUp","QGUp"}){
+        if((mySample->isData() || (puMode+subBranch) != "") && shapeSyst != "") continue;
         branch = puMode + subBranch + shapeSyst;
         histos->setBranch(branch); cutflow->setBranch(branch);
         restoreWeight();										// Go back to normal event weight before next reweighting
@@ -274,7 +272,8 @@ void ewkvAnalyzer::analyze_Zjets(){
         if(shapeSyst == "mjjUp") 	mcfmReweighting(jj.M(), -1);
         if(shapeSyst == "ystarUp")	mcfmReweighting(-1, ystarZ);
         if(shapeSyst == "mcfmUp") 	mcfmReweighting(jj.M(), ystarZ);
-        if(shapeSyst == "reweightPtZ")	ptReweighting(Z.Pt());
+//        if(shapeSyst != "mcfmUp" && shapeSyst != "mjjUp" && shapeSyst != "ystarUp") 	mcfmReweighting(jj.M(), ystarZ);
+        if(shapeSyst == "ptZUp")	ptReweighting(Z.Pt());
 
         float HIG13011_j1 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(0)); 
         float HIG13011_j2 = jetQGvariables["qgHIG13011"]->at(jetOrder.at(1));
@@ -304,14 +303,16 @@ void ewkvAnalyzer::analyze_Zjets(){
         tmvaVariables["M_jj"] = 		jj.M();
         tmvaVariables["ystarZ"] = 		ystarZ;
         tmvaVariables["zstarZ"] = 		zstarZ;
+        tmvaVariables["Rpthard"] = 		Rpthard;
         tmvaVariables["weight"] = 		getWeight();
         fillTMVAtree();
 
-        for(TString intf : {"","interference"}){
-	  if(intf == "interference" && mySample->getName() != "EWKZ") continue;
+        for(TString intf : {"","interference","interferenceSherpa"}){
+	  if(intf != "" && mySample->getName() != "EWKZ") continue;
           branch = puMode + subBranch + shapeSyst + intf;
           histos->setBranch(branch); cutflow->setBranch(branch);
           if(intf == "interference") interference(jj.M());
+          if(intf == "interferenceSherpa") interference(jj.M(), true);
 
           double mvaValue = tmvaReader->EvaluateMVA("BDT"); 
 
@@ -322,11 +323,14 @@ void ewkvAnalyzer::analyze_Zjets(){
 
           histos->fillHist1D("dijet_mass", 				jj.M());
           if(jj.M() > 200) histos->fillHist1D("dijet_mass_200", 	jj.M());
-          if(intf == "interference") interference(jj.M());
 
           histos->fillHist1D("dijet_pt", 				jj.Pt());
           histos->fillHist1D("dijet_dphi", 				fabs(j1.DeltaPhi(j2)));
+          if(Rpthard < 0.14) histos->fillHist1D("dijet_dphi_s", 	fabs(j1.DeltaPhi(j2)));
+          else histos->fillHist1D("dijet_dphi_c", 			fabs(j1.DeltaPhi(j2)));
           histos->fillHist1D("dijet_deta", 				dEta);
+          if(Rpthard < 0.14) histos->fillHist1D("dijet_deta_s",		dEta);
+          else histos->fillHist1D("dijet_deta_c", 			dEta);
           if(jj.M() > 1250) histos->fillHist1D("dijet_deta_1250",	dEta);
           histos->fillHist1D("dijet_av_eta", 				(j1.Eta() + j2.Eta())/2);
           histos->fillHist1D("dijet_etaeta", 				j1.Eta()*j2.Eta());
@@ -335,6 +339,8 @@ void ewkvAnalyzer::analyze_Zjets(){
           histos->fillHist1D("jet2_Z_dphi", 				fabs(Z.DeltaPhi(j2)));
           histos->fillHist1D("ystar_Z", 				ystarZ);
           histos->fillHist1D("zstar_Z", 				zstarZ);
+          if(Rpthard < 0.14) histos->fillHist1D("zstar_Z_s", 		zstarZ);
+          else histos->fillHist1D("zstar_Z_c",		 		zstarZ);
           histos->fillHist1D("dilepton_dphi", 				fabs(l1.DeltaPhi(l2)));
 
           // Zeppenfeld variables for the 3rd jet
@@ -347,7 +353,9 @@ void ewkvAnalyzer::analyze_Zjets(){
               double zstar3 = ystar3/dy;
               histos->fillHist1D("ystar_3", ystar3);
               histos->fillHist1D("zstar_3", zstar3);
-              if(jj.M() > 100){
+              if(Rpthard < 0.12) histos->fillHist1D("zstar_3_s", zstar3);
+              else histos->fillHist1D("zstar_3_c", zstar3);
+              if(jj.M() > 200){
 	        if(ystar3 < 1.) 		histos->fillHist1D("BDT_ystar3_1",   	mvaValue);
 	        if(ystar3 < 2. && ystar3 > 1.) 	histos->fillHist1D("BDT_ystar3_2",   	mvaValue);
 	        if(ystar3 < 3. && ystar3 > 2.) 	histos->fillHist1D("BDT_ystar3_3",   	mvaValue);
@@ -405,9 +413,15 @@ void ewkvAnalyzer::analyze_Zjets(){
             histos->fillHist2D("centralHT_vs_BDT",	centralHT,	mvaValue);
             histos->fillHist2D("centralHT_vs_dEta",	centralHT,	dEta);
           }
-	  if(Rpthard < 0.15) histos->fillHist1D("dijet_mass_ptHard",				jj.M());
-	  if(Rpthard < 0.15 && jj.M() > 200) histos->fillHist1D("dijet_mass_ptHard_200",	jj.M());
-	  if(Rpthard < 0.15 && jj.M() > 200) histos->fillHist1D("BDT_ptHard_200",		mvaValue);
+	  if(Rpthard < 0.14) histos->fillHist1D("dijet_mass_ptHard",							jj.M());
+	  if(Rpthard < 0.14 && jj.M() > 200) histos->fillHist1D("dijet_mass_ptHard_200",				jj.M());
+	  else if(jj.M() > 200) histos->fillHist1D("dijet_mass_noptHard_200",						jj.M());
+	  if(Rpthard < 0.14 && jj.M() > 200) histos->fillHist1D("BDT_ptHard_200",					mvaValue);
+	  else if(jj.M() > 200) histos->fillHist1D("BDT_noptHard_200",							mvaValue);
+	  if(Rpthard < 0.14 && fabs(ystarZ) < 1.2 && jj.M() > 200) histos->fillHist1D("BDT_ptHard_ystar_200",		mvaValue);
+	  else if(jj.M() > 200) histos->fillHist1D("BDT_control_200",							mvaValue);
+	  if(Rpthard < 0.14 && fabs(ystarZ) < 1.2 && jj.M() > 200) histos->fillHist1D("dijet_mass_ptHard_ystar_200",	jj.M());
+	  else if(jj.M() > 200) histos->fillHist1D("dijet_mass_control_200",						jj.M());
 /*
         //Pull vectors
         for(TString pullType : {"pull","pull2"}){
@@ -438,8 +452,9 @@ void ewkvAnalyzer::analyze_Zjets(){
     
           // Additional cutflow
           if(jj.M() < 200) continue;			cutflow->track("$m_{jj} > 200$ GeV");
+          if(Rpthard > 0.14) continue;			cutflow->track("$R(p_T^{\\mbox{hard}}) < 0.14$");
           if(fabs(ystarZ)> 1.2) continue;    		cutflow->track("$\\mid y^{*} \\mid < 1.2$");
-          if(jj.M() < 600) continue;    			cutflow->track("$m_{jj} > 600$ GeV");
+          if(jj.M() < 600) continue;    		cutflow->track("$m_{jj} > 600$ GeV");
           if(fabs(j1.Eta() - j2.Eta()) < 3.5) continue;	cutflow->track("$\\Delta\\eta_{jj} > 3.5$");
         }
       }
@@ -456,6 +471,7 @@ void ewkvAnalyzer::initTMVAreader(){
   tmvaReader = new TMVA::Reader("Silent");
 
   TString weightsFile = getTreeLocation() + "tmvaWeights/" + type + "/" + TMVATAG + "/weights/TMVAClassification_BDT.weights.xml";
+//  TString weightsFile = getTreeLocation() + "tmvaWeights/both/" + TMVATAG + "/weights/TMVAClassification_BDT.weights.xml";
   ifstream xmlFile;
   getStream(xmlFile, weightsFile);
   std::string line;
@@ -511,8 +527,9 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
 void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
   std::vector<TString> needReweighting = {"DY","DY2","DY3","DY4"};							// Only selected samples need reweighting
   if(std::find(needReweighting.begin(), needReweighting.end(), mySample->getName()) == needReweighting.end()) return;
-  double ystarZWeight = 0.85+0.15*fabs(ystarZ);										// MCFM NLO/LO NEW
-  double mjjWeight = 0.39+0.12*log(mjj)-0.00025*mjj;									// MCFM NLO/LO NEW
+//double ystarZWeight = 0.85+0.15*fabs(ystarZ);										// MCFM NLO/LO OLD
+  double ystarZWeight = 9.12791e-01+6.84591e-02*fabs(ystarZ)+1.31912e-03*ystarZ*ystarZ*ystarZ*ystarZ;			// MCFM NLO/LO NEW
+  double mjjWeight = 0.39+0.12*log(mjj)-0.00025*mjj;
   if(mjj < 200 || mjj == -1) mjjWeight = 1.;
   if(ystarZ == -1) ystarZWeight = 1.;
   multiplyWeight(ystarZWeight*mjjWeight);
@@ -521,8 +538,10 @@ void ewkvAnalyzer::mcfmReweighting(double mjj, double ystarZ){
 /*********************
  * Interference term *
  ********************/
-void ewkvAnalyzer::interference(double mjj){
-  double weight = 12.7733 + 1773.74/mjj - 151127/(mjj*mjj) + 4.04978e+06/(mjj*mjj*mjj) - 0.00044359*mjj - 88.2666/log(mjj) - 1;
+void ewkvAnalyzer::interference(double mjj, bool useSherpa){
+  double weight;
+  if(useSherpa) weight = -4.66947 + 7.72025e-01*log(mjj) + 3.73449e+02/(mjj*mjj) - 1;
+  else weight = 12.7733 + 1773.74/mjj - 151127/(mjj*mjj) + 4.04978e+06/(mjj*mjj*mjj) - 0.00044359*mjj - 88.2666/log(mjj) - 1;
   multiplyWeight(weight);
 }
 
@@ -632,15 +651,15 @@ float ewkvAnalyzer::QGsmearing(TLorentzVector *j, float input){
 
   float a, b;
   if(fabs(j->Eta()) < 2.5){
-    a = (quark? 1.020 : 1.030);
-    b = (quark? -0.100 : 0.204);
+    a = (quark? 1.005 : 1.0075);
+    b = (quark? -0.025 : 0.051);
   } else {
     if(j->Pt() < 40){
-      a = (quark? 1.000 : 1.030);
-      b = (quark? -0.000 : 0.200);
+      a = (quark? 1.000 : 1.015);
+      b = (quark? -0.000 : 0.100);
     } else {
-      a = (quark? 0.990 : 0.980);
-      b = (quark? -0.200 : 0.010);
+      a = (quark? 0.995 : 0.990);
+      b = (quark? -0.100 : 0.005);
     }
   } 
   float output = TMath::TanH(a*TMath::ATanH(2.*input-1)+b)/2+.5;

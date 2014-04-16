@@ -76,6 +76,7 @@ std::vector<TString> typeSelector(int argc, char *argv[]){
   if(argc > 1){
     if(((TString) argv[1]) == "ZEE") types = {"ZEE"};
     else if(((TString) argv[1]) == "ZMUMU") types = {"ZMUMU"};
+    else if(((TString) argv[1]) == "both") types = {"both"}; //for plot macro
     else if(((TString) argv[1]) != "ALL"){ std::cout << "environment.h:\t\t\tType not known" << std::endl; exit(1);}
   } else std::cout << "environment.h:\t\t\tAutomatic type selector (ALL)" << std::endl;
   return types;
@@ -88,6 +89,7 @@ TH1D* addErrorToHist(TH1D *h, double sigma){
 }
 
 TH1D* getPlot(TFile *file, TString sample, TString plot, bool ignoreNonExist = false, double addError = 0.){
+  if(sample == "interference"){ sample = "EWKZ"; plot += "interference";}	//makes it possible to use interference in a similar way as the mc's
   if(TH1D *hist = (TH1D*) file->Get(sample + "/" + plot)) if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
   if(TH1D *hist = (TH1D*) file->Get(plot + "_" + sample)) if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
   if(!ignoreNonExist){

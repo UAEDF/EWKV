@@ -33,6 +33,7 @@ int main(int argc, char *argv[]){
 
     //Initialization
     TString nTrainS = "40000", nTrainB = (type == "ZEE"? "70000" : "110000");
+    if(type == "both") nTrainS = "80000", nTrainB = "180000";
     TString outputDir = getTreeLocation() + "tmvaWeights/" + type + "/" + tag + "_" + mva + (variation == ""? "" : ("_" + variation)) + "/";
     makeDirectory(outputDir);
     TFile *outputFile = new TFile(outputDir + "TMVA.root" , "RECREATE" );
@@ -41,6 +42,7 @@ int main(int argc, char *argv[]){
 
     //Variable configuration
     factory->AddVariable( "pT_Z", 'F' );
+//    factory->AddVariable( "Rpthard", 'F' );
     if(variation == "13var") factory->AddVariable( "pT_j1", 'F' );
     if(variation == "13var") factory->AddVariable( "pT_j2", 'F' );
     factory->AddVariable( "abs(eta_Z)", 'F' );

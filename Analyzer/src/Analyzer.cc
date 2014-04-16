@@ -221,7 +221,7 @@ void Analyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   for(TString product : {"qg","axis2","mult","ptD"}) 			jetQGvariables[product + "Likelihood"].clear();
   for(TString product : {"qg","axis1","axis2","mult","R","pull"}) 	jetQGvariables[product + "HIG13011"].clear();
 
-  for(reco::PFJetCollection::const_iterator jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet){
+  for(auto jet = pfJets->begin();  jet != pfJets->end() && nJets < maxJet; ++jet){
     if(!jetId(&(*jet))) continue;
     edm::RefToBase<reco::Jet> jetRef(edm::Ref<reco::PFJetCollection>(pfJets, jet - pfJets->begin()));
     if(!(puJetIdFlag.isValid() && PileupJetIdentifier::passJetId((*puJetIdFlag)[jetRef] , PileupJetIdentifier::kLoose))) continue;

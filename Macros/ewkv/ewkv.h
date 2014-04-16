@@ -45,7 +45,7 @@ class ewkvAnalyzer{
     void initTMVAreader();
     void checkRadiationPattern(double zRapidity);
     void mcfmReweighting(double mjj, double ystar);
-    void interference(double mjj);
+    void interference(double mjj, bool useSherpa = false);
     void etaReweighting(double rapidity);
     void readEtaWeights();
     void ptReweighting(double rapidity);

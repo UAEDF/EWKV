@@ -8,7 +8,7 @@ void drawText(TString type){
   tex->SetLineWidth(2);
   tex->Draw();
 
-  TLatex *tex2 = new TLatex(0.995,0.955,(type == "ZMUMU"?TString("#mu#mu"):TString("ee")) + TString(" events"));
+  TLatex *tex2 = new TLatex(0.995,0.955,(type == "both"? TString("$ll$"):(type == "ZMUMU"?TString("#mu#mu"):TString("ee"))) + TString(" events"));
   tex2->SetNDC();
   tex2->SetTextFont(43);
   tex2->SetTextSize(20);

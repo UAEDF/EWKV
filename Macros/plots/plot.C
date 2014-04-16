@@ -18,8 +18,8 @@
 #include "color.h"
 
 bool retrieveMeanAndRMS;
-bool putEvents = true;
-bool bottomLegend = true;
+bool putEvents = false;
+bool bottomLegend = false;
 std::ofstream writeFile;
 
 
@@ -188,7 +188,6 @@ void plotHistos::next(TString type){
   frameRatio->GetXaxis()->SetTitleOffset(1.);
 
   if(plotSignificance) frameRatio->GetYaxis()->SetTitle("S");
-//  if(plotSignificance) frameRatio->GetYaxis()->SetTitle("purity");
   else frameRatio->GetYaxis()->SetTitle("Data/MC");
   frameRatio->GetYaxis()->SetNdivisions(10);
   frameRatio->GetYaxis()->SetTitleSize(.12);
@@ -241,8 +240,6 @@ void plotHistos::next(TString type){
       }
       newLegendItem = true;
     }
-    hists["JES+"] = safeAdd(hists["JES+"], getPlot(file, *mc, name + "JES+", true));			// Old files ( < 21/10/2013)
-    hists["JES-"] = safeAdd(hists["JES-"], getPlot(file, *mc, name + "JES-", true));			// Old files ( < 21/10/2013)
     hists["JES+"] = safeAdd(hists["JES+"], getPlot(file, *mc, name + "JESUp", true));			// New files 
     hists["JES-"] = safeAdd(hists["JES-"], getPlot(file, *mc, name + "JESDown", true));			// New files
     if(name.Contains("mcfmUp")){
@@ -253,7 +250,6 @@ void plotHistos::next(TString type){
   }
   hists["data"] = getPlot(file, "data", nameData);
   hists["signal only"] = getPlot(file, "EWKZ", name);
-  
 
   //Draw the histograms
   padUP->cd();
@@ -274,13 +270,15 @@ void plotHistos::next(TString type){
       }
     }
   }
-  addLegEntry(leg, hists[mcs.front()], type, "Total MC", "");
+  if(putEvents) addLegEntry(leg, hists[mcs.front()], type, "Total MC", "");
 /*
   //In case of line for the signal only
   hists["signal only"]->SetLineWidth(2.);
   hists["signal only"]->SetLineColor(kBlack);
-  hists["signal only"]->Draw("same");
+  hists["signal only"]->Draw("same HIST");
   leg->AddEntry(hists["signal only"], " signal only ", "L");
+  if(putEvents) leg->AddEntry("", "", "");
+  if(bottomLegend) for(int i = 0; i < 2; ++i) leg->AddEntry("", "", "");
 */
 
   hists["data"]->SetMarkerStyle(20);

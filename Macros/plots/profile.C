@@ -82,7 +82,7 @@ void plotProfile::configureStack(){
 void plotProfile::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile; 
-  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config"); 
+  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/histos/profilePAS.config"); 
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
@@ -285,7 +285,7 @@ void plotProfile::ratioStyle(){
   }
 
   double k = -0.15;
-  for(TString i : {"DYZMUMU","dataZMUMU","dataZEE","DYZEE"}){ th1Hists[i] = displaceBins(profileHists[i], k); k += 0.1;}
+  for(TString i : {"dataZEE","DYZEE","dataZMUMU","DYZMUMU"}){ th1Hists[i] = displaceBins(profileHists[i], k); k += 0.1;}
   for(TString i : {"DYZMUMU","dataZMUMU","dataZEE","DYZEE"}){ th1Hists[i]->SetMarkerSize(.8);}
   for(TString i : {"dataZMUMU","dataZEE"}){ th1Hists[i]->SetLineColor(1); th1Hists[i]->SetMarkerColor(1);}
   for(TString i : {"DYZMUMU","DYZEE"}){ th1Hists[i]->SetLineColor(2); th1Hists[i]->SetMarkerColor(2);}
