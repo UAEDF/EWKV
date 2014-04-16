@@ -32,16 +32,15 @@ int main(int argc, char* argv[]){
   std::map<TString, TH1D*> hist;
   for(TString sample : {"ewk","qcd","all"}){
     hist[sample] = new TH1D(sample, sample, 136, 100, 3500);
+//    hist[sample] = new TH1D(sample+"y*", sample+"y*", 25, 0, 5);
 
     TFile *f = new TFile(sample + "_cuts.root");
     TH1D *h; f->GetObject(sample, h);
-//    addHist(hist[sample], h, 1./events[sample]*xsec[sample]/xsec[sample + "_cut1000"]*xsec[sample + "1000"]);
     addHist(hist[sample], h, 1./events[sample]*xsec[sample]);
-    delete f, h;
+   delete h;
 
-    f = new TFile(sample + "_mjj1000.root");
     f->GetObject(sample + "1000", h);
-    addHist(hist[sample], h, 1./events[sample + "1000"]*xsec[sample + "1000"]);
+    addHist(hist[sample], h, 1./events[sample]*xsec[sample]);
     delete f, h;
   }
 
@@ -50,11 +49,11 @@ int main(int argc, char* argv[]){
   TPad *pad2 = new TPad("pad2","2", 0, 0.2, 1., 0.4, 0); pad2->Draw(); pad2->SetLeftMargin(0.1);
   TPad *pad3 = new TPad("pad3","3", 0, 0.0, 1., 0.2, 0); pad3->Draw(); pad3->SetLeftMargin(0.1);
   pad1->cd();
-  pad1->SetLogy();
+//  pad1->SetLogy();
   hist["all"]->SetLineColor(kViolet);
   hist["all"]->SetStats(0);
   hist["all"]->SetTitle("Interference between QCD and EWK Zjj");
-  hist["all"]->GetXaxis()->SetTitle("M_{jj}");
+  hist["all"]->GetXaxis()->SetTitle("y*");
   hist["all"]->GetYaxis()->SetTitle("normalized events");
   hist["all"]->GetYaxis()->SetTitleOffset(1.5);
   hist["all"]->SetMinimum(hist["ewk"]->GetMinimum());
@@ -69,7 +68,7 @@ int main(int argc, char* argv[]){
   hist["sum"]->DrawCopy("same");
   hist["all"]->SetLineColor(kViolet);
   hist["all"]->DrawCopy("same");
-  TLegend *l = new TLegend(0.65, 0.65, 0.9, 0.9);
+  TLegend *l = new TLegend(0.70, 0.70, 0.9, 0.9);
   l->SetFillColor(kWhite);
   for(auto entry = hist.begin(); entry != hist.end(); ++entry) l->AddEntry(entry->second, entry->first, "l");
   l->Draw();
@@ -88,17 +87,17 @@ int main(int argc, char* argv[]){
   hist["diff"]->GetYaxis()->SetNdivisions(5);
   hist["diff"]->GetYaxis()->SetLabelSize(.1);
   hist["diff"]->GetYaxis()->SetTitleOffset(.3);
+  hist["diff"]->SetMaximum(1.8);
+  hist["diff"]->SetMinimum(0.5);
   hist["diff"]->DrawCopy();
   gStyle->SetFuncWidth(0.3);
-  TF1 *fit = new TF1("fit","[0]+[1]/x+[2]/(x*x)+[3]/(x*x*x)+[4]*x+[5]/log(x)", 100,3500); 
+  TF1 *fit = new TF1("fit","[0]+[1]*x+[2]*(x*x)+[3]*(x*x*x)", 0, 5);
   hist["diff"]->Fit(fit,"QSMR");
   fit->DrawCopy("same");
   std::cout << "(" << fit->GetParameter(0) << " +- " << fit->GetParError(0) << ") + ";
-  std::cout << "(" << fit->GetParameter(1) << " +- " << fit->GetParError(1) << ")/x + ";
-  std::cout << "(" << fit->GetParameter(2) << " +- " << fit->GetParError(2) << ")/(x*x) + ";
-  std::cout << "(" << fit->GetParameter(3) << " +- " << fit->GetParError(3) << ")/(x*x*x) + ";
-  std::cout << "(" << fit->GetParameter(4) << " +- " << fit->GetParError(4) << ")*x + ";;
-  std::cout << "(" << fit->GetParameter(5) << " +- " << fit->GetParError(5) << ")/logx" << std::endl;
+  std::cout << "(" << fit->GetParameter(1) << " +- " << fit->GetParError(1) << ")*x + ";
+  std::cout << "(" << fit->GetParameter(2) << " +- " << fit->GetParError(2) << ")*(x*x) + ";
+  std::cout << "(" << fit->GetParameter(3) << " +- " << fit->GetParError(3) << ")*(x*x*x)" << std::endl;
 
   pad3->cd();
   pad3->SetGridy();
@@ -114,6 +113,7 @@ int main(int argc, char* argv[]){
   hist["diff"]->GetYaxis()->SetLabelSize(.1);
   hist["diff"]->GetYaxis()->SetNdivisions(5);
   hist["diff"]->GetYaxis()->SetTitleOffset(.3);
+  hist["diff"]->SetMinimum(0.75);
   hist["diff"]->DrawCopy();
   c->SaveAs("interference.pdf");
   return 0;
