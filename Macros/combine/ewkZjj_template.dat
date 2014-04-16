@@ -7,15 +7,46 @@ shapes * *  ewkZjj_8TeV.root $DIRECTORY/$PROCESS $DIRECTORY/$PROCESS_$SYSTEMATIC
 bin a
 observation $data
 ------------
-bin          	 	a		a		a		a		a		a		a		a		a		a
-process        	 	ewkZjj		DY		TTJets		T-s		T-t		T-W		WW		WZ		ZZ		WJets
-process       	  	0     		1		2		3		4		5		6		7		8		9
-rate			$ewkZjj         $DY             $TTJets         $T-s            $T-t            $T-W            $WW             $WZ             $ZZ             $WJets                 
+bin          	 		a		a		a		a	
+process        	 		EWKZ		DY		Top		VV
+process       	  		0     		1		2		3
+rate				$EWKZ           $DY             $Top            $VV                
 ------------
-lumi    lnN    		1.026  	 	1.026		1.026		1.026		1.026		1.026		1.026		1.026		1.026		1.026
-eff	lnN		1.030		1.030		1.030		1.030		1.030		1.030		1.030		1.030		1.030		1.030
-JES	shapeN2		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000
-JER	shapeN2		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000
-PU	shapeN2		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000
-QG	shapeN2		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000
-mcfm	shapeN2		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000		1.000
+lumi    	lnN    		1.026  	 	1.026		1.026		1.026			Lumi for 8TeV
+eff		lnN		1.030		1.030		1.030		1.030			Efficiencies
+SigAcc  	lnN             1.060		-		-		-			signal acceptance
+DY_norm		lnN		-		1.1		-		-			DY normalization
+Top_norm	lnN		-		-		1.07		-			Top normalization
+VV_norm		lnN		-		-		-		1.1			VV normalization
+JES_norm	lnN		$JESEWKZ        $JESDY          $JESTop         $JESVV                  Jet Energy Scale normalization
+JES		shape		1.000		1.000		1.000		1.000			Jet Energy Scale shape
+JER		shape		1.000		1.000		1.000		1.000			Jet Energy Resolution shape
+PU		shape		1.000		1.000		1.000		1.000			Pile-up shape
+QG		shape		1.000		1.000		1.000		1.000			Quark-gluon shape
+b1		shape		-		1.000		-		-			Statiscal uncertainties per DY bin
+b2		shape		-		1.000		-		-
+b3		shape		-		1.000		-		-
+b4		shape		-		1.000		-		-
+b5		shape		-		1.000		-		-
+b6		shape		-		1.000		-		-
+b7		shape		-		1.000		-		-
+b8		shape		-		1.000		-		-
+b9		shape		-		1.000		-		-
+b10		shape		-		1.000		-		-
+b11		shape		-		1.000		-		-
+b12		shape		-		1.000		-		-
+b13		shape		-		1.000		-		-
+b14		shape		-		1.000		-		-
+b15		shape		-		1.000		-		-
+b16		shape		-		1.000		-		-
+b17		shape		-		1.000		-		-
+b18		shape		-		1.000		-		-
+b19		shape		-		1.000		-		-
+b20		shape		-		1.000		-		-
+b21		shape		-		1.000		-		-
+b23		shape		-		1.000		-		-
+b24		shape		-		1.000		-		-
+b25		shape		-		1.000		-		-
+b26		shape		-		1.000		-		-
+b27		shape		-		1.000		-		-
+b28		shape		-		1.000		-		-
