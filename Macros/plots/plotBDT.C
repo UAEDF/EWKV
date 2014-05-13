@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
 
 bool plotHistos::configureStack(){
   std::ifstream readFile;
-  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/plots/stack.config");
+  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/plots/stackBDT.config");
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
@@ -186,7 +186,7 @@ void plotHistos::next(TString type){
 
   frameRatio->GetXaxis()->SetTitle(xtitle);
   frameRatio->GetXaxis()->SetTitleSize(.12);
-  frameRatio->GetXaxis()->SetTitleOffset(1);
+  frameRatio->GetXaxis()->SetTitleOffset(1.);
 
   if(plotSignificance) frameRatio->GetYaxis()->SetTitle("(Data-BG)/#sqrt{BG}");
   else frameRatio->GetYaxis()->SetTitle("Data/MC");
@@ -273,7 +273,7 @@ void plotHistos::next(TString type){
     }
   }
   if(putEvents) addLegEntry(leg, hists[mcs.front()], type, "Total MC", "");
-/*
+
   //In case of line for the signal only
   hists["signal only"]->SetLineWidth(2.);
   hists["signal only"]->SetLineColor(kBlack);
@@ -281,7 +281,7 @@ void plotHistos::next(TString type){
   leg->AddEntry(hists["signal only"], " EW Zjj only ", "L");
   if(putEvents) leg->AddEntry("", "", "");
   if(bottomLegend) for(int i = 0; i < 2; ++i) leg->AddEntry("", "", "");
-*/
+
 
   hists["data"]->SetMarkerStyle(20);
   hists["data"]->SetLineWidth(3.);
