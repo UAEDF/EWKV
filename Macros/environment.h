@@ -88,10 +88,18 @@ TH1D* addErrorToHist(TH1D *h, double sigma){
   return h;
 }
 
-TH1D* getPlot(TFile *file, TString sample, TString plot, bool ignoreNonExist = false, double addError = 0.){
-  if(sample == "interference"){ sample = "EWKZ"; plot += "interference";}	//makes it possible to use interference in a similar way as the mc's
-  if(TH1D *hist = (TH1D*) file->Get(sample + "/" + plot)) if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
-  if(TH1D *hist = (TH1D*) file->Get(plot + "_" + sample)) if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
+TH1D* getPlot(TFile *file, TString sample_, TString plot, bool ignoreNonExist = false, double addError = 0.){
+  TString sample = sample_;
+  if(sample_ == "interference"){ sample = "EWKZ"; plot += "interference";}	//makes it possible to use interference in a similar way as the mc's
+  if(sample_ == "DY"){
+    if(TH1D *hist = (TH1D*) file->Get(sample + "/" + plot)){
+      if(plot.Contains("BDT")) hist->Scale(1-0.039);
+      if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
+    }
+  } else {
+    if(TH1D *hist = (TH1D*) file->Get(sample + "/" + plot)) if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
+    if(TH1D *hist = (TH1D*) file->Get(plot + "_" + sample)) if(hist->GetEntries() != 0) return addErrorToHist((TH1D*) hist->Clone(), addError);
+  }
   if(!ignoreNonExist){
     std::cout << ("environment.h:\t\t!!!\t" + sample + "/" + plot + " not found!") << std::endl;
     exit(1);

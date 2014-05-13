@@ -57,7 +57,7 @@ class ewkvAnalyzer{
 
     void setWeight(double weight_){  		eventWeight = weight_; histos->setWeight(weight_); cutflow->setWeight(weight_);};
     void saveWeight(){				savedWeight = eventWeight;};
-    void saveWeight2(){				savedWeight = eventWeight;};
+    void saveWeight2(){				savedWeight2 = eventWeight;};
     void restoreWeight(){			setWeight(savedWeight);};
     void restoreWeight2(){			setWeight(savedWeight2);};
     void multiplyWeight(double weight_){	setWeight(eventWeight*weight_);};

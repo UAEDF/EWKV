@@ -168,7 +168,7 @@ void histoCollection::bookProfileHist(TString hName, int Xbins, double Xmin, dou
 
 TProfile* histoCollection::makeBranchProfile(TProfile* h){
   outputFile->cd();
-  profileList[h->GetName()+branch] = new TProfile(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXbins()->GetArray());
+  profileList[h->GetName()+branch] = new TProfile(h->GetName() + TString("_") + branch, h->GetTitle(), h->GetNbinsX(), h->GetXaxis()->GetXmin(), h->GetXaxis()->GetXmax());
   if(isLogX(h)) binLogX(profileList[h->GetName()+branch]);
 }
 

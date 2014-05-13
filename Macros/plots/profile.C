@@ -82,7 +82,7 @@ void plotProfile::configureStack(){
 void plotProfile::loop(TString type){
   //Get histogram info from file and loop
   std::ifstream readFile; 
-  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/histos/profilePAS.config"); 
+  getStream(readFile, getCMSSWBASE() + "src/EWKV/Macros/histos/profile.config"); 
   while(!readFile.eof()){
     TString useLine;
     readFile >> useLine;
@@ -234,7 +234,7 @@ void plotProfile::ratioStyle(){
   TPad *padUP = new TPad("padUP","up",   0.02, horizontalSplit, 1, 1,   0);
   TPad *padDN = new TPad("padDN","down", 0.02, 0.02, 1, horizontalSplit, 0);
   padUP->Draw(); padDN->Draw();
-  padDN->SetGridy();
+//  padDN->SetGridy();
   padUP->SetLeftMargin(.12);   padDN->SetLeftMargin(.12);
   padUP->SetRightMargin(.005); padDN->SetRightMargin(.005);
   padUP->SetTopMargin(0.07);   padDN->SetTopMargin(0.);
@@ -247,10 +247,10 @@ void plotProfile::ratioStyle(){
   frame->GetXaxis()->SetMoreLogLabels(kTRUE);
   frame->GetXaxis()->SetNoExponent(kTRUE);
 
-  frame->GetXaxis()->SetTitle(xtitle);
+  frame->GetXaxis()->SetTitle("#bf{"+xtitle+"}");
 
   frame->GetXaxis()->SetLabelSize(.06);
-  frame->GetYaxis()->SetTitle(ytitle);
+  frame->GetYaxis()->SetTitle("#bf{"+ytitle+"}");
   frame->GetYaxis()->SetTitleSize(.06);
   frame->GetYaxis()->SetLabelSize(.05);
   frame->GetYaxis()->SetTitleOffset(.9);
@@ -262,12 +262,12 @@ void plotProfile::ratioStyle(){
   frameRatio->GetXaxis()->SetMoreLogLabels(kTRUE);
   frameRatio->GetXaxis()->SetNoExponent(kTRUE);
 
-  frameRatio->GetXaxis()->SetTitle(xtitle);
+  frameRatio->GetXaxis()->SetTitle("#bf{"+xtitle+"}");
   frameRatio->GetXaxis()->SetTitleSize(.12);
   frameRatio->GetXaxis()->SetTitleOffset(1);
 
-  frameRatio->GetYaxis()->SetTitle("data/MC");
-  frameRatio->GetYaxis()->SetNdivisions(10);
+  frameRatio->GetYaxis()->SetTitle("#bf{data/MC}");
+  frameRatio->GetYaxis()->SetNdivisions(8);
   frameRatio->GetYaxis()->SetTitleSize(.12);
   frameRatio->GetYaxis()->SetLabelSize(.09);
   frameRatio->GetXaxis()->SetLabelSize(.1);
@@ -296,16 +296,16 @@ void plotProfile::ratioStyle(){
   for(TString i : {"DYZMUMU","dataZMUMU","dataZEE","DYZEE"}) th1Hists[i]->Draw("e1p X0 same");
 
   TLegend *l = new TLegend(.15,.65,.37,.88);
-  l->AddEntry(th1Hists["dataZMUMU"], "Z #rightarrow #mu#mu data", "p");
-  l->AddEntry(th1Hists["DYZMUMU"], "Z #rightarrow #mu#mu simulation", "p");
   l->AddEntry(th1Hists["dataZEE"], "Z #rightarrow ee data", "p");
   l->AddEntry(th1Hists["DYZEE"], "Z #rightarrow ee simulation", "p");
+  l->AddEntry(th1Hists["dataZMUMU"], "Z #rightarrow #mu#mu data", "p");
+  l->AddEntry(th1Hists["DYZMUMU"], "Z #rightarrow #mu#mu simulation", "p");
   l->SetBorderSize(0);
   l->SetFillColor(0);
   l->SetTextSize(0.045);
   l->Draw("");
 
-  TLatex *tex = new TLatex(0.12,0.95,"#bf{CMS preliminary, #sqrt{s}=8 TeV, #scale[0.5]{#int}L=19.7 fb^{-1}}");
+  TLatex *tex = new TLatex(0.12,0.95,"#bf{CMS, #sqrt{s}=8 TeV, #scale[0.5]{#int}L=19.7 fb^{-1}}");
   tex->SetNDC();
   tex->SetTextFont(43);
   tex->SetTextSize(20);

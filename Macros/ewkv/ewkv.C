@@ -46,7 +46,7 @@
 #define ZMASS 91.1876
 
 // Cuts
-#define JETPT_RADPAT 30
+#define JETPT_RADPAT 40
 #define JET1PT 50
 #define JET2PT 30 
 #define JET3PT 15
@@ -55,7 +55,7 @@
 // Options
 #define TMVATAG "20140121_InclusiveDY_BDT"
 #define DYTYPE "composed"
-#define OUTPUTTAG "20140414_Fast_7var"
+#define OUTPUTTAG "20140424_Full"
 
 /*****************
  * Main function *
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]){
 
     cutFlowHandler* cutflows = new cutFlowHandler();
     for(auto it = samples->begin(); it != samples->end(); ++it){					//Loop over samples
-     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
+//     (*it)->useSkim(type, "20140115_Full");								//Use skimmed files to go faster
       ewkvAnalyzer *myAnalyzer = new ewkvAnalyzer(*it, outFile, OUTPUTTAG);				//Set up analyzer class for this sample
 //      myAnalyzer->makeTMVAtree();									//Use if TMVA input trees has to be remade
 //      myAnalyzer->makeSkimTree(); 									//Use if skimmed trees has to be remade
@@ -172,7 +172,7 @@ void ewkvAnalyzer::analyze_Zjets(){
     histos->fillHist1D("dilepton_eta", 		Z.Eta());
     histos->fillHist1D("dilepton_rapidity", 	Z.Rapidity());
     histos->fillHist1D("dilepton_phi", 	Z.Phi());
-    checkRadiationPattern(Z.Rapidity());
+    if(puMode == "") checkRadiationPattern(Z.Rapidity());
   
   
     // Set up parallel branches in the histograms/cutflow for JES and JER
@@ -454,6 +454,22 @@ void ewkvAnalyzer::analyze_Zjets(){
           if(jj.M() < 200) continue;			cutflow->track("$m_{jj} > 200$ GeV");
           if(Rpthard > 0.14) continue;			cutflow->track("$R(p_T^{\\mbox{hard}}) < 0.14$");
           if(fabs(ystarZ)> 1.2) continue;    		cutflow->track("$\\mid y^{*} \\mid < 1.2$");
+          saveWeight2();
+          for(TString stat : {"","Stat"}){
+            restoreWeight2();
+            if(branch != "" && stat != "") continue;
+            cutflow->setBranch(branch + stat);
+            if(stat == "Stat") setWeight(1);
+            if(mvaValue < 0.02) continue;    		cutflow->track("BDT $>$ 0.02");
+            if(mvaValue < 0.05) continue;    		cutflow->track("BDT $>$ 0.05");
+            if(mvaValue < 0.1) continue;    		cutflow->track("BDT $>$ 0.10");
+            if(mvaValue < 0.15) continue;    		cutflow->track("BDT $>$ 0.15");
+            if(mvaValue < 0.2) continue;    		cutflow->track("BDT $>$ 0.20");
+            if(mvaValue < 0.25) continue;    		cutflow->track("BDT $>$ 0.25");
+            if(mvaValue < 0.30) continue;    		cutflow->track("BDT $>$ 0.30");
+          }
+          restoreWeight2();
+          cutflow->setBranch(branch);
           if(jj.M() < 600) continue;    		cutflow->track("$m_{jj} > 600$ GeV");
           if(fabs(j1.Eta() - j2.Eta()) < 3.5) continue;	cutflow->track("$\\Delta\\eta_{jj} > 3.5$");
         }
@@ -511,11 +527,14 @@ void ewkvAnalyzer::checkRadiationPattern(double zRapidity){
   }
   if(nJets > 0) histos->fillProfileHist("nJets_vs_HT", 	HT, 	nJets);
   if(nJets > 1){
-    saveWeight();
-    mcfmReweighting(mjj, ystarZ);											// Use MCFM reweighting
     histos->fillProfileHist("nJets_vs_detajj", 		dEta, 	nJets);
     histos->fillProfileHist("cosdPhi_vs_HT", 		HT, 	cosDPhi);
     histos->fillProfileHist("cosdPhi_vs_detajj", 	dEta, 	cosDPhi);
+    saveWeight();
+    mcfmReweighting(mjj, ystarZ);											// Use MCFM reweighting
+    histos->fillProfileHist("nJets_vs_detajjmcfmUp", 	dEta, 	nJets);
+    histos->fillProfileHist("cosdPhi_vs_HTmcfmUp", 	HT, 	cosDPhi);
+    histos->fillProfileHist("cosdPhi_vs_detajjmcfmUp", 	dEta, 	cosDPhi);
     restoreWeight();													// Go back to normal event weight
   }
 }

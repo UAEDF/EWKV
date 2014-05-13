@@ -51,14 +51,31 @@ void cutFlowHandler::toLatex(TString fileName){
       double counts = cutflow->get(*trackPoint, "");
       double countsJESplus = cutflow->get(*trackPoint, "JESUp");
       double countsJESmin = cutflow->get(*trackPoint, "JESDown");
+      double countsStat = cutflow->get(*trackPoint, "Stat");
+      double statError = sqrt(countsStat)/countsStat*counts;
+
+      double systError = 0;
+      for(TString syst : {"JES","JER","QG","PU"}){
+        double systUp = cutflow->get(*trackPoint, syst + "Up");
+        double systDown = cutflow->get(*trackPoint, syst + "Down");
+        double systUp_ = (systUp == 0 ? 0 : fabs(counts - systUp));
+        double systDown_ = (systDown == 0 ? 0 : fabs(counts - systDown));
+        double syst = (systDown_ > systUp_ ? systDown_ : systUp_);
+        systError += (syst/counts)*(syst/counts);
+      }
+      systError = sqrt(systError)*counts;
 
       if(cutflow->getName() == "data") texstream << " & " << (counts);
       else {
         if(counts < 10){ texstream << std::setprecision(1); roundingUp = 0.05;}
         texstream << " & " << counts; 
+/*
         if(errors && ((countsJESplus-counts) != 0 || (counts-countsJESmin) != 0)){
           texstream << "$^{ +" << (countsJESplus-counts+roundingUp) << "}_{ -" << (counts-countsJESmin+roundingUp) << "}$"; 
         }
+*/
+        texstream << " +- " << (statError+roundingUp) << " +- " << (systError+roundingUp); 
+         
         if(counts < 10){ texstream << std::setprecision(0); roundingUp = 0.5;}
       }
     }
